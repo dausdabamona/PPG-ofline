@@ -1,19 +1,18 @@
 """
 Wilayah Page - Halaman manajemen wilayah hierarkis
-Daerah > Desa > Kelompok
+Daerah (Pengurus PPG) > Desa (5 Unsur) > Kelompok (5 Unsur)
 """
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QLabel, QMessageBox, QMenu, QFrame, QSplitter,
-    QFormLayout, QLineEdit, QComboBox, QGroupBox
+    QFormLayout, QGroupBox, QTableWidget, QTableWidgetItem, QTabWidget
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QColor
 from sqlalchemy.orm import Session
 
 from .base_page import BasePage
 from ..components.form_dialog import FormDialog
-from services import WilayahService
 from database.models import Wilayah
 from config import COLORS
 
@@ -21,19 +20,18 @@ from config import COLORS
 class WilayahPage(BasePage):
     """
     Halaman Manajemen Wilayah dengan Tree View
-    Struktur: Daerah > Desa > Kelompok
+    Struktur: Daerah (Pengurus PPG) > Desa (5 Unsur) > Kelompok (5 Unsur)
     """
 
     def __init__(self, session: Session, parent=None):
         super().__init__(session, parent)
-        self.wilayah_service = WilayahService(session)
-        self._selected_wilayah = None
+        self._selected_wilayah_id = None
         self._setup_ui()
 
     def _setup_ui(self):
         self.set_header(
             "Manajemen Wilayah",
-            "Kelola struktur wilayah: Daerah > Desa > Kelompok"
+            "Kelola struktur wilayah: Daerah (Pengurus PPG) > Desa (5 Unsur) > Kelompok (5 Unsur)"
         )
 
         # Main content with splitter
@@ -47,7 +45,7 @@ class WilayahPage(BasePage):
         # Tree toolbar
         tree_toolbar = QHBoxLayout()
 
-        add_daerah_btn = QPushButton("+ Daerah")
+        add_daerah_btn = QPushButton("+ Tambah Daerah")
         add_daerah_btn.setStyleSheet(f"background-color: {COLORS['primary']}; color: white; padding: 8px 16px;")
         add_daerah_btn.clicked.connect(lambda: self._on_add('daerah'))
         tree_toolbar.addWidget(add_daerah_btn)
@@ -61,21 +59,24 @@ class WilayahPage(BasePage):
 
         # Tree widget
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(['Nama Wilayah', 'Kode', 'Tingkat'])
-        self.tree.setColumnWidth(0, 250)
-        self.tree.setColumnWidth(1, 100)
+        self.tree.setHeaderLabels(['Nama Wilayah', 'Kode', 'Tingkat', 'Organisasi'])
+        self.tree.setColumnWidth(0, 200)
+        self.tree.setColumnWidth(1, 80)
+        self.tree.setColumnWidth(2, 80)
+        self.tree.setColumnWidth(3, 100)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._show_context_menu)
         self.tree.itemClicked.connect(self._on_item_selected)
+        self.tree.itemDoubleClicked.connect(self._on_item_double_clicked)
         self.tree.setAlternatingRowColors(True)
         left_layout.addWidget(self.tree)
 
         splitter.addWidget(left_panel)
 
-        # Right panel - Detail view
+        # Right panel - Detail view with tabs
         right_panel = QFrame()
         right_panel.setFrameStyle(QFrame.Shape.StyledPanel)
-        right_panel.setStyleSheet(f"background-color: {COLORS['surface']}; border-radius: 8px;")
+        right_panel.setStyleSheet(f"background-color: {COLORS['surface']};")
         right_layout = QVBoxLayout(right_panel)
 
         # Detail header
@@ -83,7 +84,13 @@ class WilayahPage(BasePage):
         self.detail_title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 10px;")
         right_layout.addWidget(self.detail_title)
 
-        # Detail info
+        # Tabs for info and organization
+        self.tabs = QTabWidget()
+
+        # Tab 1: Info Wilayah
+        info_tab = QWidget()
+        info_layout = QVBoxLayout(info_tab)
+
         detail_group = QGroupBox("Informasi Wilayah")
         detail_form = QFormLayout(detail_group)
 
@@ -93,6 +100,7 @@ class WilayahPage(BasePage):
         self.lbl_parent = QLabel("-")
         self.lbl_jumlah_anak = QLabel("-")
         self.lbl_jumlah_generus = QLabel("-")
+        self.lbl_organisasi = QLabel("-")
 
         detail_form.addRow("Kode:", self.lbl_kode)
         detail_form.addRow("Nama:", self.lbl_nama)
@@ -100,8 +108,9 @@ class WilayahPage(BasePage):
         detail_form.addRow("Parent:", self.lbl_parent)
         detail_form.addRow("Sub-Wilayah:", self.lbl_jumlah_anak)
         detail_form.addRow("Jumlah Generus:", self.lbl_jumlah_generus)
+        detail_form.addRow("Tipe Organisasi:", self.lbl_organisasi)
 
-        right_layout.addWidget(detail_group)
+        info_layout.addWidget(detail_group)
 
         # Action buttons
         action_layout = QHBoxLayout()
@@ -125,58 +134,144 @@ class WilayahPage(BasePage):
         action_layout.addWidget(self.btn_delete)
 
         action_layout.addStretch()
-        right_layout.addLayout(action_layout)
+        info_layout.addLayout(action_layout)
+        info_layout.addStretch()
 
-        right_layout.addStretch()
+        self.tabs.addTab(info_tab, "Info Wilayah")
+
+        # Tab 2: Struktur Organisasi
+        org_tab = QWidget()
+        org_layout = QVBoxLayout(org_tab)
+
+        self.org_title = QLabel("Struktur Organisasi")
+        self.org_title.setStyleSheet("font-size: 14px; font-weight: bold;")
+        org_layout.addWidget(self.org_title)
+
+        self.org_table = QTableWidget()
+        self.org_table.setColumnCount(3)
+        self.org_table.setHorizontalHeaderLabels(['Jabatan', 'Nama', 'Kontak'])
+        self.org_table.horizontalHeader().setStretchLastSection(True)
+        self.org_table.setAlternatingRowColors(True)
+        org_layout.addWidget(self.org_table)
+
+        self.tabs.addTab(org_tab, "Organisasi")
+
+        right_layout.addWidget(self.tabs)
         splitter.addWidget(right_panel)
 
         # Set splitter sizes
-        splitter.setSizes([400, 300])
+        splitter.setSizes([450, 350])
 
         self.add_widget(splitter)
 
     def refresh(self):
         """Load dan tampilkan tree wilayah"""
         self.tree.clear()
-        self._selected_wilayah = None
+        self._selected_wilayah_id = None
         self._update_detail_panel()
 
-        tree_data = self.wilayah_service.get_tree()
-        for node in tree_data:
-            self._add_tree_node(node, None)
+        try:
+            # Get all daerah (root)
+            daerah_list = self.session.query(Wilayah).filter(
+                Wilayah.tingkat == 'daerah',
+                Wilayah.is_aktif == True
+            ).order_by(Wilayah.nama).all()
 
-        self.tree.expandAll()
+            for daerah in daerah_list:
+                self._add_tree_node(daerah, None)
 
-    def _add_tree_node(self, node: dict, parent_item: QTreeWidgetItem):
+            self.tree.expandAll()
+        except Exception as e:
+            print(f"Error loading wilayah: {e}")
+
+    def _add_tree_node(self, wilayah: Wilayah, parent_item: QTreeWidgetItem):
         """Tambah node ke tree secara rekursif"""
         if parent_item:
             item = QTreeWidgetItem(parent_item)
         else:
             item = QTreeWidgetItem(self.tree)
 
-        item.setText(0, node['nama'])
-        item.setText(1, node.get('kode', ''))
-        item.setText(2, node['tingkat'].capitalize())
-        item.setData(0, Qt.ItemDataRole.UserRole, node)
+        item.setText(0, wilayah.nama)
+        item.setText(1, wilayah.kode or "")
+        item.setText(2, wilayah.tingkat.capitalize())
 
-        # Set icon/color based on tingkat
-        tingkat = node['tingkat']
+        # Set organisasi type
+        org_type = self._get_org_type(wilayah.tingkat)
+        item.setText(3, org_type)
+
+        # Store only ID
+        item.setData(0, Qt.ItemDataRole.UserRole, wilayah.id)
+
+        # Set color based on tingkat
+        if wilayah.tingkat == 'daerah':
+            item.setBackground(0, QColor('#d1fae5'))  # Light green
+        elif wilayah.tingkat == 'desa':
+            item.setBackground(0, QColor('#e0f2fe'))  # Light blue
+
+        # Add children
+        try:
+            children = self.session.query(Wilayah).filter(
+                Wilayah.parent_id == wilayah.id,
+                Wilayah.is_aktif == True
+            ).order_by(Wilayah.nama).all()
+
+            for child in children:
+                self._add_tree_node(child, item)
+        except Exception as e:
+            print(f"Error loading children: {e}")
+
+    def _get_org_type(self, tingkat: str) -> str:
+        """Get organization type based on tingkat"""
+        org_map = {
+            'daerah': 'Pengurus PPG',
+            'desa': '5 Unsur',
+            'kelompok': '5 Unsur'
+        }
+        return org_map.get(tingkat, '-')
+
+    def _get_org_structure(self, tingkat: str) -> list:
+        """Get organization structure based on tingkat"""
         if tingkat == 'daerah':
-            item.setBackground(0, COLORS['primary_light'] if hasattr(COLORS, 'get') else Qt.GlobalColor.transparent)
+            return [
+                ('Ketua', ''),
+                ('Wakil Ketua', ''),
+                ('Sekretaris', ''),
+                ('Bendahara', ''),
+                ('Koordinator Wilayah', ''),
+                ('Koordinator Kurikulum', ''),
+                ('Koordinator Sarana', ''),
+            ]
+        else:  # desa or kelompok - 5 Unsur
+            return [
+                ('Penanggung Jawab', ''),
+                ('Ketua', ''),
+                ('Sekretaris', ''),
+                ('Bendahara', ''),
+                ('Muballigh', ''),
+            ]
 
-        for child in node.get('children', []):
-            self._add_tree_node(child, item)
+    def _get_selected_wilayah(self):
+        """Get selected wilayah from database"""
+        if self._selected_wilayah_id:
+            return self.session.query(Wilayah).get(self._selected_wilayah_id)
+        return None
 
     def _on_item_selected(self, item: QTreeWidgetItem, column: int):
         """Handle item selection"""
-        node = item.data(0, Qt.ItemDataRole.UserRole)
-        if node:
-            self._selected_wilayah = self.wilayah_service.get_by_id(node['id'])
+        wilayah_id = item.data(0, Qt.ItemDataRole.UserRole)
+        if wilayah_id:
+            self._selected_wilayah_id = wilayah_id
             self._update_detail_panel()
+
+    def _on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
+        """Handle double click to edit"""
+        self._on_edit()
 
     def _update_detail_panel(self):
         """Update panel detail berdasarkan wilayah terpilih"""
-        if not self._selected_wilayah:
+        w = self._get_selected_wilayah()
+
+        if not w:
             self.detail_title.setText("Pilih Wilayah")
             self.lbl_kode.setText("-")
             self.lbl_nama.setText("-")
@@ -184,24 +279,29 @@ class WilayahPage(BasePage):
             self.lbl_parent.setText("-")
             self.lbl_jumlah_anak.setText("-")
             self.lbl_jumlah_generus.setText("-")
+            self.lbl_organisasi.setText("-")
             self.btn_add_child.setEnabled(False)
             self.btn_edit.setEnabled(False)
             self.btn_delete.setEnabled(False)
+            self.org_table.setRowCount(0)
             return
 
-        w = self._selected_wilayah
         self.detail_title.setText(w.nama)
         self.lbl_kode.setText(w.kode or "-")
         self.lbl_nama.setText(w.nama)
         self.lbl_tingkat.setText(w.tingkat.capitalize())
         self.lbl_parent.setText(w.parent.nama if w.parent else "-")
+        self.lbl_organisasi.setText(self._get_org_type(w.tingkat))
 
         # Count children
-        children = self.wilayah_service.get_children(w.id)
-        self.lbl_jumlah_anak.setText(str(len(children)))
+        children_count = self.session.query(Wilayah).filter(
+            Wilayah.parent_id == w.id,
+            Wilayah.is_aktif == True
+        ).count()
+        self.lbl_jumlah_anak.setText(str(children_count))
 
         # Count generus (from enrollments)
-        generus_count = len(w.enrollments) if hasattr(w, 'enrollments') else 0
+        generus_count = len(w.enrollments) if w.enrollments else 0
         self.lbl_jumlah_generus.setText(str(generus_count))
 
         # Enable/disable buttons
@@ -212,7 +312,23 @@ class WilayahPage(BasePage):
             self.btn_add_child.setText(f"+ Tambah {next_level}")
 
         self.btn_edit.setEnabled(True)
-        self.btn_delete.setEnabled(len(children) == 0)
+        self.btn_delete.setEnabled(children_count == 0)
+
+        # Update organization table
+        self._update_org_table(w.tingkat)
+
+    def _update_org_table(self, tingkat: str):
+        """Update organization structure table"""
+        org_structure = self._get_org_structure(tingkat)
+        self.org_table.setRowCount(len(org_structure))
+
+        org_type = self._get_org_type(tingkat)
+        self.org_title.setText(f"Struktur {org_type}")
+
+        for row, (jabatan, nama) in enumerate(org_structure):
+            self.org_table.setItem(row, 0, QTableWidgetItem(jabatan))
+            self.org_table.setItem(row, 1, QTableWidgetItem(nama))
+            self.org_table.setItem(row, 2, QTableWidgetItem(""))
 
     def _show_context_menu(self, position):
         """Show right-click context menu"""
@@ -220,98 +336,130 @@ class WilayahPage(BasePage):
         if not item:
             return
 
-        node = item.data(0, Qt.ItemDataRole.UserRole)
-        if not node:
+        wilayah_id = item.data(0, Qt.ItemDataRole.UserRole)
+        if not wilayah_id:
             return
+
+        wilayah = self.session.query(Wilayah).get(wilayah_id)
+        if not wilayah:
+            return
+
+        self._selected_wilayah_id = wilayah_id
 
         menu = QMenu()
 
         # Add child action
-        if node['tingkat'] in ['daerah', 'desa']:
-            next_level = 'Desa' if node['tingkat'] == 'daerah' else 'Kelompok'
+        if wilayah.tingkat in ['daerah', 'desa']:
+            next_level = 'Desa' if wilayah.tingkat == 'daerah' else 'Kelompok'
             add_action = QAction(f"Tambah {next_level}", self)
-            add_action.triggered.connect(lambda: self._on_add_child_for(node))
+            add_action.triggered.connect(lambda: self._on_add(
+                'desa' if wilayah.tingkat == 'daerah' else 'kelompok',
+                wilayah.id
+            ))
             menu.addAction(add_action)
 
         # Edit action
         edit_action = QAction("Edit", self)
-        edit_action.triggered.connect(lambda: self._on_edit_for(node))
+        edit_action.triggered.connect(self._on_edit)
         menu.addAction(edit_action)
 
         # Delete action
         delete_action = QAction("Hapus", self)
-        delete_action.triggered.connect(lambda: self._on_delete_for(node))
+        delete_action.triggered.connect(self._on_delete)
         menu.addAction(delete_action)
 
         menu.exec(self.tree.mapToGlobal(position))
 
     def _on_add(self, tingkat: str, parent_id: int = None):
         """Tambah wilayah baru"""
-        tingkat_label = {'daerah': 'Daerah', 'desa': 'Desa', 'kelompok': 'Kelompok'}
+        tingkat_label = {
+            'daerah': 'Daerah (Pengurus PPG)',
+            'desa': 'Desa (5 Unsur)',
+            'kelompok': 'Kelompok (5 Unsur)'
+        }
 
         fields = [
-            {'key': 'kode', 'label': 'Kode', 'type': 'text', 'required': True, 'max_length': 50},
-            {'key': 'nama', 'label': 'Nama', 'type': 'text', 'required': True, 'max_length': 100},
+            {'key': 'kode', 'label': 'Kode Wilayah', 'type': 'text', 'required': True,
+             'max_length': 20, 'placeholder': 'Contoh: SRG-01'},
+            {'key': 'nama', 'label': 'Nama Wilayah', 'type': 'text', 'required': True,
+             'max_length': 100, 'placeholder': 'Nama wilayah'},
         ]
 
         dialog = FormDialog(f"Tambah {tingkat_label.get(tingkat, tingkat)}", fields, parent=self)
 
         if dialog.exec():
             data = dialog.get_data()
-            data['tingkat'] = tingkat
-            data['parent_id'] = parent_id
 
             try:
-                self.wilayah_service.create_with_validation(data)
+                # Check kode uniqueness
+                existing = self.session.query(Wilayah).filter(
+                    Wilayah.kode == data['kode']
+                ).first()
+                if existing:
+                    QMessageBox.warning(self, "Validasi Gagal", f"Kode '{data['kode']}' sudah digunakan!")
+                    return
+
+                wilayah = Wilayah(
+                    kode=data['kode'],
+                    nama=data['nama'],
+                    tingkat=tingkat,
+                    parent_id=parent_id
+                )
+                self.session.add(wilayah)
                 self.session.commit()
                 self.refresh()
-                QMessageBox.information(self, "Sukses", f"{tingkat_label.get(tingkat)} berhasil ditambahkan!")
-            except ValueError as e:
-                QMessageBox.warning(self, "Validasi Gagal", str(e))
+                QMessageBox.information(self, "Sukses", f"{tingkat.capitalize()} berhasil ditambahkan!")
             except Exception as e:
                 self.session.rollback()
                 QMessageBox.critical(self, "Error", f"Gagal menyimpan: {str(e)}")
 
     def _on_add_child(self):
         """Tambah sub-wilayah dari selected"""
-        if not self._selected_wilayah:
+        w = self._get_selected_wilayah()
+        if not w:
             return
 
         tingkat_map = {'daerah': 'desa', 'desa': 'kelompok'}
-        new_tingkat = tingkat_map.get(self._selected_wilayah.tingkat)
+        new_tingkat = tingkat_map.get(w.tingkat)
         if new_tingkat:
-            self._on_add(new_tingkat, self._selected_wilayah.id)
-
-    def _on_add_child_for(self, node: dict):
-        """Tambah sub-wilayah dari context menu"""
-        tingkat_map = {'daerah': 'desa', 'desa': 'kelompok'}
-        new_tingkat = tingkat_map.get(node['tingkat'])
-        if new_tingkat:
-            self._on_add(new_tingkat, node['id'])
+            self._on_add(new_tingkat, w.id)
 
     def _on_edit(self):
         """Edit selected wilayah"""
-        if self._selected_wilayah:
-            self._on_edit_for({'id': self._selected_wilayah.id})
-
-    def _on_edit_for(self, node: dict):
-        """Edit wilayah dari context menu"""
-        wilayah = self.wilayah_service.get_by_id(node['id'])
-        if not wilayah:
+        w = self._get_selected_wilayah()
+        if not w:
+            QMessageBox.warning(self, "Peringatan", "Pilih wilayah yang akan diedit!")
             return
 
+        tingkat_label = {
+            'daerah': 'Daerah (Pengurus PPG)',
+            'desa': 'Desa (5 Unsur)',
+            'kelompok': 'Kelompok (5 Unsur)'
+        }
+
         fields = [
-            {'key': 'kode', 'label': 'Kode', 'type': 'text', 'required': True, 'max_length': 50},
-            {'key': 'nama', 'label': 'Nama', 'type': 'text', 'required': True, 'max_length': 100},
+            {'key': 'kode', 'label': 'Kode Wilayah', 'type': 'text', 'required': True, 'max_length': 20},
+            {'key': 'nama', 'label': 'Nama Wilayah', 'type': 'text', 'required': True, 'max_length': 100},
         ]
 
-        data = {'kode': wilayah.kode, 'nama': wilayah.nama}
-        dialog = FormDialog(f"Edit {wilayah.tingkat.capitalize()}", fields, data=data, parent=self)
+        data = {'kode': w.kode, 'nama': w.nama}
+        dialog = FormDialog(f"Edit {tingkat_label.get(w.tingkat, w.tingkat)}", fields, data=data, parent=self)
 
         if dialog.exec():
             new_data = dialog.get_data()
             try:
-                self.wilayah_service.update(wilayah.id, new_data)
+                # Check kode uniqueness (exclude current)
+                if new_data['kode'] != w.kode:
+                    existing = self.session.query(Wilayah).filter(
+                        Wilayah.kode == new_data['kode'],
+                        Wilayah.id != w.id
+                    ).first()
+                    if existing:
+                        QMessageBox.warning(self, "Validasi Gagal", f"Kode '{new_data['kode']}' sudah digunakan!")
+                        return
+
+                w.kode = new_data['kode']
+                w.nama = new_data['nama']
                 self.session.commit()
                 self.refresh()
                 QMessageBox.information(self, "Sukses", "Wilayah berhasil diperbarui!")
@@ -321,18 +469,22 @@ class WilayahPage(BasePage):
 
     def _on_delete(self):
         """Delete selected wilayah"""
-        if self._selected_wilayah:
-            self._on_delete_for({'id': self._selected_wilayah.id, 'nama': self._selected_wilayah.nama})
+        w = self._get_selected_wilayah()
+        if not w:
+            QMessageBox.warning(self, "Peringatan", "Pilih wilayah yang akan dihapus!")
+            return
 
-    def _on_delete_for(self, node: dict):
-        """Delete wilayah dari context menu"""
         # Check children
-        children = self.wilayah_service.get_children(node['id'])
-        if children:
+        children_count = self.session.query(Wilayah).filter(
+            Wilayah.parent_id == w.id,
+            Wilayah.is_aktif == True
+        ).count()
+
+        if children_count > 0:
             QMessageBox.warning(
                 self,
                 "Tidak Dapat Menghapus",
-                f"Wilayah '{node['nama']}' masih memiliki {len(children)} sub-wilayah.\n"
+                f"Wilayah '{w.nama}' masih memiliki {children_count} sub-wilayah.\n"
                 "Hapus sub-wilayah terlebih dahulu."
             )
             return
@@ -340,14 +492,15 @@ class WilayahPage(BasePage):
         reply = QMessageBox.question(
             self,
             "Konfirmasi Hapus",
-            f"Yakin ingin menghapus wilayah '{node['nama']}'?",
+            f"Yakin ingin menghapus wilayah '{w.nama}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                self.wilayah_service.delete(node['id'])
+                w.is_aktif = False
                 self.session.commit()
+                self._selected_wilayah_id = None
                 self.refresh()
                 QMessageBox.information(self, "Sukses", "Wilayah berhasil dihapus!")
             except Exception as e:
