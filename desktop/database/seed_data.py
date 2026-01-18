@@ -252,95 +252,9 @@ def seed_tahun_ajaran(session: Session):
 
 
 def seed_kurikulum(session: Session):
-    """Seed struktur kurikulum dasar"""
-    session.flush()
-
-    # Bidang Materi
-    bidang_data = [
-        {'nama': 'Al-Quran', 'urutan': 1},
-        {'nama': 'Hadits', 'urutan': 2},
-        {'nama': 'Aqidah', 'urutan': 3},
-        {'nama': 'Fiqih', 'urutan': 4},
-        {'nama': 'Akhlaq', 'urutan': 5},
-        {'nama': 'Doa Harian', 'urutan': 6},
-    ]
-
-    bidang_objs = {}
-    for data in bidang_data:
-        b = BidangMateri(**data)
-        session.add(b)
-        bidang_objs[data['nama']] = b
-
-    session.flush()
-
-    # Kategori dan Materi untuk Al-Quran
-    alquran = bidang_objs['Al-Quran']
-
-    # Kategori: Juz Amma
-    juz_amma = KategoriMateri(
-        bidang_id=alquran.id,
-        nama='Juz Amma (Juz 30)',
-        kode='JUZ30',
-        urutan=1
-    )
-    session.add(juz_amma)
-    session.flush()
-
-    # Surah-surah dalam Juz Amma (sebagian)
-    surah_juz_amma = [
-        ('An-Naba', '78'), ('An-Naziat', '79'), ('Abasa', '80'),
-        ('At-Takwir', '81'), ('Al-Infitar', '82'), ('Al-Muthaffifin', '83'),
-        ('Al-Insyiqaq', '84'), ('Al-Buruj', '85'), ('At-Tariq', '86'),
-        ('Al-Ala', '87'), ('Al-Ghasyiyah', '88'), ('Al-Fajr', '89'),
-        ('Al-Balad', '90'), ('Asy-Syams', '91'), ('Al-Lail', '92'),
-        ('Ad-Duha', '93'), ('Asy-Syarh', '94'), ('At-Tin', '95'),
-        ('Al-Alaq', '96'), ('Al-Qadr', '97'), ('Al-Bayyinah', '98'),
-        ('Az-Zalzalah', '99'), ('Al-Adiyat', '100'), ('Al-Qariah', '101'),
-        ('At-Takasur', '102'), ('Al-Asr', '103'), ('Al-Humazah', '104'),
-        ('Al-Fil', '105'), ('Quraisy', '106'), ('Al-Maun', '107'),
-        ('Al-Kausar', '108'), ('Al-Kafirun', '109'), ('An-Nasr', '110'),
-        ('Al-Lahab', '111'), ('Al-Ikhlas', '112'), ('Al-Falaq', '113'),
-        ('An-Nas', '114'),
-    ]
-
-    for nama, nomor in surah_juz_amma:
-        session.add(MateriItem(
-            kategori_id=juz_amma.id,
-            nama=f'Surah {nama}',
-            nomor=nomor,
-            tipe='hafalan'
-        ))
-
-    # Kategori Doa Harian
-    doa = bidang_objs['Doa Harian']
-    doa_kat = KategoriMateri(
-        bidang_id=doa.id,
-        nama='Doa Sehari-hari',
-        kode='DOA',
-        urutan=1
-    )
-    session.add(doa_kat)
-    session.flush()
-
-    doa_list = [
-        'Doa Sebelum Makan', 'Doa Sesudah Makan',
-        'Doa Sebelum Tidur', 'Doa Bangun Tidur',
-        'Doa Masuk Masjid', 'Doa Keluar Masjid',
-        'Doa Masuk Rumah', 'Doa Keluar Rumah',
-        'Doa Masuk Kamar Mandi', 'Doa Keluar Kamar Mandi',
-        'Doa Bercermin', 'Doa Memakai Pakaian',
-        'Doa Kedua Orang Tua', 'Doa Kebaikan Dunia Akhirat',
-    ]
-
-    for i, nama in enumerate(doa_list, 1):
-        session.add(MateriItem(
-            kategori_id=doa_kat.id,
-            nama=nama,
-            nomor=str(i),
-            tipe='hafalan'
-        ))
-
-    print(f"  - Kurikulum dasar ditambahkan ({len(surah_juz_amma)} surah, {len(doa_list)} doa)")
+    """Seed struktur kurikulum lengkap PPG"""
+    from .seed_kurikulum import seed_kurikulum as seed_kurikulum_lengkap
+    seed_kurikulum_lengkap(session)
 
 
 def seed_wilayah_contoh(session: Session):
