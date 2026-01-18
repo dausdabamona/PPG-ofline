@@ -12,6 +12,10 @@ from sqlalchemy.orm import Session
 from .components.sidebar import Sidebar
 from .pages.dashboard_page import DashboardPage
 from .pages.generus_page import GenerusPage
+from .pages.wilayah_page import WilayahPage
+from .pages.kurikulum_page import KurikulumPage
+from .pages.pengajian_page import PengajianPage
+from .pages.presensi_page import PresensiPage
 from .pages.base_page import BasePage
 from .styles.theme import MAIN_STYLESHEET
 from config import APP_NAME, APP_VERSION, COLORS, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT
@@ -95,13 +99,25 @@ class MainWindow(QMainWindow):
         self._pages['generus'] = GenerusPage(self.session)
         self.content.addWidget(self._pages['generus'])
 
+        # Wilayah
+        self._pages['wilayah'] = WilayahPage(self.session)
+        self.content.addWidget(self._pages['wilayah'])
+
+        # Kurikulum
+        self._pages['kurikulum'] = KurikulumPage(self.session)
+        self.content.addWidget(self._pages['kurikulum'])
+
+        # Pengajian
+        self._pages['pengajian'] = PengajianPage(self.session)
+        self.content.addWidget(self._pages['pengajian'])
+
+        # Presensi
+        self._pages['presensi'] = PresensiPage(self.session)
+        self.content.addWidget(self._pages['presensi'])
+
         # Placeholder pages for others
         placeholders = [
-            ('pengajian', 'Pengajian'),
-            ('presensi', 'Presensi'),
             ('penilaian', 'Penilaian'),
-            ('kurikulum', 'Kurikulum'),
-            ('wilayah', 'Wilayah'),
             ('laporan', 'Laporan'),
             ('sync', 'Sinkronisasi'),
             ('settings', 'Pengaturan'),
