@@ -52,13 +52,15 @@ SIDEBAR_WIDTH = 250
 # Theme Colors (Tailwind-inspired)
 COLORS = {
     'primary': '#059669',       # Emerald-600
-    'primary_dark': '#047857', # Emerald-700
+    'primary_dark': '#047857',  # Emerald-700
     'primary_light': '#10b981', # Emerald-500
     'secondary': '#1f2937',     # Gray-800
     'background': '#f3f4f6',    # Gray-100
     'surface': '#ffffff',       # White
+    'bg_tertiary': '#f9fafb',   # Gray-50
     'text_primary': '#111827',  # Gray-900
     'text_secondary': '#6b7280', # Gray-500
+    'text_disabled': '#9ca3af', # Gray-400
     'border': '#e5e7eb',        # Gray-200
     'error': '#dc2626',         # Red-600
     'warning': '#f59e0b',       # Amber-500
