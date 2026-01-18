@@ -138,7 +138,7 @@ class PengaturanPage(BasePage):
         # Tab 4: Pengaturan Umum
         tabs.addTab(self._create_settings_tab(), "Pengaturan Umum")
 
-        self.content_layout.addWidget(tabs)
+        self.add_widget(tabs)
 
     def _create_export_tab(self) -> QWidget:
         """Create export tab"""
