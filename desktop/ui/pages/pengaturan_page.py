@@ -756,13 +756,13 @@ class PengaturanPage(BasePage):
 
         try:
             sync_service = SyncService(self.session)
-            success = sync_service.create_backup(filepath)
+            output_path = sync_service.export_backup(filepath)
 
-            if success:
+            if output_path:
                 QMessageBox.information(
                     self,
                     "Backup Berhasil",
-                    f"Database berhasil dibackup ke:\n{filepath}\n\n"
+                    f"Database berhasil dibackup ke:\n{output_path}\n\n"
                     "File ini bisa dikirim via WhatsApp untuk sync."
                 )
             else:
@@ -798,18 +798,24 @@ class PengaturanPage(BasePage):
         try:
             from services.sync_service import SyncService
             sync_service = SyncService(self.session)
-            success = sync_service.restore_backup(filepath)
+            result = sync_service.import_backup(filepath, merge_strategy='replace')
 
-            if success:
+            if result and not result.get('errors'):
+                # Build summary
+                summary = "Database berhasil di-restore!\n\n"
+                for table, stats in result.get('tables', {}).items():
+                    total = stats.get('inserted', 0) + stats.get('updated', 0)
+                    if total > 0:
+                        summary += f"- {table}: {total} data\n"
+
                 QMessageBox.information(
                     self,
                     "Restore Berhasil",
-                    "Database berhasil di-restore.\n\n"
-                    "Aplikasi akan di-restart."
+                    summary
                 )
-                # TODO: Restart application
             else:
-                QMessageBox.warning(self, "Restore Gagal", "Terjadi kesalahan saat restore.")
+                errors = result.get('errors', []) if result else ['Unknown error']
+                QMessageBox.warning(self, "Restore Gagal", f"Errors: {errors[:3]}")
         except Exception as e:
             QMessageBox.warning(self, "Restore Gagal", f"Error: {str(e)}")
 
