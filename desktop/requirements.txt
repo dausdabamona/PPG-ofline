@@ -28,5 +28,5 @@ python-lzma>=0.5.3
 # Password hashing
 bcrypt>=4.1.1
 
-# UUID generation
-uuid>=1.30
+# Build Tools (development)
+pyinstaller>=6.0.0
