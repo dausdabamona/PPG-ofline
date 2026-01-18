@@ -8,6 +8,8 @@ from .wilayah_page import WilayahPage
 from .kurikulum_page import KurikulumPage
 from .pengajian_page import PengajianPage
 from .presensi_page import PresensiPage
+from .penilaian_page import PenilaianPage
+from .laporan_page import LaporanPage
 from .pengaturan_page import PengaturanPage
 
 __all__ = [
@@ -18,5 +20,7 @@ __all__ = [
     'KurikulumPage',
     'PengajianPage',
     'PresensiPage',
+    'PenilaianPage',
+    'LaporanPage',
     'PengaturanPage',
 ]

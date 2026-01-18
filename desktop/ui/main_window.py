@@ -16,6 +16,8 @@ from .pages.wilayah_page import WilayahPage
 from .pages.kurikulum_page import KurikulumPage
 from .pages.pengajian_page import PengajianPage
 from .pages.presensi_page import PresensiPage
+from .pages.penilaian_page import PenilaianPage
+from .pages.laporan_page import LaporanPage
 from .pages.pengaturan_page import PengaturanPage
 from .pages.base_page import BasePage
 from .styles.theme import MAIN_STYLESHEET
@@ -116,14 +118,20 @@ class MainWindow(QMainWindow):
         self._pages['presensi'] = PresensiPage(self.session)
         self.content.addWidget(self._pages['presensi'])
 
+        # Penilaian
+        self._pages['penilaian'] = PenilaianPage(self.session)
+        self.content.addWidget(self._pages['penilaian'])
+
+        # Laporan
+        self._pages['laporan'] = LaporanPage(self.session)
+        self.content.addWidget(self._pages['laporan'])
+
         # Pengaturan (Import/Export Excel)
         self._pages['settings'] = PengaturanPage(self.session)
         self.content.addWidget(self._pages['settings'])
 
-        # Placeholder pages for others
+        # Placeholder page for sync (akan diimplementasi saat mobile app)
         placeholders = [
-            ('penilaian', 'Penilaian'),
-            ('laporan', 'Laporan'),
             ('sync', 'Sinkronisasi'),
         ]
 
