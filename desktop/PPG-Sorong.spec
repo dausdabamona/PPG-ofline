@@ -2,42 +2,49 @@
 """
 PyInstaller Spec File untuk PPG Sorong Desktop
 """
-
-import sys
-import os
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
-# Path ke folder proyek
-BASE_PATH = os.path.dirname(os.path.abspath(SPEC))
+# Collect semua PyQt6 modules
+pyqt6_hiddenimports = collect_submodules('PyQt6')
+
+# Collect PyQt6 data files
+pyqt6_datas = collect_data_files('PyQt6', include_py_files=True)
 
 a = Analysis(
     ['main.py'],
-    pathex=[BASE_PATH],
+    pathex=[],
     binaries=[],
-    datas=[
-        ('assets', 'assets'),  # Include assets folder
-    ],
+    datas=pyqt6_datas,
     hiddenimports=[
+        *pyqt6_hiddenimports,
         'PyQt6.QtCore',
         'PyQt6.QtWidgets',
         'PyQt6.QtGui',
         'PyQt6.sip',
+        'sqlalchemy',
         'sqlalchemy.dialects.sqlite',
         'sqlalchemy.sql.default_comparator',
+        'sqlalchemy.orm',
+        'sqlalchemy.ext.declarative',
         'bcrypt',
         'bcrypt._bcrypt',
+        'PIL',
+        'PIL._tkinter_finder',
+        'reportlab',
+        'reportlab.graphics',
+        'openpyxl',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
+        'tkinter',
         'matplotlib',
         'numpy',
         'pandas',
         'scipy',
-        'tkinter',
-        'PIL',
         'cv2',
         'torch',
         'tensorflow',
@@ -61,14 +68,13 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,  # Compress dengan UPX
+    upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # Windowed mode (no console)
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon='assets/icons/app.ico',  # Uncomment jika ada icon
 )
