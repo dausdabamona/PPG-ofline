@@ -16,6 +16,7 @@ from .pages.wilayah_page import WilayahPage
 from .pages.kurikulum_page import KurikulumPage
 from .pages.pengajian_page import PengajianPage
 from .pages.presensi_page import PresensiPage
+from .pages.pengaturan_page import PengaturanPage
 from .pages.base_page import BasePage
 from .styles.theme import MAIN_STYLESHEET
 from config import APP_NAME, APP_VERSION, COLORS, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT
@@ -115,12 +116,15 @@ class MainWindow(QMainWindow):
         self._pages['presensi'] = PresensiPage(self.session)
         self.content.addWidget(self._pages['presensi'])
 
+        # Pengaturan (Import/Export Excel)
+        self._pages['settings'] = PengaturanPage(self.session)
+        self.content.addWidget(self._pages['settings'])
+
         # Placeholder pages for others
         placeholders = [
             ('penilaian', 'Penilaian'),
             ('laporan', 'Laporan'),
             ('sync', 'Sinkronisasi'),
-            ('settings', 'Pengaturan'),
         ]
 
         for key, title in placeholders:

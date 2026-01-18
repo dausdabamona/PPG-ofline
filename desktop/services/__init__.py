@@ -10,6 +10,7 @@ from .presensi_service import PresensiService
 from .penilaian_service import ProgressService, PenilaianAkhlaqService
 from .user_service import UserService, RoleService
 from .sync_service import SyncService
+from .excel_service import ExcelService
 
 __all__ = [
     'BaseService',
@@ -27,4 +28,5 @@ __all__ = [
     'UserService',
     'RoleService',
     'SyncService',
+    'ExcelService',
 ]
