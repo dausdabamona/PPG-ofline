@@ -1,296 +1,441 @@
 """
-Seed Data Kurikulum PPG
-Berdasarkan kurikulum standar Pendidikan Pengajian Generus
+Seed Data Kurikulum PPG Sorong
+Berdasarkan dokumen Laporan Lengkap Proyek PPG Sorong
+Struktur: Pilar Tri-Sukses > Bidang > Kategori > Materi Item
 """
 
-# Bidang Materi PPG
+# ============================================================
+# BIDANG MATERI PPG (5 Bidang)
+# ============================================================
 BIDANG_MATERI = [
-    {'nama': 'Al-Quran', 'urutan': 1},
-    {'nama': 'Hadits', 'urutan': 2},
-    {'nama': 'Aqidah', 'urutan': 3},
-    {'nama': 'Akhlaq', 'urutan': 4},
-    {'nama': 'Fiqih', 'urutan': 5},
-    {'nama': 'Tarikh', 'urutan': 6},
-    {'nama': 'Doa Harian', 'urutan': 7},
+    {'nama': 'Alim', 'urutan': 1, 'deskripsi': 'Hafalan dan keilmuan dasar (surat, doa, dalil, tajwid)'},
+    {'nama': 'Faqih', 'urutan': 2, 'deskripsi': 'Pemahaman dan praktek ibadah'},
+    {'nama': 'Akhlaq', 'urutan': 3, 'deskripsi': 'Adab, tatakrama, dan 6 Thobiat Luhur'},
+    {'nama': 'Kemandirian', 'urutan': 4, 'deskripsi': 'Keterampilan hidup dan ASAD Beladiri'},
+    {'nama': 'Keaktifan', 'urutan': 5, 'deskripsi': 'Kehadiran dan partisipasi pengajian'},
 ]
 
-# Kategori Materi per Bidang
+# ============================================================
+# KATEGORI MATERI per BIDANG
+# ============================================================
 KATEGORI_MATERI = {
-    'Al-Quran': [
-        {'kode': 'JUZ30', 'nama': 'Juz 30 (Juz Amma)', 'urutan': 1},
-        {'kode': 'JUZ29', 'nama': 'Juz 29', 'urutan': 2},
-        {'kode': 'JUZ28', 'nama': 'Juz 28', 'urutan': 3},
-        {'kode': 'TAJWID', 'nama': 'Tajwid', 'urutan': 4},
-        {'kode': 'TAHSIN', 'nama': 'Tahsin', 'urutan': 5},
+    'Alim': [
+        {'kode': 'ALM-IQR', 'nama': 'Iqro/Tilawaty', 'urutan': 1, 'tipe': 'hafalan'},
+        {'kode': 'ALM-MKQ', 'nama': 'Makna Quran', 'urutan': 2, 'tipe': 'hafalan'},
+        {'kode': 'ALM-MKH', 'nama': 'Makna Hadits', 'urutan': 3, 'tipe': 'hafalan'},
+        {'kode': 'ALM-HFS', 'nama': 'Hafalan Surat', 'urutan': 4, 'tipe': 'hafalan'},
+        {'kode': 'ALM-HDG', 'nama': 'Hafalan Doa GBMTPG', 'urutan': 5, 'tipe': 'hafalan'},
+        {'kode': 'ALM-HDS', 'nama': 'Hafalan Doa Generus Sorong', 'urutan': 6, 'tipe': 'hafalan'},
+        {'kode': 'ALM-HDL', 'nama': 'Hafalan Dalil GBMTPG', 'urutan': 7, 'tipe': 'hafalan'},
+        {'kode': 'ALM-HDD', 'nama': 'Hafalan Dalil Generus Sorong', 'urutan': 8, 'tipe': 'hafalan'},
+        {'kode': 'ALM-KLM', 'nama': 'Keilmuan GBMTPG', 'urutan': 9, 'tipe': 'checklist'},
+        {'kode': 'ALM-TJW', 'nama': 'Tajwid', 'urutan': 10, 'tipe': 'checklist'},
+        {'kode': 'ALM-TDR', 'nama': 'Tadarus Al-Quran', 'urutan': 11, 'tipe': 'hafalan'},
+        {'kode': 'ALM-KBC', 'nama': 'Kualitas Bacaan', 'urutan': 12, 'tipe': 'level'},
+        {'kode': 'ALM-PGN', 'nama': 'Praktek Pegon', 'urutan': 13, 'tipe': 'level'},
     ],
-    'Hadits': [
-        {'kode': 'HAD-ARBAIN', 'nama': 'Hadits Arbain Nawawi', 'urutan': 1},
-        {'kode': 'HAD-PILIHAN', 'nama': 'Hadits Pilihan', 'urutan': 2},
-        {'kode': 'HAD-ADAB', 'nama': 'Hadits Adab', 'urutan': 3},
-    ],
-    'Aqidah': [
-        {'kode': 'AQD-IMAN', 'nama': 'Rukun Iman', 'urutan': 1},
-        {'kode': 'AQD-ISLAM', 'nama': 'Rukun Islam', 'urutan': 2},
-        {'kode': 'AQD-IHSAN', 'nama': 'Ihsan', 'urutan': 3},
+    'Faqih': [
+        {'kode': 'FQH-KFH', 'nama': 'Kefahaman Agama GBMTPG', 'urutan': 1, 'tipe': 'checklist'},
+        {'kode': 'FQH-PIB', 'nama': 'Praktek Ibadah GBMTPG', 'urutan': 2, 'tipe': 'checklist'},
+        {'kode': 'FQH-PWS', 'nama': 'Praktek Wudhu Sholat', 'urutan': 3, 'tipe': 'level'},
+        {'kode': 'FQH-4TK', 'nama': '4 Tali Keimanan', 'urutan': 4, 'tipe': 'level'},
+        {'kode': 'FQH-NBP', 'nama': 'Nasehat Bernomor BPI', 'urutan': 5, 'tipe': 'hafalan'},
+        {'kode': 'FQH-PJZ', 'nama': 'Praktek Perawatan Jenazah', 'urutan': 6, 'tipe': 'level'},
     ],
     'Akhlaq': [
-        {'kode': 'AKH-MAHMUDAH', 'nama': 'Akhlaq Mahmudah', 'urutan': 1},
-        {'kode': 'AKH-MAZMUMAH', 'nama': 'Akhlaq Mazmumah', 'urutan': 2},
-        {'kode': 'AKH-ADAB', 'nama': 'Adab Islami', 'urutan': 3},
+        {'kode': 'AKH-6TL', 'nama': '6 Thobiat Luhur', 'urutan': 1, 'tipe': 'level'},
+        {'kode': 'AKH-ADB', 'nama': 'Adab/Tatakrama', 'urutan': 2, 'tipe': 'checklist'},
     ],
-    'Fiqih': [
-        {'kode': 'FIQ-THAHARAH', 'nama': 'Thaharah (Bersuci)', 'urutan': 1},
-        {'kode': 'FIQ-SHALAT', 'nama': 'Shalat', 'urutan': 2},
-        {'kode': 'FIQ-PUASA', 'nama': 'Puasa', 'urutan': 3},
-        {'kode': 'FIQ-ZAKAT', 'nama': 'Zakat', 'urutan': 4},
-        {'kode': 'FIQ-HAJI', 'nama': 'Haji & Umrah', 'urutan': 5},
-        {'kode': 'FIQ-MUAMALAH', 'nama': 'Muamalah', 'urutan': 6},
+    'Kemandirian': [
+        {'kode': 'KMD-GBM', 'nama': 'Kemandirian GBMTPG', 'urutan': 1, 'tipe': 'checklist'},
+        {'kode': 'KMD-ASD', 'nama': 'ASAD Beladiri', 'urutan': 2, 'tipe': 'level'},
     ],
-    'Tarikh': [
-        {'kode': 'TAR-NABI', 'nama': 'Sirah Nabawiyah', 'urutan': 1},
-        {'kode': 'TAR-SAHABAT', 'nama': 'Kisah Sahabat', 'urutan': 2},
-        {'kode': 'TAR-ANBIYA', 'nama': 'Kisah Para Nabi', 'urutan': 3},
-    ],
-    'Doa Harian': [
-        {'kode': 'DOA-HARIAN', 'nama': 'Doa Sehari-hari', 'urutan': 1},
-        {'kode': 'DOA-SHALAT', 'nama': 'Doa dalam Shalat', 'urutan': 2},
-        {'kode': 'DZIKIR', 'nama': 'Dzikir & Wirid', 'urutan': 3},
+    'Keaktifan': [
+        {'kode': 'KAK-BLN', 'nama': 'Keaktifan Bulanan', 'urutan': 1, 'tipe': 'hafalan'},
     ],
 }
 
-# Materi Item - Juz 30 (Juz Amma) - 37 Surat
-MATERI_JUZ_30 = [
-    {'nomor': 1, 'nama': 'An-Naba (78)', 'tipe': 'hafalan'},
-    {'nomor': 2, 'nama': 'An-Naziat (79)', 'tipe': 'hafalan'},
-    {'nomor': 3, 'nama': 'Abasa (80)', 'tipe': 'hafalan'},
-    {'nomor': 4, 'nama': 'At-Takwir (81)', 'tipe': 'hafalan'},
-    {'nomor': 5, 'nama': 'Al-Infitar (82)', 'tipe': 'hafalan'},
-    {'nomor': 6, 'nama': 'Al-Mutaffifin (83)', 'tipe': 'hafalan'},
-    {'nomor': 7, 'nama': 'Al-Insyiqaq (84)', 'tipe': 'hafalan'},
-    {'nomor': 8, 'nama': 'Al-Buruj (85)', 'tipe': 'hafalan'},
-    {'nomor': 9, 'nama': 'At-Tariq (86)', 'tipe': 'hafalan'},
-    {'nomor': 10, 'nama': 'Al-Ala (87)', 'tipe': 'hafalan'},
-    {'nomor': 11, 'nama': 'Al-Ghasyiyah (88)', 'tipe': 'hafalan'},
-    {'nomor': 12, 'nama': 'Al-Fajr (89)', 'tipe': 'hafalan'},
-    {'nomor': 13, 'nama': 'Al-Balad (90)', 'tipe': 'hafalan'},
-    {'nomor': 14, 'nama': 'Asy-Syams (91)', 'tipe': 'hafalan'},
-    {'nomor': 15, 'nama': 'Al-Lail (92)', 'tipe': 'hafalan'},
-    {'nomor': 16, 'nama': 'Ad-Duha (93)', 'tipe': 'hafalan'},
-    {'nomor': 17, 'nama': 'Al-Insyirah (94)', 'tipe': 'hafalan'},
-    {'nomor': 18, 'nama': 'At-Tin (95)', 'tipe': 'hafalan'},
-    {'nomor': 19, 'nama': 'Al-Alaq (96)', 'tipe': 'hafalan'},
-    {'nomor': 20, 'nama': 'Al-Qadr (97)', 'tipe': 'hafalan'},
-    {'nomor': 21, 'nama': 'Al-Bayyinah (98)', 'tipe': 'hafalan'},
-    {'nomor': 22, 'nama': 'Az-Zalzalah (99)', 'tipe': 'hafalan'},
-    {'nomor': 23, 'nama': 'Al-Adiyat (100)', 'tipe': 'hafalan'},
-    {'nomor': 24, 'nama': 'Al-Qariah (101)', 'tipe': 'hafalan'},
-    {'nomor': 25, 'nama': 'At-Takatsur (102)', 'tipe': 'hafalan'},
-    {'nomor': 26, 'nama': 'Al-Asr (103)', 'tipe': 'hafalan'},
-    {'nomor': 27, 'nama': 'Al-Humazah (104)', 'tipe': 'hafalan'},
-    {'nomor': 28, 'nama': 'Al-Fil (105)', 'tipe': 'hafalan'},
-    {'nomor': 29, 'nama': 'Quraisy (106)', 'tipe': 'hafalan'},
-    {'nomor': 30, 'nama': 'Al-Maun (107)', 'tipe': 'hafalan'},
-    {'nomor': 31, 'nama': 'Al-Kautsar (108)', 'tipe': 'hafalan'},
-    {'nomor': 32, 'nama': 'Al-Kafirun (109)', 'tipe': 'hafalan'},
-    {'nomor': 33, 'nama': 'An-Nasr (110)', 'tipe': 'hafalan'},
-    {'nomor': 34, 'nama': 'Al-Lahab (111)', 'tipe': 'hafalan'},
-    {'nomor': 35, 'nama': 'Al-Ikhlas (112)', 'tipe': 'hafalan'},
-    {'nomor': 36, 'nama': 'Al-Falaq (113)', 'tipe': 'hafalan'},
-    {'nomor': 37, 'nama': 'An-Nas (114)', 'tipe': 'hafalan'},
+# ============================================================
+# MATERI ITEM - HAFALAN SURAT (Juz 30 / Juz Amma - 37 Surat)
+# ============================================================
+MATERI_HAFALAN_SURAT = [
+    # Surat pendek yang biasa dihafal (urut dari belakang)
+    {'nomor': 1, 'nama': 'Al-Fatihah (1)', 'tipe': 'hafalan', 'ayat': 7, 'tempat': 'Makkah'},
+    {'nomor': 2, 'nama': 'An-Nas (114)', 'tipe': 'hafalan', 'ayat': 6, 'tempat': 'Madinah'},
+    {'nomor': 3, 'nama': 'Al-Falaq (113)', 'tipe': 'hafalan', 'ayat': 5, 'tempat': 'Madinah'},
+    {'nomor': 4, 'nama': 'Al-Ikhlas (112)', 'tipe': 'hafalan', 'ayat': 4, 'tempat': 'Makkah'},
+    {'nomor': 5, 'nama': 'Al-Lahab (111)', 'tipe': 'hafalan', 'ayat': 5, 'tempat': 'Makkah'},
+    {'nomor': 6, 'nama': 'An-Nasr (110)', 'tipe': 'hafalan', 'ayat': 3, 'tempat': 'Madinah'},
+    {'nomor': 7, 'nama': 'Al-Kafirun (109)', 'tipe': 'hafalan', 'ayat': 6, 'tempat': 'Makkah'},
+    {'nomor': 8, 'nama': 'Al-Kautsar (108)', 'tipe': 'hafalan', 'ayat': 3, 'tempat': 'Makkah'},
+    {'nomor': 9, 'nama': 'Al-Maun (107)', 'tipe': 'hafalan', 'ayat': 7, 'tempat': 'Makkah'},
+    {'nomor': 10, 'nama': 'Quraisy (106)', 'tipe': 'hafalan', 'ayat': 4, 'tempat': 'Makkah'},
+    {'nomor': 11, 'nama': 'Al-Fil (105)', 'tipe': 'hafalan', 'ayat': 5, 'tempat': 'Makkah'},
+    {'nomor': 12, 'nama': 'Al-Humazah (104)', 'tipe': 'hafalan', 'ayat': 9, 'tempat': 'Makkah'},
+    {'nomor': 13, 'nama': 'Al-Asr (103)', 'tipe': 'hafalan', 'ayat': 3, 'tempat': 'Makkah'},
+    {'nomor': 14, 'nama': 'At-Takatsur (102)', 'tipe': 'hafalan', 'ayat': 8, 'tempat': 'Makkah'},
+    {'nomor': 15, 'nama': 'Al-Qariah (101)', 'tipe': 'hafalan', 'ayat': 11, 'tempat': 'Makkah'},
+    {'nomor': 16, 'nama': 'Al-Adiyat (100)', 'tipe': 'hafalan', 'ayat': 11, 'tempat': 'Makkah'},
+    {'nomor': 17, 'nama': 'Az-Zalzalah (99)', 'tipe': 'hafalan', 'ayat': 8, 'tempat': 'Madinah'},
+    {'nomor': 18, 'nama': 'Al-Bayyinah (98)', 'tipe': 'hafalan', 'ayat': 8, 'tempat': 'Madinah'},
+    {'nomor': 19, 'nama': 'Al-Qadr (97)', 'tipe': 'hafalan', 'ayat': 5, 'tempat': 'Makkah'},
+    {'nomor': 20, 'nama': 'Al-Alaq (96)', 'tipe': 'hafalan', 'ayat': 19, 'tempat': 'Makkah'},
+    {'nomor': 21, 'nama': 'At-Tin (95)', 'tipe': 'hafalan', 'ayat': 8, 'tempat': 'Makkah'},
+    {'nomor': 22, 'nama': 'Al-Insyirah (94)', 'tipe': 'hafalan', 'ayat': 8, 'tempat': 'Makkah'},
+    {'nomor': 23, 'nama': 'Ad-Dhuha (93)', 'tipe': 'hafalan', 'ayat': 11, 'tempat': 'Makkah'},
+    {'nomor': 24, 'nama': 'Al-Lail (92)', 'tipe': 'hafalan', 'ayat': 21, 'tempat': 'Makkah'},
+    {'nomor': 25, 'nama': 'Asy-Syams (91)', 'tipe': 'hafalan', 'ayat': 15, 'tempat': 'Makkah'},
+    {'nomor': 26, 'nama': 'Al-Balad (90)', 'tipe': 'hafalan', 'ayat': 20, 'tempat': 'Makkah'},
+    {'nomor': 27, 'nama': 'Al-Fajr (89)', 'tipe': 'hafalan', 'ayat': 30, 'tempat': 'Makkah'},
+    {'nomor': 28, 'nama': 'Al-Ghasyiyah (88)', 'tipe': 'hafalan', 'ayat': 26, 'tempat': 'Makkah'},
+    {'nomor': 29, 'nama': 'Al-Ala (87)', 'tipe': 'hafalan', 'ayat': 19, 'tempat': 'Makkah'},
+    {'nomor': 30, 'nama': 'At-Tariq (86)', 'tipe': 'hafalan', 'ayat': 17, 'tempat': 'Makkah'},
+    {'nomor': 31, 'nama': 'Al-Buruj (85)', 'tipe': 'hafalan', 'ayat': 22, 'tempat': 'Makkah'},
+    {'nomor': 32, 'nama': 'Al-Insyiqaq (84)', 'tipe': 'hafalan', 'ayat': 25, 'tempat': 'Makkah'},
+    {'nomor': 33, 'nama': 'Al-Mutaffifin (83)', 'tipe': 'hafalan', 'ayat': 36, 'tempat': 'Makkah'},
+    {'nomor': 34, 'nama': 'Al-Infitar (82)', 'tipe': 'hafalan', 'ayat': 19, 'tempat': 'Makkah'},
+    {'nomor': 35, 'nama': 'At-Takwir (81)', 'tipe': 'hafalan', 'ayat': 29, 'tempat': 'Makkah'},
+    {'nomor': 36, 'nama': 'Abasa (80)', 'tipe': 'hafalan', 'ayat': 42, 'tempat': 'Makkah'},
+    {'nomor': 37, 'nama': 'An-Naziat (79)', 'tipe': 'hafalan', 'ayat': 46, 'tempat': 'Makkah'},
+    {'nomor': 38, 'nama': 'An-Naba (78)', 'tipe': 'hafalan', 'ayat': 40, 'tempat': 'Makkah'},
+    # Surat tambahan untuk target 45 surat
+    {'nomor': 39, 'nama': 'Al-Mursalat (77)', 'tipe': 'hafalan', 'ayat': 50, 'tempat': 'Makkah'},
+    {'nomor': 40, 'nama': 'Al-Insan (76)', 'tipe': 'hafalan', 'ayat': 31, 'tempat': 'Madinah'},
+    {'nomor': 41, 'nama': 'Al-Qiyamah (75)', 'tipe': 'hafalan', 'ayat': 40, 'tempat': 'Makkah'},
+    {'nomor': 42, 'nama': 'Al-Muddatstsir (74)', 'tipe': 'hafalan', 'ayat': 56, 'tempat': 'Makkah'},
+    {'nomor': 43, 'nama': 'Al-Muzzammil (73)', 'tipe': 'hafalan', 'ayat': 20, 'tempat': 'Makkah'},
+    {'nomor': 44, 'nama': 'Al-Jin (72)', 'tipe': 'hafalan', 'ayat': 28, 'tempat': 'Makkah'},
+    {'nomor': 45, 'nama': 'Nuh (71)', 'tipe': 'hafalan', 'ayat': 28, 'tempat': 'Makkah'},
 ]
 
-# Materi Item - Doa Sehari-hari
-MATERI_DOA_HARIAN = [
-    {'nomor': 1, 'nama': 'Doa Bangun Tidur', 'tipe': 'hafalan'},
-    {'nomor': 2, 'nama': 'Doa Sebelum Tidur', 'tipe': 'hafalan'},
-    {'nomor': 3, 'nama': 'Doa Masuk Kamar Mandi', 'tipe': 'hafalan'},
-    {'nomor': 4, 'nama': 'Doa Keluar Kamar Mandi', 'tipe': 'hafalan'},
-    {'nomor': 5, 'nama': 'Doa Sebelum Makan', 'tipe': 'hafalan'},
-    {'nomor': 6, 'nama': 'Doa Sesudah Makan', 'tipe': 'hafalan'},
-    {'nomor': 7, 'nama': 'Doa Keluar Rumah', 'tipe': 'hafalan'},
-    {'nomor': 8, 'nama': 'Doa Masuk Rumah', 'tipe': 'hafalan'},
-    {'nomor': 9, 'nama': 'Doa Masuk Masjid', 'tipe': 'hafalan'},
-    {'nomor': 10, 'nama': 'Doa Keluar Masjid', 'tipe': 'hafalan'},
+# ============================================================
+# MATERI ITEM - HAFALAN DOA GBMTPG (11 Doa)
+# ============================================================
+MATERI_DOA_GBMTPG = [
+    {'nomor': 1, 'nama': 'Doa Sebelum Makan', 'tipe': 'hafalan'},
+    {'nomor': 2, 'nama': 'Doa Sesudah Makan', 'tipe': 'hafalan'},
+    {'nomor': 3, 'nama': 'Doa Sebelum Tidur', 'tipe': 'hafalan'},
+    {'nomor': 4, 'nama': 'Doa Bangun Tidur', 'tipe': 'hafalan'},
+    {'nomor': 5, 'nama': 'Doa Masuk Masjid', 'tipe': 'hafalan'},
+    {'nomor': 6, 'nama': 'Doa Keluar Masjid', 'tipe': 'hafalan'},
+    {'nomor': 7, 'nama': 'Doa Masuk WC', 'tipe': 'hafalan'},
+    {'nomor': 8, 'nama': 'Doa Keluar WC', 'tipe': 'hafalan'},
+    {'nomor': 9, 'nama': 'Doa Kedua Orang Tua', 'tipe': 'hafalan'},
+    {'nomor': 10, 'nama': 'Doa Kebaikan Dunia Akhirat', 'tipe': 'hafalan'},
+    {'nomor': 11, 'nama': 'Asmaul Husna', 'tipe': 'hafalan'},
+]
+
+# ============================================================
+# MATERI ITEM - HAFALAN DOA GENERUS SORONG (39 Doa)
+# ============================================================
+MATERI_DOA_GENERUS_SORONG = [
+    {'nomor': 1, 'nama': 'Doa Sebelum Makan', 'tipe': 'hafalan'},
+    {'nomor': 2, 'nama': 'Doa Sesudah Makan', 'tipe': 'hafalan'},
+    {'nomor': 3, 'nama': 'Doa Sebelum Tidur', 'tipe': 'hafalan'},
+    {'nomor': 4, 'nama': 'Doa Bangun Tidur', 'tipe': 'hafalan'},
+    {'nomor': 5, 'nama': 'Doa Masuk Masjid', 'tipe': 'hafalan'},
+    {'nomor': 6, 'nama': 'Doa Keluar Masjid', 'tipe': 'hafalan'},
+    {'nomor': 7, 'nama': 'Doa Masuk Rumah', 'tipe': 'hafalan'},
+    {'nomor': 8, 'nama': 'Doa Keluar Rumah', 'tipe': 'hafalan'},
+    {'nomor': 9, 'nama': 'Doa Masuk WC', 'tipe': 'hafalan'},
+    {'nomor': 10, 'nama': 'Doa Keluar WC', 'tipe': 'hafalan'},
     {'nomor': 11, 'nama': 'Doa Bercermin', 'tipe': 'hafalan'},
     {'nomor': 12, 'nama': 'Doa Memakai Pakaian', 'tipe': 'hafalan'},
     {'nomor': 13, 'nama': 'Doa Melepas Pakaian', 'tipe': 'hafalan'},
     {'nomor': 14, 'nama': 'Doa Naik Kendaraan', 'tipe': 'hafalan'},
     {'nomor': 15, 'nama': 'Doa Bepergian', 'tipe': 'hafalan'},
-    {'nomor': 16, 'nama': 'Doa Ketika Hujan', 'tipe': 'hafalan'},
+    {'nomor': 16, 'nama': 'Doa Ketika Hujan Turun', 'tipe': 'hafalan'},
     {'nomor': 17, 'nama': 'Doa Setelah Hujan', 'tipe': 'hafalan'},
-    {'nomor': 18, 'nama': 'Doa Ketika Bersin', 'tipe': 'hafalan'},
-    {'nomor': 19, 'nama': 'Doa Menjenguk Orang Sakit', 'tipe': 'hafalan'},
-    {'nomor': 20, 'nama': 'Doa Untuk Kedua Orang Tua', 'tipe': 'hafalan'},
-    {'nomor': 21, 'nama': 'Doa Sebelum Belajar', 'tipe': 'hafalan'},
-    {'nomor': 22, 'nama': 'Doa Sesudah Belajar', 'tipe': 'hafalan'},
-    {'nomor': 23, 'nama': 'Doa Memohon Ilmu Bermanfaat', 'tipe': 'hafalan'},
-    {'nomor': 24, 'nama': 'Doa Ketika Marah', 'tipe': 'hafalan'},
-    {'nomor': 25, 'nama': 'Doa Ketika Takut', 'tipe': 'hafalan'},
+    {'nomor': 18, 'nama': 'Doa Ketika Petir', 'tipe': 'hafalan'},
+    {'nomor': 19, 'nama': 'Doa Ketika Bersin', 'tipe': 'hafalan'},
+    {'nomor': 20, 'nama': 'Doa Menjenguk Orang Sakit', 'tipe': 'hafalan'},
+    {'nomor': 21, 'nama': 'Doa Mohon Kesembuhan', 'tipe': 'hafalan'},
+    {'nomor': 22, 'nama': 'Doa Kedua Orang Tua', 'tipe': 'hafalan'},
+    {'nomor': 23, 'nama': 'Doa Kebaikan Dunia Akhirat', 'tipe': 'hafalan'},
+    {'nomor': 24, 'nama': 'Doa Sebelum Belajar', 'tipe': 'hafalan'},
+    {'nomor': 25, 'nama': 'Doa Sesudah Belajar', 'tipe': 'hafalan'},
+    {'nomor': 26, 'nama': 'Doa Mohon Ilmu Bermanfaat', 'tipe': 'hafalan'},
+    {'nomor': 27, 'nama': 'Doa Ketika Marah', 'tipe': 'hafalan'},
+    {'nomor': 28, 'nama': 'Doa Ketika Takut', 'tipe': 'hafalan'},
+    {'nomor': 29, 'nama': 'Doa Ketika Gelisah', 'tipe': 'hafalan'},
+    {'nomor': 30, 'nama': 'Doa Pagi Hari', 'tipe': 'hafalan'},
+    {'nomor': 31, 'nama': 'Doa Sore Hari', 'tipe': 'hafalan'},
+    {'nomor': 32, 'nama': 'Doa Sebelum Wudhu', 'tipe': 'hafalan'},
+    {'nomor': 33, 'nama': 'Doa Sesudah Wudhu', 'tipe': 'hafalan'},
+    {'nomor': 34, 'nama': 'Doa Iftitah', 'tipe': 'hafalan'},
+    {'nomor': 35, 'nama': 'Doa Qunut', 'tipe': 'hafalan'},
+    {'nomor': 36, 'nama': 'Doa Tahiyat Awal', 'tipe': 'hafalan'},
+    {'nomor': 37, 'nama': 'Doa Tahiyat Akhir', 'tipe': 'hafalan'},
+    {'nomor': 38, 'nama': 'Doa Setelah Sholat', 'tipe': 'hafalan'},
+    {'nomor': 39, 'nama': 'Doa Penutup Majlis', 'tipe': 'hafalan'},
 ]
 
-# Materi Item - Hadits Arbain Nawawi (40 Hadits)
-MATERI_HADITS_ARBAIN = [
-    {'nomor': 1, 'nama': 'Hadits 1: Niat', 'tipe': 'hafalan'},
-    {'nomor': 2, 'nama': 'Hadits 2: Islam, Iman, Ihsan', 'tipe': 'hafalan'},
-    {'nomor': 3, 'nama': 'Hadits 3: Rukun Islam', 'tipe': 'hafalan'},
-    {'nomor': 4, 'nama': 'Hadits 4: Penciptaan Manusia', 'tipe': 'hafalan'},
-    {'nomor': 5, 'nama': 'Hadits 5: Bid\'ah', 'tipe': 'hafalan'},
-    {'nomor': 6, 'nama': 'Hadits 6: Halal dan Haram', 'tipe': 'hafalan'},
-    {'nomor': 7, 'nama': 'Hadits 7: Agama adalah Nasihat', 'tipe': 'hafalan'},
-    {'nomor': 8, 'nama': 'Hadits 8: Kesucian Darah Muslim', 'tipe': 'hafalan'},
-    {'nomor': 9, 'nama': 'Hadits 9: Larangan yang Ditinggalkan', 'tipe': 'hafalan'},
-    {'nomor': 10, 'nama': 'Hadits 10: Makanan Halal', 'tipe': 'hafalan'},
-    {'nomor': 11, 'nama': 'Hadits 11: Meninggalkan Syubhat', 'tipe': 'hafalan'},
-    {'nomor': 12, 'nama': 'Hadits 12: Meninggalkan yang Tidak Bermanfaat', 'tipe': 'hafalan'},
-    {'nomor': 13, 'nama': 'Hadits 13: Mencintai Saudara', 'tipe': 'hafalan'},
-    {'nomor': 14, 'nama': 'Hadits 14: Kesucian Darah Muslim (2)', 'tipe': 'hafalan'},
-    {'nomor': 15, 'nama': 'Hadits 15: Berkata Baik atau Diam', 'tipe': 'hafalan'},
-    {'nomor': 16, 'nama': 'Hadits 16: Larangan Marah', 'tipe': 'hafalan'},
-    {'nomor': 17, 'nama': 'Hadits 17: Berbuat Baik', 'tipe': 'hafalan'},
-    {'nomor': 18, 'nama': 'Hadits 18: Takwa dan Akhlak Baik', 'tipe': 'hafalan'},
-    {'nomor': 19, 'nama': 'Hadits 19: Menjaga Diri dari Allah', 'tipe': 'hafalan'},
-    {'nomor': 20, 'nama': 'Hadits 20: Malu', 'tipe': 'hafalan'},
-    {'nomor': 21, 'nama': 'Hadits 21: Istiqamah', 'tipe': 'hafalan'},
-    {'nomor': 22, 'nama': 'Hadits 22: Jalan Menuju Surga', 'tipe': 'hafalan'},
-    {'nomor': 23, 'nama': 'Hadits 23: Bersuci Setengah Iman', 'tipe': 'hafalan'},
-    {'nomor': 24, 'nama': 'Hadits 24: Mengharamkan Kezaliman', 'tipe': 'hafalan'},
-    {'nomor': 25, 'nama': 'Hadits 25: Sedekah', 'tipe': 'hafalan'},
-    {'nomor': 26, 'nama': 'Hadits 26: Sedekah Setiap Ruas', 'tipe': 'hafalan'},
-    {'nomor': 27, 'nama': 'Hadits 27: Kebaikan dan Dosa', 'tipe': 'hafalan'},
-    {'nomor': 28, 'nama': 'Hadits 28: Wasiat Nabi', 'tipe': 'hafalan'},
-    {'nomor': 29, 'nama': 'Hadits 29: Pintu-pintu Kebaikan', 'tipe': 'hafalan'},
-    {'nomor': 30, 'nama': 'Hadits 30: Batasan Allah', 'tipe': 'hafalan'},
-    {'nomor': 31, 'nama': 'Hadits 31: Zuhud', 'tipe': 'hafalan'},
-    {'nomor': 32, 'nama': 'Hadits 32: Tidak Boleh Menyakiti', 'tipe': 'hafalan'},
-    {'nomor': 33, 'nama': 'Hadits 33: Bukti dan Sumpah', 'tipe': 'hafalan'},
-    {'nomor': 34, 'nama': 'Hadits 34: Amar Makruf Nahi Munkar', 'tipe': 'hafalan'},
-    {'nomor': 35, 'nama': 'Hadits 35: Persaudaraan Muslim', 'tipe': 'hafalan'},
-    {'nomor': 36, 'nama': 'Hadits 36: Membantu Sesama', 'tipe': 'hafalan'},
-    {'nomor': 37, 'nama': 'Hadits 37: Kebaikan dan Keburukan', 'tipe': 'hafalan'},
-    {'nomor': 38, 'nama': 'Hadits 38: Wali Allah', 'tipe': 'hafalan'},
-    {'nomor': 39, 'nama': 'Hadits 39: Kesalahan dan Kelupaan', 'tipe': 'hafalan'},
-    {'nomor': 40, 'nama': 'Hadits 40: Menjadi Asing', 'tipe': 'hafalan'},
-    {'nomor': 41, 'nama': 'Hadits 41: Mengikuti Rasulullah', 'tipe': 'hafalan'},
-    {'nomor': 42, 'nama': 'Hadits 42: Ampunan Allah', 'tipe': 'hafalan'},
+# ============================================================
+# MATERI ITEM - HAFALAN DALIL (34 Dalil)
+# ============================================================
+MATERI_DALIL = [
+    {'nomor': 1, 'nama': 'Dalil Bersuci/Thaharah', 'tipe': 'hafalan'},
+    {'nomor': 2, 'nama': 'Dalil Wudhu', 'tipe': 'hafalan'},
+    {'nomor': 3, 'nama': 'Dalil Tayammum', 'tipe': 'hafalan'},
+    {'nomor': 4, 'nama': 'Dalil Sholat', 'tipe': 'hafalan'},
+    {'nomor': 5, 'nama': 'Dalil Sholat Berjamaah', 'tipe': 'hafalan'},
+    {'nomor': 6, 'nama': 'Dalil Sholat Jumat', 'tipe': 'hafalan'},
+    {'nomor': 7, 'nama': 'Dalil Puasa', 'tipe': 'hafalan'},
+    {'nomor': 8, 'nama': 'Dalil Puasa Ramadhan', 'tipe': 'hafalan'},
+    {'nomor': 9, 'nama': 'Dalil Zakat', 'tipe': 'hafalan'},
+    {'nomor': 10, 'nama': 'Dalil Zakat Fitrah', 'tipe': 'hafalan'},
+    {'nomor': 11, 'nama': 'Dalil Haji', 'tipe': 'hafalan'},
+    {'nomor': 12, 'nama': 'Dalil Umrah', 'tipe': 'hafalan'},
+    {'nomor': 13, 'nama': 'Dalil Birrul Walidain', 'tipe': 'hafalan'},
+    {'nomor': 14, 'nama': 'Dalil Silaturrahim', 'tipe': 'hafalan'},
+    {'nomor': 15, 'nama': 'Dalil Menuntut Ilmu', 'tipe': 'hafalan'},
+    {'nomor': 16, 'nama': 'Dalil Menjaga Lisan', 'tipe': 'hafalan'},
+    {'nomor': 17, 'nama': 'Dalil Kejujuran', 'tipe': 'hafalan'},
+    {'nomor': 18, 'nama': 'Dalil Amanah', 'tipe': 'hafalan'},
+    {'nomor': 19, 'nama': 'Dalil Sabar', 'tipe': 'hafalan'},
+    {'nomor': 20, 'nama': 'Dalil Syukur', 'tipe': 'hafalan'},
+    {'nomor': 21, 'nama': 'Dalil Tawakkal', 'tipe': 'hafalan'},
+    {'nomor': 22, 'nama': 'Dalil Ikhlas', 'tipe': 'hafalan'},
+    {'nomor': 23, 'nama': 'Dalil Taubat', 'tipe': 'hafalan'},
+    {'nomor': 24, 'nama': 'Dalil Larangan Riba', 'tipe': 'hafalan'},
+    {'nomor': 25, 'nama': 'Dalil Jual Beli', 'tipe': 'hafalan'},
+    {'nomor': 26, 'nama': 'Dalil Menutup Aurat', 'tipe': 'hafalan'},
+    {'nomor': 27, 'nama': 'Dalil Menjaga Pandangan', 'tipe': 'hafalan'},
+    {'nomor': 28, 'nama': 'Dalil Larangan Zina', 'tipe': 'hafalan'},
+    {'nomor': 29, 'nama': 'Dalil Persaudaraan', 'tipe': 'hafalan'},
+    {'nomor': 30, 'nama': 'Dalil Tolong Menolong', 'tipe': 'hafalan'},
+    {'nomor': 31, 'nama': 'Dalil Larangan Ghibah', 'tipe': 'hafalan'},
+    {'nomor': 32, 'nama': 'Dalil Larangan Hasad', 'tipe': 'hafalan'},
+    {'nomor': 33, 'nama': 'Dalil Larangan Sombong', 'tipe': 'hafalan'},
+    {'nomor': 34, 'nama': 'Dalil Hari Kiamat', 'tipe': 'hafalan'},
 ]
 
-# Materi Item - Fiqih Thaharah
-MATERI_THAHARAH = [
-    {'nomor': 1, 'nama': 'Pengertian Thaharah', 'tipe': 'checklist'},
-    {'nomor': 2, 'nama': 'Macam-macam Air', 'tipe': 'checklist'},
-    {'nomor': 3, 'nama': 'Najis dan Macamnya', 'tipe': 'checklist'},
-    {'nomor': 4, 'nama': 'Cara Menghilangkan Najis', 'tipe': 'checklist'},
-    {'nomor': 5, 'nama': 'Istinja', 'tipe': 'checklist'},
-    {'nomor': 6, 'nama': 'Wudhu - Rukun', 'tipe': 'checklist'},
-    {'nomor': 7, 'nama': 'Wudhu - Sunnah', 'tipe': 'checklist'},
-    {'nomor': 8, 'nama': 'Wudhu - Pembatal', 'tipe': 'checklist'},
-    {'nomor': 9, 'nama': 'Tayammum', 'tipe': 'checklist'},
-    {'nomor': 10, 'nama': 'Mandi Wajib', 'tipe': 'checklist'},
-    {'nomor': 11, 'nama': 'Mandi Sunnah', 'tipe': 'checklist'},
-    {'nomor': 12, 'nama': 'Haid dan Nifas', 'tipe': 'checklist'},
-]
-
-# Materi Item - Fiqih Shalat
-MATERI_SHALAT = [
-    {'nomor': 1, 'nama': 'Pengertian Shalat', 'tipe': 'checklist'},
-    {'nomor': 2, 'nama': 'Syarat Sah Shalat', 'tipe': 'checklist'},
-    {'nomor': 3, 'nama': 'Syarat Wajib Shalat', 'tipe': 'checklist'},
-    {'nomor': 4, 'nama': 'Rukun Shalat', 'tipe': 'checklist'},
-    {'nomor': 5, 'nama': 'Sunnah Shalat', 'tipe': 'checklist'},
-    {'nomor': 6, 'nama': 'Hal yang Membatalkan Shalat', 'tipe': 'checklist'},
-    {'nomor': 7, 'nama': 'Waktu-waktu Shalat', 'tipe': 'checklist'},
-    {'nomor': 8, 'nama': 'Shalat Berjamaah', 'tipe': 'checklist'},
-    {'nomor': 9, 'nama': 'Shalat Jumat', 'tipe': 'checklist'},
-    {'nomor': 10, 'nama': 'Shalat Sunnah Rawatib', 'tipe': 'checklist'},
-    {'nomor': 11, 'nama': 'Shalat Dhuha', 'tipe': 'checklist'},
-    {'nomor': 12, 'nama': 'Shalat Tahajud', 'tipe': 'checklist'},
-    {'nomor': 13, 'nama': 'Shalat Tarawih', 'tipe': 'checklist'},
-    {'nomor': 14, 'nama': 'Shalat Ied', 'tipe': 'checklist'},
-    {'nomor': 15, 'nama': 'Shalat Jenazah', 'tipe': 'checklist'},
-    {'nomor': 16, 'nama': 'Shalat Jamak dan Qashar', 'tipe': 'checklist'},
-    {'nomor': 17, 'nama': 'Sujud Sahwi', 'tipe': 'checklist'},
-    {'nomor': 18, 'nama': 'Sujud Tilawah', 'tipe': 'checklist'},
-    {'nomor': 19, 'nama': 'Sujud Syukur', 'tipe': 'checklist'},
-    {'nomor': 20, 'nama': 'Bacaan dalam Shalat', 'tipe': 'hafalan'},
-]
-
-# Materi Item - Akhlaq Mahmudah
-MATERI_AKHLAQ_MAHMUDAH = [
-    {'nomor': 1, 'nama': 'Jujur (Shidiq)', 'tipe': 'checklist'},
-    {'nomor': 2, 'nama': 'Amanah', 'tipe': 'checklist'},
-    {'nomor': 3, 'nama': 'Sabar', 'tipe': 'checklist'},
-    {'nomor': 4, 'nama': 'Syukur', 'tipe': 'checklist'},
-    {'nomor': 5, 'nama': 'Tawadhu (Rendah Hati)', 'tipe': 'checklist'},
-    {'nomor': 6, 'nama': 'Ikhlas', 'tipe': 'checklist'},
-    {'nomor': 7, 'nama': 'Qanaah', 'tipe': 'checklist'},
-    {'nomor': 8, 'nama': 'Tawakal', 'tipe': 'checklist'},
-    {'nomor': 9, 'nama': 'Dermawan', 'tipe': 'checklist'},
-    {'nomor': 10, 'nama': 'Pemaaf', 'tipe': 'checklist'},
-    {'nomor': 11, 'nama': 'Kasih Sayang', 'tipe': 'checklist'},
-    {'nomor': 12, 'nama': 'Birrul Walidain', 'tipe': 'checklist'},
-    {'nomor': 13, 'nama': 'Silaturrahim', 'tipe': 'checklist'},
-    {'nomor': 14, 'nama': 'Tolong Menolong', 'tipe': 'checklist'},
-    {'nomor': 15, 'nama': 'Menghormati Guru', 'tipe': 'checklist'},
-]
-
-# Materi Item - Aqidah Rukun Iman
-MATERI_RUKUN_IMAN = [
-    {'nomor': 1, 'nama': 'Iman kepada Allah', 'tipe': 'checklist'},
-    {'nomor': 2, 'nama': 'Iman kepada Malaikat', 'tipe': 'checklist'},
-    {'nomor': 3, 'nama': 'Iman kepada Kitab-kitab Allah', 'tipe': 'checklist'},
-    {'nomor': 4, 'nama': 'Iman kepada Rasul-rasul Allah', 'tipe': 'checklist'},
-    {'nomor': 5, 'nama': 'Iman kepada Hari Akhir', 'tipe': 'checklist'},
-    {'nomor': 6, 'nama': 'Iman kepada Qada dan Qadar', 'tipe': 'checklist'},
-    {'nomor': 7, 'nama': 'Nama-nama Allah (Asmaul Husna)', 'tipe': 'hafalan'},
-    {'nomor': 8, 'nama': 'Sifat-sifat Allah', 'tipe': 'checklist'},
-    {'nomor': 9, 'nama': 'Nama-nama Malaikat dan Tugasnya', 'tipe': 'checklist'},
-    {'nomor': 10, 'nama': '25 Nabi dan Rasul', 'tipe': 'hafalan'},
-]
-
-# Materi Item - Tarikh Sirah Nabawiyah
-MATERI_SIRAH = [
-    {'nomor': 1, 'nama': 'Kelahiran Nabi Muhammad SAW', 'tipe': 'checklist'},
-    {'nomor': 2, 'nama': 'Masa Kanak-kanak Nabi', 'tipe': 'checklist'},
-    {'nomor': 3, 'nama': 'Masa Remaja dan Dewasa Nabi', 'tipe': 'checklist'},
-    {'nomor': 4, 'nama': 'Pernikahan Nabi', 'tipe': 'checklist'},
-    {'nomor': 5, 'nama': 'Turunnya Wahyu Pertama', 'tipe': 'checklist'},
-    {'nomor': 6, 'nama': 'Dakwah Sembunyi-sembunyi', 'tipe': 'checklist'},
-    {'nomor': 7, 'nama': 'Dakwah Terang-terangan', 'tipe': 'checklist'},
-    {'nomor': 8, 'nama': 'Hijrah ke Habasyah', 'tipe': 'checklist'},
-    {'nomor': 9, 'nama': 'Isra dan Miraj', 'tipe': 'checklist'},
-    {'nomor': 10, 'nama': 'Hijrah ke Madinah', 'tipe': 'checklist'},
-    {'nomor': 11, 'nama': 'Pembangunan Masjid Nabawi', 'tipe': 'checklist'},
-    {'nomor': 12, 'nama': 'Perang Badar', 'tipe': 'checklist'},
-    {'nomor': 13, 'nama': 'Perang Uhud', 'tipe': 'checklist'},
-    {'nomor': 14, 'nama': 'Perang Khandaq', 'tipe': 'checklist'},
-    {'nomor': 15, 'nama': 'Perjanjian Hudaibiyah', 'tipe': 'checklist'},
-    {'nomor': 16, 'nama': 'Fathu Makkah', 'tipe': 'checklist'},
-    {'nomor': 17, 'nama': 'Haji Wada', 'tipe': 'checklist'},
-    {'nomor': 18, 'nama': 'Wafatnya Nabi Muhammad SAW', 'tipe': 'checklist'},
-]
-
-# Materi Item - Tajwid
+# ============================================================
+# MATERI ITEM - TAJWID (30 Materi)
+# ============================================================
 MATERI_TAJWID = [
-    {'nomor': 1, 'nama': 'Makharijul Huruf', 'tipe': 'checklist'},
-    {'nomor': 2, 'nama': 'Sifatul Huruf', 'tipe': 'checklist'},
-    {'nomor': 3, 'nama': 'Hukum Nun Mati dan Tanwin', 'tipe': 'checklist'},
-    {'nomor': 4, 'nama': 'Hukum Mim Mati', 'tipe': 'checklist'},
-    {'nomor': 5, 'nama': 'Idgham', 'tipe': 'checklist'},
-    {'nomor': 6, 'nama': 'Iqlab', 'tipe': 'checklist'},
-    {'nomor': 7, 'nama': 'Ikhfa', 'tipe': 'checklist'},
-    {'nomor': 8, 'nama': 'Izhar', 'tipe': 'checklist'},
-    {'nomor': 9, 'nama': 'Qalqalah', 'tipe': 'checklist'},
-    {'nomor': 10, 'nama': 'Mad (Panjang Pendek)', 'tipe': 'checklist'},
-    {'nomor': 11, 'nama': 'Waqaf dan Ibtida', 'tipe': 'checklist'},
-    {'nomor': 12, 'nama': 'Gharib (Bacaan Asing)', 'tipe': 'checklist'},
+    {'nomor': 1, 'nama': 'Pengertian Tajwid', 'tipe': 'checklist'},
+    {'nomor': 2, 'nama': 'Hukum Mempelajari Tajwid', 'tipe': 'checklist'},
+    {'nomor': 3, 'nama': 'Makharijul Huruf - Halq', 'tipe': 'checklist'},
+    {'nomor': 4, 'nama': 'Makharijul Huruf - Lisan', 'tipe': 'checklist'},
+    {'nomor': 5, 'nama': 'Makharijul Huruf - Syafatain', 'tipe': 'checklist'},
+    {'nomor': 6, 'nama': 'Makharijul Huruf - Jauf', 'tipe': 'checklist'},
+    {'nomor': 7, 'nama': 'Makharijul Huruf - Khaisyum', 'tipe': 'checklist'},
+    {'nomor': 8, 'nama': 'Sifatul Huruf - Hams & Jahr', 'tipe': 'checklist'},
+    {'nomor': 9, 'nama': 'Sifatul Huruf - Syiddah & Rakhawah', 'tipe': 'checklist'},
+    {'nomor': 10, 'nama': 'Sifatul Huruf - Isti\'la & Istifal', 'tipe': 'checklist'},
+    {'nomor': 11, 'nama': 'Hukum Nun Mati/Tanwin - Izhar', 'tipe': 'checklist'},
+    {'nomor': 12, 'nama': 'Hukum Nun Mati/Tanwin - Idgham', 'tipe': 'checklist'},
+    {'nomor': 13, 'nama': 'Hukum Nun Mati/Tanwin - Iqlab', 'tipe': 'checklist'},
+    {'nomor': 14, 'nama': 'Hukum Nun Mati/Tanwin - Ikhfa', 'tipe': 'checklist'},
+    {'nomor': 15, 'nama': 'Hukum Mim Mati - Ikhfa Syafawi', 'tipe': 'checklist'},
+    {'nomor': 16, 'nama': 'Hukum Mim Mati - Idgham Mimi', 'tipe': 'checklist'},
+    {'nomor': 17, 'nama': 'Hukum Mim Mati - Izhar Syafawi', 'tipe': 'checklist'},
+    {'nomor': 18, 'nama': 'Qalqalah Sughra', 'tipe': 'checklist'},
+    {'nomor': 19, 'nama': 'Qalqalah Kubra', 'tipe': 'checklist'},
+    {'nomor': 20, 'nama': 'Mad Thabi\'i (Asli)', 'tipe': 'checklist'},
+    {'nomor': 21, 'nama': 'Mad Wajib Muttashil', 'tipe': 'checklist'},
+    {'nomor': 22, 'nama': 'Mad Jaiz Munfashil', 'tipe': 'checklist'},
+    {'nomor': 23, 'nama': 'Mad Lazim', 'tipe': 'checklist'},
+    {'nomor': 24, 'nama': 'Mad Aridh Lissukun', 'tipe': 'checklist'},
+    {'nomor': 25, 'nama': 'Mad Iwadh', 'tipe': 'checklist'},
+    {'nomor': 26, 'nama': 'Mad Badal', 'tipe': 'checklist'},
+    {'nomor': 27, 'nama': 'Waqaf dan Ibtida', 'tipe': 'checklist'},
+    {'nomor': 28, 'nama': 'Tanda-tanda Waqaf', 'tipe': 'checklist'},
+    {'nomor': 29, 'nama': 'Gharib - Saktah', 'tipe': 'checklist'},
+    {'nomor': 30, 'nama': 'Gharib - Imalah', 'tipe': 'checklist'},
 ]
 
-# Fungsi untuk seed database
+# ============================================================
+# MATERI ITEM - KEFAHAMAN AGAMA GBMTPG (35 Materi)
+# ============================================================
+MATERI_KEFAHAMAN_AGAMA = [
+    {'nomor': 1, 'nama': 'Rukun Islam', 'tipe': 'checklist'},
+    {'nomor': 2, 'nama': 'Rukun Iman', 'tipe': 'checklist'},
+    {'nomor': 3, 'nama': 'Pengertian Syahadat', 'tipe': 'checklist'},
+    {'nomor': 4, 'nama': 'Makna Syahadat', 'tipe': 'checklist'},
+    {'nomor': 5, 'nama': 'Pengertian Sholat', 'tipe': 'checklist'},
+    {'nomor': 6, 'nama': 'Syarat Sah Sholat', 'tipe': 'checklist'},
+    {'nomor': 7, 'nama': 'Syarat Wajib Sholat', 'tipe': 'checklist'},
+    {'nomor': 8, 'nama': 'Rukun Sholat', 'tipe': 'checklist'},
+    {'nomor': 9, 'nama': 'Sunnah Sholat', 'tipe': 'checklist'},
+    {'nomor': 10, 'nama': 'Hal Membatalkan Sholat', 'tipe': 'checklist'},
+    {'nomor': 11, 'nama': 'Waktu-waktu Sholat', 'tipe': 'checklist'},
+    {'nomor': 12, 'nama': 'Pengertian Puasa', 'tipe': 'checklist'},
+    {'nomor': 13, 'nama': 'Syarat Wajib Puasa', 'tipe': 'checklist'},
+    {'nomor': 14, 'nama': 'Rukun Puasa', 'tipe': 'checklist'},
+    {'nomor': 15, 'nama': 'Hal Membatalkan Puasa', 'tipe': 'checklist'},
+    {'nomor': 16, 'nama': 'Sunnah Puasa', 'tipe': 'checklist'},
+    {'nomor': 17, 'nama': 'Pengertian Zakat', 'tipe': 'checklist'},
+    {'nomor': 18, 'nama': 'Jenis-jenis Zakat', 'tipe': 'checklist'},
+    {'nomor': 19, 'nama': 'Mustahiq Zakat', 'tipe': 'checklist'},
+    {'nomor': 20, 'nama': 'Nisab Zakat', 'tipe': 'checklist'},
+    {'nomor': 21, 'nama': 'Pengertian Haji', 'tipe': 'checklist'},
+    {'nomor': 22, 'nama': 'Syarat Wajib Haji', 'tipe': 'checklist'},
+    {'nomor': 23, 'nama': 'Rukun Haji', 'tipe': 'checklist'},
+    {'nomor': 24, 'nama': 'Wajib Haji', 'tipe': 'checklist'},
+    {'nomor': 25, 'nama': 'Larangan Ihram', 'tipe': 'checklist'},
+    {'nomor': 26, 'nama': 'Iman kepada Allah', 'tipe': 'checklist'},
+    {'nomor': 27, 'nama': 'Iman kepada Malaikat', 'tipe': 'checklist'},
+    {'nomor': 28, 'nama': 'Iman kepada Kitab', 'tipe': 'checklist'},
+    {'nomor': 29, 'nama': 'Iman kepada Rasul', 'tipe': 'checklist'},
+    {'nomor': 30, 'nama': 'Iman kepada Hari Akhir', 'tipe': 'checklist'},
+    {'nomor': 31, 'nama': 'Iman kepada Qadha Qadar', 'tipe': 'checklist'},
+    {'nomor': 32, 'nama': '25 Nabi dan Rasul', 'tipe': 'checklist'},
+    {'nomor': 33, 'nama': '10 Malaikat dan Tugasnya', 'tipe': 'checklist'},
+    {'nomor': 34, 'nama': '4 Kitab Allah', 'tipe': 'checklist'},
+    {'nomor': 35, 'nama': 'Tanda-tanda Hari Kiamat', 'tipe': 'checklist'},
+]
+
+# ============================================================
+# MATERI ITEM - PRAKTEK IBADAH GBMTPG (20 Materi)
+# ============================================================
+MATERI_PRAKTEK_IBADAH = [
+    {'nomor': 1, 'nama': 'Praktek Wudhu', 'tipe': 'checklist'},
+    {'nomor': 2, 'nama': 'Praktek Tayammum', 'tipe': 'checklist'},
+    {'nomor': 3, 'nama': 'Praktek Sholat Subuh', 'tipe': 'checklist'},
+    {'nomor': 4, 'nama': 'Praktek Sholat Dzuhur', 'tipe': 'checklist'},
+    {'nomor': 5, 'nama': 'Praktek Sholat Ashar', 'tipe': 'checklist'},
+    {'nomor': 6, 'nama': 'Praktek Sholat Maghrib', 'tipe': 'checklist'},
+    {'nomor': 7, 'nama': 'Praktek Sholat Isya', 'tipe': 'checklist'},
+    {'nomor': 8, 'nama': 'Praktek Sholat Berjamaah', 'tipe': 'checklist'},
+    {'nomor': 9, 'nama': 'Praktek Sholat Dhuha', 'tipe': 'checklist'},
+    {'nomor': 10, 'nama': 'Praktek Sholat Tahajud', 'tipe': 'checklist'},
+    {'nomor': 11, 'nama': 'Praktek Sholat Rawatib', 'tipe': 'checklist'},
+    {'nomor': 12, 'nama': 'Praktek Sholat Jenazah', 'tipe': 'checklist'},
+    {'nomor': 13, 'nama': 'Praktek Sholat Ied', 'tipe': 'checklist'},
+    {'nomor': 14, 'nama': 'Praktek Sholat Tarawih', 'tipe': 'checklist'},
+    {'nomor': 15, 'nama': 'Praktek Sujud Sahwi', 'tipe': 'checklist'},
+    {'nomor': 16, 'nama': 'Praktek Sujud Tilawah', 'tipe': 'checklist'},
+    {'nomor': 17, 'nama': 'Praktek Dzikir Pagi Petang', 'tipe': 'checklist'},
+    {'nomor': 18, 'nama': 'Praktek Tilawah Al-Quran', 'tipe': 'checklist'},
+    {'nomor': 19, 'nama': 'Praktek Adzan', 'tipe': 'checklist'},
+    {'nomor': 20, 'nama': 'Praktek Iqamah', 'tipe': 'checklist'},
+]
+
+# ============================================================
+# MATERI ITEM - 6 THOBIAT LUHUR
+# ============================================================
+MATERI_6_THOBIAT = [
+    {'nomor': 1, 'nama': 'Shiddiq (Kejujuran)', 'tipe': 'level'},
+    {'nomor': 2, 'nama': 'Amanah (Dapat Dipercaya)', 'tipe': 'level'},
+    {'nomor': 3, 'nama': 'Tabligh (Menyampaikan)', 'tipe': 'level'},
+    {'nomor': 4, 'nama': 'Fathonah (Cerdas)', 'tipe': 'level'},
+    {'nomor': 5, 'nama': 'Sabar', 'tipe': 'level'},
+    {'nomor': 6, 'nama': 'Syukur', 'tipe': 'level'},
+]
+
+# ============================================================
+# MATERI ITEM - 4 TALI KEIMANAN
+# ============================================================
+MATERI_4_TALI_KEIMANAN = [
+    {'nomor': 1, 'nama': 'Iman kepada Allah', 'tipe': 'level'},
+    {'nomor': 2, 'nama': 'Iman kepada Malaikat', 'tipe': 'level'},
+    {'nomor': 3, 'nama': 'Iman kepada Kitab', 'tipe': 'level'},
+    {'nomor': 4, 'nama': 'Iman kepada Rasul', 'tipe': 'level'},
+]
+
+# ============================================================
+# MATERI ITEM - ADAB/TATAKRAMA (120 Materi)
+# ============================================================
+MATERI_ADAB = [
+    {'nomor': 1, 'nama': 'Adab kepada Allah', 'tipe': 'checklist'},
+    {'nomor': 2, 'nama': 'Adab kepada Rasulullah', 'tipe': 'checklist'},
+    {'nomor': 3, 'nama': 'Adab kepada Al-Quran', 'tipe': 'checklist'},
+    {'nomor': 4, 'nama': 'Adab kepada Orang Tua', 'tipe': 'checklist'},
+    {'nomor': 5, 'nama': 'Adab kepada Guru/Ustadz', 'tipe': 'checklist'},
+    {'nomor': 6, 'nama': 'Adab kepada Orang yang Lebih Tua', 'tipe': 'checklist'},
+    {'nomor': 7, 'nama': 'Adab kepada Teman Sebaya', 'tipe': 'checklist'},
+    {'nomor': 8, 'nama': 'Adab kepada yang Lebih Muda', 'tipe': 'checklist'},
+    {'nomor': 9, 'nama': 'Adab kepada Tetangga', 'tipe': 'checklist'},
+    {'nomor': 10, 'nama': 'Adab kepada Tamu', 'tipe': 'checklist'},
+    {'nomor': 11, 'nama': 'Adab Makan dan Minum', 'tipe': 'checklist'},
+    {'nomor': 12, 'nama': 'Adab Tidur', 'tipe': 'checklist'},
+    {'nomor': 13, 'nama': 'Adab Bangun Tidur', 'tipe': 'checklist'},
+    {'nomor': 14, 'nama': 'Adab Berpakaian', 'tipe': 'checklist'},
+    {'nomor': 15, 'nama': 'Adab Berbicara', 'tipe': 'checklist'},
+    {'nomor': 16, 'nama': 'Adab Mendengarkan', 'tipe': 'checklist'},
+    {'nomor': 17, 'nama': 'Adab Bertanya', 'tipe': 'checklist'},
+    {'nomor': 18, 'nama': 'Adab Menjawab', 'tipe': 'checklist'},
+    {'nomor': 19, 'nama': 'Adab dalam Majelis', 'tipe': 'checklist'},
+    {'nomor': 20, 'nama': 'Adab di Masjid', 'tipe': 'checklist'},
+    {'nomor': 21, 'nama': 'Adab di Sekolah', 'tipe': 'checklist'},
+    {'nomor': 22, 'nama': 'Adab di Rumah', 'tipe': 'checklist'},
+    {'nomor': 23, 'nama': 'Adab di Jalan', 'tipe': 'checklist'},
+    {'nomor': 24, 'nama': 'Adab di Kendaraan', 'tipe': 'checklist'},
+    {'nomor': 25, 'nama': 'Adab Masuk Rumah Orang', 'tipe': 'checklist'},
+    {'nomor': 26, 'nama': 'Adab Bersin', 'tipe': 'checklist'},
+    {'nomor': 27, 'nama': 'Adab Menguap', 'tipe': 'checklist'},
+    {'nomor': 28, 'nama': 'Adab Berpakaian Ihram', 'tipe': 'checklist'},
+    {'nomor': 29, 'nama': 'Adab Mengucapkan Salam', 'tipe': 'checklist'},
+    {'nomor': 30, 'nama': 'Adab Menjawab Salam', 'tipe': 'checklist'},
+    {'nomor': 31, 'nama': 'Adab Berjabat Tangan', 'tipe': 'checklist'},
+    {'nomor': 32, 'nama': 'Adab Meminta Izin', 'tipe': 'checklist'},
+    {'nomor': 33, 'nama': 'Adab Berkunjung', 'tipe': 'checklist'},
+    {'nomor': 34, 'nama': 'Adab Menerima Tamu', 'tipe': 'checklist'},
+    {'nomor': 35, 'nama': 'Adab Memberi dan Menerima', 'tipe': 'checklist'},
+]
+
+# ============================================================
+# MATERI ITEM - KEMANDIRIAN GBMTPG (25 Materi)
+# ============================================================
+MATERI_KEMANDIRIAN = [
+    {'nomor': 1, 'nama': 'Mandi Sendiri', 'tipe': 'checklist'},
+    {'nomor': 2, 'nama': 'Memakai Baju Sendiri', 'tipe': 'checklist'},
+    {'nomor': 3, 'nama': 'Makan Sendiri', 'tipe': 'checklist'},
+    {'nomor': 4, 'nama': 'Merapikan Tempat Tidur', 'tipe': 'checklist'},
+    {'nomor': 5, 'nama': 'Menyapu Lantai', 'tipe': 'checklist'},
+    {'nomor': 6, 'nama': 'Mencuci Piring', 'tipe': 'checklist'},
+    {'nomor': 7, 'nama': 'Mencuci Pakaian Sendiri', 'tipe': 'checklist'},
+    {'nomor': 8, 'nama': 'Menyetrika Pakaian', 'tipe': 'checklist'},
+    {'nomor': 9, 'nama': 'Memasak Nasi', 'tipe': 'checklist'},
+    {'nomor': 10, 'nama': 'Memasak Lauk Sederhana', 'tipe': 'checklist'},
+    {'nomor': 11, 'nama': 'Mengatur Keuangan', 'tipe': 'checklist'},
+    {'nomor': 12, 'nama': 'Menabung', 'tipe': 'checklist'},
+    {'nomor': 13, 'nama': 'Belanja Kebutuhan', 'tipe': 'checklist'},
+    {'nomor': 14, 'nama': 'Menjaga Kesehatan', 'tipe': 'checklist'},
+    {'nomor': 15, 'nama': 'Olahraga Teratur', 'tipe': 'checklist'},
+    {'nomor': 16, 'nama': 'Berkomunikasi Baik', 'tipe': 'checklist'},
+    {'nomor': 17, 'nama': 'Menyelesaikan Masalah', 'tipe': 'checklist'},
+    {'nomor': 18, 'nama': 'Mengambil Keputusan', 'tipe': 'checklist'},
+    {'nomor': 19, 'nama': 'Bekerja dalam Tim', 'tipe': 'checklist'},
+    {'nomor': 20, 'nama': 'Memimpin Kelompok', 'tipe': 'checklist'},
+    {'nomor': 21, 'nama': 'Berbicara di Depan Umum', 'tipe': 'checklist'},
+    {'nomor': 22, 'nama': 'Menulis dengan Baik', 'tipe': 'checklist'},
+    {'nomor': 23, 'nama': 'Menggunakan Teknologi', 'tipe': 'checklist'},
+    {'nomor': 24, 'nama': 'Berwirausaha Sederhana', 'tipe': 'checklist'},
+    {'nomor': 25, 'nama': 'Menolong Orang Lain', 'tipe': 'checklist'},
+]
+
+# ============================================================
+# MATERI ITEM - ASAD BELADIRI (7 Jurus)
+# ============================================================
+MATERI_ASAD = [
+    {'nomor': 1, 'nama': 'Jurus 1 - Dasar', 'tipe': 'level'},
+    {'nomor': 2, 'nama': 'Jurus 2 - Pertahanan', 'tipe': 'level'},
+    {'nomor': 3, 'nama': 'Jurus 3 - Serangan', 'tipe': 'level'},
+    {'nomor': 4, 'nama': 'Jurus 4 - Kombinasi', 'tipe': 'level'},
+    {'nomor': 5, 'nama': 'Jurus 5 - Lanjutan', 'tipe': 'level'},
+    {'nomor': 6, 'nama': 'Jurus 6 - Mahir', 'tipe': 'level'},
+    {'nomor': 7, 'nama': 'Jurus 7 - Master', 'tipe': 'level'},
+]
+
+# ============================================================
+# MATERI ITEM - NASEHAT BERNOMOR BPI (95 Nasehat)
+# ============================================================
+MATERI_NASEHAT_BPI = [
+    {'nomor': i, 'nama': f'Nasehat BPI {i}', 'tipe': 'hafalan'}
+    for i in range(1, 96)
+]
+
+# ============================================================
+# FUNGSI SEED DATABASE
+# ============================================================
 def seed_kurikulum(session):
     """Seed data kurikulum ke database"""
     from database.models import BidangMateri, KategoriMateri, MateriItem
 
-    print("Seeding kurikulum data...")
+    print("Seeding kurikulum data PPG Sorong...")
 
     # Seed Bidang Materi
     bidang_map = {}
@@ -322,7 +467,7 @@ def seed_kurikulum(session):
         for kat_data in kategori_list:
             existing = session.query(KategoriMateri).filter(
                 KategoriMateri.bidang_id == bidang_id,
-                KategoriMateri.nama == kat_data['nama']
+                KategoriMateri.kode == kat_data['kode']
             ).first()
 
             if not existing:
@@ -340,19 +485,26 @@ def seed_kurikulum(session):
             else:
                 kategori_map[kat_data['kode']] = existing.id
 
-    # Seed Materi Items
+    # Mapping kategori kode ke materi list
     materi_mapping = {
-        'JUZ30': MATERI_JUZ_30,
-        'DOA-HARIAN': MATERI_DOA_HARIAN,
-        'HAD-ARBAIN': MATERI_HADITS_ARBAIN,
-        'FIQ-THAHARAH': MATERI_THAHARAH,
-        'FIQ-SHALAT': MATERI_SHALAT,
-        'AKH-MAHMUDAH': MATERI_AKHLAQ_MAHMUDAH,
-        'AQD-IMAN': MATERI_RUKUN_IMAN,
-        'TAR-NABI': MATERI_SIRAH,
-        'TAJWID': MATERI_TAJWID,
+        'ALM-HFS': MATERI_HAFALAN_SURAT,
+        'ALM-HDG': MATERI_DOA_GBMTPG,
+        'ALM-HDS': MATERI_DOA_GENERUS_SORONG,
+        'ALM-HDL': MATERI_DALIL,
+        'ALM-HDD': MATERI_DALIL,  # Sama dengan GBMTPG
+        'ALM-TJW': MATERI_TAJWID,
+        'FQH-KFH': MATERI_KEFAHAMAN_AGAMA,
+        'FQH-PIB': MATERI_PRAKTEK_IBADAH,
+        'FQH-4TK': MATERI_4_TALI_KEIMANAN,
+        'FQH-NBP': MATERI_NASEHAT_BPI,
+        'AKH-6TL': MATERI_6_THOBIAT,
+        'AKH-ADB': MATERI_ADAB,
+        'KMD-GBM': MATERI_KEMANDIRIAN,
+        'KMD-ASD': MATERI_ASAD,
     }
 
+    # Seed Materi Items
+    total_materi = 0
     for kode_kategori, materi_list in materi_mapping.items():
         kategori_id = kategori_map.get(kode_kategori)
         if not kategori_id:
@@ -361,25 +513,25 @@ def seed_kurikulum(session):
         for mat_data in materi_list:
             existing = session.query(MateriItem).filter(
                 MateriItem.kategori_id == kategori_id,
-                MateriItem.nomor == mat_data['nomor']
+                MateriItem.nomor == str(mat_data['nomor'])
             ).first()
 
             if not existing:
                 materi = MateriItem(
                     kategori_id=kategori_id,
-                    nomor=mat_data['nomor'],
+                    nomor=str(mat_data['nomor']),
                     nama=mat_data['nama'],
-                    tipe=mat_data['tipe'],
+                    tipe=mat_data.get('tipe', 'hafalan'),
                     is_aktif=True
                 )
                 session.add(materi)
+                total_materi += 1
 
     session.commit()
-    print("Kurikulum seeding completed!")
+    print(f"Kurikulum seeding completed! Total: {total_materi} materi items")
 
 
 if __name__ == '__main__':
     from database.connection import get_session
-    session = get_session()
-    seed_kurikulum(session)
-    session.close()
+    with get_session() as session:
+        seed_kurikulum(session)
