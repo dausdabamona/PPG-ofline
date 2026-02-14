@@ -33,6 +33,17 @@ jobs:
         cd desktop
         pyinstaller PPG-Sorong.spec --clean
 
+    - name: Verify build output
+      shell: pwsh
+      run: |
+        if (Test-Path "desktop/dist/PPG-Sorong.exe") {
+          $size = (Get-Item "desktop/dist/PPG-Sorong.exe").Length / 1MB
+          Write-Host "Build successful! EXE size: $([math]::Round($size, 2)) MB"
+        } else {
+          Write-Host "ERROR: PPG-Sorong.exe not found!"
+          exit 1
+        }
+
     - name: Create portable package
       shell: pwsh
       run: |
@@ -41,13 +52,17 @@ jobs:
         Copy-Item desktop/dist/PPG-Sorong.exe dist/PPG-Sorong-Portable/
         @"
         PPG Sorong - Portable Edition
+        ==============================
 
         Cara Penggunaan:
         1. Jalankan PPG-Sorong.exe
         2. Login: admin / admin123
         3. Database otomatis dibuat di folder data
 
-        "@ | Out-File -FilePath dist/PPG-Sorong-Portable/README.txt
+        Catatan:
+        - Jangan hapus folder 'data' (berisi database)
+        - Backup data secara berkala melalui menu Pengaturan
+        "@ | Out-File -FilePath dist/PPG-Sorong-Portable/README.txt -Encoding UTF8
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -56,13 +71,21 @@ jobs:
         path: dist/PPG-Sorong-Portable/
         retention-days: 30
 
+    - name: Create ZIP for release
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: pwsh
+      run: |
+        Compress-Archive -Path dist/PPG-Sorong-Portable/* -DestinationPath dist/PPG-Sorong-Portable.zip
+
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           desktop/dist/PPG-Sorong.exe
+          dist/PPG-Sorong-Portable.zip
         draft: false
         prerelease: false
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
