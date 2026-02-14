@@ -93,7 +93,7 @@ class KurikulumPage(BasePage):
         # Materi table
         self.materi_table = QTableWidget()
         self.materi_table.setColumnCount(5)
-        self.materi_table.setHorizontalHeaderLabels(['No', 'Nama Materi', 'Tipe', 'Target', 'Aksi'])
+        self.materi_table.setHorizontalHeaderLabels(['No', 'Nama Materi', 'Tipe', 'Kategori', 'Aksi'])
         self.materi_table.horizontalHeader().setStretchLastSection(True)
         self.materi_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.materi_table.setAlternatingRowColors(True)
@@ -192,7 +192,7 @@ class KurikulumPage(BasePage):
                 self.materi_table.setItem(row, 0, QTableWidgetItem(materi.nomor or str(row + 1)))
                 self.materi_table.setItem(row, 1, QTableWidgetItem(materi.nama))
                 self.materi_table.setItem(row, 2, QTableWidgetItem(materi.tipe or "-"))
-                self.materi_table.setItem(row, 3, QTableWidgetItem(materi.target_capaian or "-"))
+                self.materi_table.setItem(row, 3, QTableWidgetItem(materi.kategori.nama if materi.kategori else "-"))
 
                 # Action buttons - store materi ID
                 materi_id = materi.id
@@ -414,7 +414,6 @@ class KurikulumPage(BasePage):
             {'key': 'nomor', 'label': 'Nomor', 'type': 'text', 'placeholder': 'Contoh: 1, 2, 3...'},
             {'key': 'tipe', 'label': 'Tipe', 'type': 'select',
              'options': [('hafalan', 'Hafalan'), ('level', 'Level'), ('checklist', 'Checklist'), ('status', 'Status')]},
-            {'key': 'target_capaian', 'label': 'Target Capaian', 'type': 'text'},
         ]
 
         dialog = FormDialog(f"Tambah Materi - {kategori.nama}", fields, parent=self)
@@ -425,8 +424,7 @@ class KurikulumPage(BasePage):
                     kategori_id=kategori_id,
                     nama=data['nama'],
                     nomor=data.get('nomor'),
-                    tipe=data.get('tipe'),
-                    target_capaian=data.get('target_capaian')
+                    tipe=data.get('tipe')
                 )
                 self.session.add(materi)
                 self.session.commit()
@@ -449,10 +447,9 @@ class KurikulumPage(BasePage):
             {'key': 'nomor', 'label': 'Nomor', 'type': 'text'},
             {'key': 'tipe', 'label': 'Tipe', 'type': 'select',
              'options': [('hafalan', 'Hafalan'), ('level', 'Level'), ('checklist', 'Checklist'), ('status', 'Status')]},
-            {'key': 'target_capaian', 'label': 'Target Capaian', 'type': 'text'},
         ]
 
-        data = {'nama': materi.nama, 'nomor': materi.nomor, 'tipe': materi.tipe, 'target_capaian': materi.target_capaian}
+        data = {'nama': materi.nama, 'nomor': materi.nomor, 'tipe': materi.tipe}
         dialog = FormDialog("Edit Materi", fields, data=data, parent=self)
         if dialog.exec():
             new_data = dialog.get_data()
@@ -460,7 +457,6 @@ class KurikulumPage(BasePage):
                 materi.nama = new_data['nama']
                 materi.nomor = new_data.get('nomor')
                 materi.tipe = new_data.get('tipe')
-                materi.target_capaian = new_data.get('target_capaian')
                 self.session.commit()
                 self._update_materi_table()
                 QMessageBox.information(self, "Sukses", "Materi berhasil diperbarui!")

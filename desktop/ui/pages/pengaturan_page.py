@@ -16,40 +16,42 @@ import os
 from .base_page import BasePage
 from services.excel_service import ExcelService
 from database.models import Wilayah, Jenjang
+from database.connection import SessionLocal
 from config import COLORS, DATA_DIR
 
 
 class ExportWorker(QThread):
-    """Worker thread for export operations"""
+    """Worker thread for export operations - uses its own session for thread safety"""
     finished = pyqtSignal(bool, str)
     progress = pyqtSignal(int)
 
-    def __init__(self, excel_service: ExcelService, export_type: str, filepath: str, **kwargs):
+    def __init__(self, export_type: str, filepath: str, **kwargs):
         super().__init__()
-        self.excel_service = excel_service
         self.export_type = export_type
         self.filepath = filepath
         self.kwargs = kwargs
 
     def run(self):
+        session = SessionLocal()
         try:
+            excel_service = ExcelService(session)
             self.progress.emit(30)
 
             if self.export_type == 'all':
-                success = self.excel_service.export_all(self.filepath)
+                success = excel_service.export_all(self.filepath)
             elif self.export_type == 'jamaah':
-                success = self.excel_service.export_jamaah(
+                success = excel_service.export_jamaah(
                     self.filepath,
                     wilayah_id=self.kwargs.get('wilayah_id')
                 )
             elif self.export_type == 'wilayah':
-                success = self.excel_service.export_wilayah(self.filepath)
+                success = excel_service.export_wilayah(self.filepath)
             elif self.export_type == 'kurikulum':
-                success = self.excel_service.export_kurikulum(self.filepath)
+                success = excel_service.export_kurikulum(self.filepath)
             elif self.export_type == 'pengajian':
-                success = self.excel_service.export_pengajian(self.filepath)
+                success = excel_service.export_pengajian(self.filepath)
             elif self.export_type == 'presensi':
-                success = self.excel_service.export_presensi(self.filepath)
+                success = excel_service.export_presensi(self.filepath)
             else:
                 success = False
 
@@ -57,38 +59,45 @@ class ExportWorker(QThread):
             self.finished.emit(success, self.filepath if success else "Export gagal")
         except Exception as e:
             self.finished.emit(False, str(e))
+        finally:
+            session.close()
 
 
 class ImportWorker(QThread):
-    """Worker thread for import operations"""
+    """Worker thread for import operations - uses its own session for thread safety"""
     finished = pyqtSignal(bool, str, dict)
     progress = pyqtSignal(int)
 
-    def __init__(self, excel_service: ExcelService, import_type: str, filepath: str):
+    def __init__(self, import_type: str, filepath: str):
         super().__init__()
-        self.excel_service = excel_service
         self.import_type = import_type
         self.filepath = filepath
 
     def run(self):
+        session = SessionLocal()
         try:
+            excel_service = ExcelService(session)
             self.progress.emit(30)
 
             if self.import_type == 'all':
-                result = self.excel_service.import_all(self.filepath)
+                result = excel_service.import_all(self.filepath)
             elif self.import_type == 'jamaah':
-                result = self.excel_service.import_jamaah(self.filepath)
+                result = excel_service.import_jamaah(self.filepath)
             elif self.import_type == 'wilayah':
-                result = self.excel_service.import_wilayah(self.filepath)
+                result = excel_service.import_wilayah(self.filepath)
             elif self.import_type == 'kurikulum':
-                result = self.excel_service.import_kurikulum(self.filepath)
+                result = excel_service.import_kurikulum(self.filepath)
             else:
                 result = {'success': False, 'errors': ['Tipe import tidak valid']}
 
+            session.commit()
             self.progress.emit(100)
             self.finished.emit(result.get('success', False), "", result)
         except Exception as e:
+            session.rollback()
             self.finished.emit(False, str(e), {})
+        finally:
+            session.close()
 
 
 class PengaturanPage(BasePage):
@@ -386,7 +395,7 @@ class PengaturanPage(BasePage):
 
         auto_layout.addWidget(QLabel("Simpan di:"), 2, 0)
         self.backup_path = QLineEdit()
-        self.backup_path.setText(os.path.join(DATA_DIR, "backups"))
+        self.backup_path.setText(os.path.join(str(DATA_DIR), "backups"))
         self.backup_path.setReadOnly(True)
         auto_layout.addWidget(self.backup_path, 2, 1)
 
@@ -581,7 +590,7 @@ class PengaturanPage(BasePage):
         filepath, _ = QFileDialog.getSaveFileName(
             self,
             f"Export {export_type.title()}",
-            os.path.join(DATA_DIR, default_name),
+            os.path.join(str(DATA_DIR), default_name),
             "Excel Files (*.xlsx)"
         )
 
@@ -593,7 +602,7 @@ class PengaturanPage(BasePage):
         self.export_progress.setValue(0)
 
         # Start worker
-        self._worker = ExportWorker(self.excel_service, export_type, filepath)
+        self._worker = ExportWorker(export_type, filepath)
         self._worker.progress.connect(self.export_progress.setValue)
         self._worker.finished.connect(self._on_export_finished)
         self._worker.start()
@@ -625,7 +634,7 @@ class PengaturanPage(BasePage):
         filepath, _ = QFileDialog.getSaveFileName(
             self,
             "Export Generus Per Kelompok",
-            os.path.join(DATA_DIR, default_name),
+            os.path.join(str(DATA_DIR), default_name),
             "Excel Files (*.xlsx)"
         )
 
@@ -638,7 +647,7 @@ class PengaturanPage(BasePage):
 
         # Start worker
         self._worker = ExportWorker(
-            self.excel_service, 'jamaah', filepath,
+            'jamaah', filepath,
             wilayah_id=wilayah_id
         )
         self._worker.progress.connect(self.export_progress.setValue)
@@ -663,7 +672,7 @@ class PengaturanPage(BasePage):
         filepath, _ = QFileDialog.getOpenFileName(
             self,
             f"Import {import_type.title()}",
-            DATA_DIR,
+            str(DATA_DIR),
             "Excel Files (*.xlsx *.xls)"
         )
 
@@ -676,7 +685,7 @@ class PengaturanPage(BasePage):
         self.import_result.setVisible(False)
 
         # Start worker
-        self._worker = ImportWorker(self.excel_service, import_type, filepath)
+        self._worker = ImportWorker(import_type, filepath)
         self._worker.progress.connect(self.import_progress.setValue)
         self._worker.finished.connect(self._on_import_finished)
         self._worker.start()
@@ -717,7 +726,7 @@ class PengaturanPage(BasePage):
         filepath, _ = QFileDialog.getSaveFileName(
             self,
             f"Download Template {module.title()}",
-            os.path.join(DATA_DIR, default_name),
+            os.path.join(str(DATA_DIR), default_name),
             "Excel Files (*.xlsx)"
         )
 
@@ -747,7 +756,7 @@ class PengaturanPage(BasePage):
         filepath, _ = QFileDialog.getSaveFileName(
             self,
             "Backup Database",
-            os.path.join(DATA_DIR, default_name),
+            os.path.join(str(DATA_DIR), default_name),
             "PPG Backup Files (*.ppg)"
         )
 
@@ -788,7 +797,7 @@ class PengaturanPage(BasePage):
         filepath, _ = QFileDialog.getOpenFileName(
             self,
             "Restore Database",
-            DATA_DIR,
+            str(DATA_DIR),
             "PPG Backup Files (*.ppg)"
         )
 

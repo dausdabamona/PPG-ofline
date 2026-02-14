@@ -228,7 +228,7 @@ class LaporanPage(BasePage):
 
         self.stat_total_generus = StatCard("Total Generus", "0", color=COLORS['primary'])
         self.stat_generus_laki = StatCard("Laki-laki", "0", color=COLORS['info'])
-        self.stat_generus_perempuan = StatCard("Perempuan", "0", color=COLORS['accent'])
+        self.stat_generus_perempuan = StatCard("Perempuan", "0", color=COLORS['warning'])
         self.stat_generus_aktif = StatCard("Aktif", "0", color=COLORS['success'])
 
         generus_layout.addWidget(self.stat_total_generus, 0, 0)
@@ -668,7 +668,8 @@ class LaporanPage(BasePage):
     def _load_wilayah_stats(self):
         """Load statistik per wilayah"""
         wilayah_list = self.session.query(Wilayah).filter(
-            Wilayah.tipe == 'kelompok'
+            Wilayah.tingkat == 'kelompok',
+            Wilayah.is_aktif == True
         ).order_by(Wilayah.nama).all()
 
         self.wilayah_stats_table.setRowCount(len(wilayah_list))

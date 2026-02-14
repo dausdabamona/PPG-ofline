@@ -16,7 +16,8 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QFont
 
 from config import APP_NAME, APP_VERSION, DATABASE_PATH
-from database import init_database, get_session
+from database import init_database
+from database.connection import SessionLocal
 from ui import MainWindow
 
 
@@ -69,17 +70,24 @@ def main():
         )
         app.processEvents()
 
-        # Create main window with session
-        with get_session() as session:
-            # Create main window
-            window = MainWindow(session)
+        # Create session directly (avoid context manager
+        # since sys.exit raises SystemExit which bypasses commit/rollback)
+        session = SessionLocal()
 
-            # Close splash and show window
-            splash.finish(window)
-            window.showMaximized()
+        # Create main window
+        window = MainWindow(session)
 
-            # Run application
-            sys.exit(app.exec())
+        # Close splash and show window
+        splash.finish(window)
+        window.showMaximized()
+
+        # Run application
+        try:
+            exit_code = app.exec()
+        finally:
+            session.close()
+
+        sys.exit(exit_code)
 
     except Exception as e:
         splash.close()

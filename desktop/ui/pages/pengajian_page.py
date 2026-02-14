@@ -239,10 +239,14 @@ class PengajianPage(BasePage):
         if dialog.exec():
             data = dialog.get_data()
             try:
-                # Parse jam
+                # Parse jam dengan validasi
                 jam_str = data.pop('jam', '00:00')
-                parts = jam_str.split(':')
-                jam = time(int(parts[0]), int(parts[1]) if len(parts) > 1 else 0)
+                try:
+                    parts = jam_str.split(':')
+                    jam = time(int(parts[0]), int(parts[1]) if len(parts) > 1 else 0)
+                except (ValueError, IndexError):
+                    QMessageBox.warning(self, "Format Salah", "Format jam harus HH:MM (contoh: 08:00)")
+                    return
 
                 jadwal = JadwalRutin(jam=jam, **data)
                 self.session.add(jadwal)
@@ -280,8 +284,12 @@ class PengajianPage(BasePage):
             new_data = dialog.get_data()
             try:
                 jam_str = new_data.pop('jam', '00:00')
-                parts = jam_str.split(':')
-                jadwal.jam = time(int(parts[0]), int(parts[1]) if len(parts) > 1 else 0)
+                try:
+                    parts = jam_str.split(':')
+                    jadwal.jam = time(int(parts[0]), int(parts[1]) if len(parts) > 1 else 0)
+                except (ValueError, IndexError):
+                    QMessageBox.warning(self, "Format Salah", "Format jam harus HH:MM (contoh: 08:00)")
+                    return
                 jadwal.nama = new_data['nama']
                 jadwal.hari = new_data['hari']
                 jadwal.wilayah_id = new_data['wilayah_id']
