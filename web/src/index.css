@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+/* Gaya dasar mobile-first untuk aplikasi PPG.
+   Target perangkat: Android low-end (Sorong), layar kecil, koneksi terbatas. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
