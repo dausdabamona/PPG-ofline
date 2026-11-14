@@ -9,6 +9,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -50,6 +53,20 @@ jobs:
           path: |
             apps/desktop/release/*.exe
           retention-days: 30
+
+      # Rilis "uji-terbaru" (tunggu sebentar agar tidak berebut membuat rilis dengan workflow APK)
+      - name: Rilis uji-terbaru
+        if: github.ref == 'refs/heads/claude/ppg-offline-v2'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: uji-terbaru
+          target_commitish: ${{ github.sha }}
+          name: PPG Sorong v2 — Uji Terbaru
+          prerelease: true
+          files: apps/desktop/release/*.exe
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rilis (tag v*)
         if: startsWith(github.ref, 'refs/tags/')

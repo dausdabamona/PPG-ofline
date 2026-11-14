@@ -9,6 +9,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
     # ubuntu-24.04 sudah berisi Android SDK (ANDROID_HOME); setup-android@v3 gagal di runner baru
@@ -68,6 +71,24 @@ jobs:
           name: PPG-Sorong-APK
           path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      - name: Siapkan nama APK
+        run: cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk PPG-Sorong.apk
+
+      # Rilis "uji-terbaru": tautan unduh langsung tanpa login (diperbarui tiap push ke branch v2)
+      - name: Rilis uji-terbaru
+        if: github.ref == 'refs/heads/claude/ppg-offline-v2'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: uji-terbaru
+          target_commitish: ${{ github.sha }}
+          name: PPG Sorong v2 — Uji Terbaru
+          body: "APK HP dan EXE admin terbaru dari branch claude/ppg-offline-v2. Unduh PPG-Sorong.apk untuk HP Android."
+          prerelease: true
+          files: PPG-Sorong.apk
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rilis (tag v*)
         if: startsWith(github.ref, 'refs/tags/')
