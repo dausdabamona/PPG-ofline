@@ -51,9 +51,15 @@ jobs:
 
       - name: Gradle assembleDebug
         working-directory: apps/mobile/android
+        # Bila gagal, ekor log dikirim sebagai anotasi agar terbaca tanpa login
         run: |
+          set -o pipefail
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee build.log || {
+            msg=$(grep -E "error|FAILURE|What went wrong|wrong:|Could not|e: " build.log | tail -c 3500 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Gradle gagal::${msg}"
+            exit 1
+          }
 
       - name: Unggah APK
         uses: actions/upload-artifact@v4
