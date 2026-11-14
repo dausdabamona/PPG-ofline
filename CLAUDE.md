@@ -1,6 +1,6 @@
 # PPG Sorong v2 — Offline-First
 
-Kontrak teknis: `docs/RENCANA-IMPLEMENTASI.md` (wajib dibaca sebelum mengubah kode). Laporan fase: `docs/LAPORAN-TAHAP.md`.
+Kontrak teknis: `docs/RENCANA-IMPLEMENTASI.md` (wajib dibaca sebelum mengubah kode). Laporan fase: `docs/LAPORAN-TAHAP.md`. Panduan pengguna: `docs/PANDUAN-PENGGUNA.md`.
 
 ## Stack
 - `packages/core` — TypeScript, sql.js, libsodium-wrappers, fflate, vitest (semua logika bisnis)

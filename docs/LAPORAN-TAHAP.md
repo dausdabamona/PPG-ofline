@@ -168,3 +168,84 @@ Data admin tersimpan di `%APPDATA%\PPG Sorong Admin\ppg-admin.db` (cadangan hari
 - Cadangan `.ppgdb` berisi kunci rahasia HP tanpa enkripsi (sama seperti DB di IndexedDB — catatan Fase 1); PIN hanya kunci antarsaudara.
 - Ikon & splash masih bawaan Capacitor; APK debug tidak ditandatangani rilis.
 - Pemindai belum diuji dengan kamera nyata (jsdom/headless tanpa kamera → jalur cadangan tempel teks).
+
+---
+
+## Fase 4 — Pemeriksaan akhir (2026-11-14)
+
+Pemeriksa independen membaca rencana (T1–T37), laporan Fase 1–3, README core, seluruh `apps/desktop/src` dan `apps/mobile/src`, lalu
+memperbaiki dua sisa masalah besar Fase 3 dan mencari cacat nyata di kedua aplikasi. Setiap cacat direproduksi dulu dengan test yang
+**gagal** (dicek dengan menyembunyikan perbaikannya), baru diperbaiki.
+
+### Sisa masalah Fase 3 yang diselesaikan
+- **QR berseri (T38)** — token generus/wali ±3,7 KB kini bisa dipindai: `core/qr-seri.ts` (`pecahQr`, `uraiBagianQr`, `susunQr`,
+  `pengumpulQrBaru`, `tambahBagianQr`), format `PPGQ1|<id>|<ke>/<dari>|<potongan>`, ≤ 800 karakter per bagian (QR versi ≤ 20). Token
+  ±3,7 KB = 5 QR. APK mubaligh (Terbitkan Token) dan EXE (Perangkat & Token) menampilkan QR bergantian tiap 1,5 detik + Sebelumnya /
+  Jeda / Berikutnya; pemindai APK mengumpulkan bagian dalam urutan bebas ("2 dari 5 bagian QR terbaca"), lalu mengisi token. Kirim lewat WA
+  + Tempel tetap ada (kotak tempel juga menerima bagian-bagian QR). Kode Perangkat (±0,3 KB) tetap satu QR polos — kompatibel.
+  Diuji: core (pecah/susun/pengumpul), **jsQR sungguhan mendekode setiap bagian** yang dirender 3 px/modul (`apps/mobile/test/qr-seri.test.ts`),
+  UI jsdom (navigasi, ganti otomatis, tempel bagian), Chrome headless 360×740 (QR 1→2 berganti).
+- **Cadangan HP terenkripsi (T39)** — `core/cadangan-hp.ts`: `"PPGCB1" | garam | iterasi | secretbox(PBKDF2(sandi), gzip(db))`.
+  "Cadangkan data HP" wajib kata sandi (≥ 6 karakter, diulang); pulihkan meminta sandi (salah → "Kata sandi cadangan salah"); berkas lain
+  ditolak sebelum ditanya sandi; cadangan polos lama tetap bisa dipulihkan dengan saran membuat cadangan baru. Diuji: core (kunci rahasia
+  tidak terbaca di berkas, sandi salah/terpotong/lemah), UI jsdom, Chrome headless (berkas unduhan berawalan `PPGCB1`).
+
+### Temuan pemeriksaan & perbaikan
+
+| # | Tingkat | Temuan | Perbaikan | Test |
+|---|---|---|---|---|
+| 1 | **Sedang** | EXE: admin yang lupa kata sandi di laptop yang sama tidak punya jalan keluar — "Pulihkan dari cadangan" hanya ada saat database kosong; harus menghapus berkas `%APPDATA%` secara manual | Layar Masuk: **Lupa kata sandi?** → `.ppgkey` + sandi cadangan + sandi baru (`imporCadanganKunci` pada DB yang sama); data utuh | `apps/desktop/test/pemeriksaan-akhir.test.tsx` |
+| 2 | **Sedang** | APK: tombol kembali Android menutup aplikasi dari layar mana pun (termasuk saat jendela token/PIN terbuka) | T40: tombol kembali menutup jendela → menekan "Kembali" halaman → bila tidak ada, aplikasi diperkecil (`App.minimizeApp`) | `pemeriksaan-akhir.test.tsx`, `alur-mubaligh-generus.test.tsx` |
+| 3 | Sedang | Pengingat Setor Belajar untuk profil generus di HP yang juga memegang profil mubaligh/pengurus dihitung dari **Setor Data** mubaligh, sehingga catatan anak bisa tertahan tanpa pengingat | `infoSinkronHp` + `hariSejakBelajar`/`perluPengingatBelajar`; indikator memakai nilai sesuai peran | `packages/core/test/fase4.test.ts` |
+| 4 | Ringan | Spanduk "Sedang mondok" tampil juga untuk pengurus/mubaligh yang dibekukan admin | Teks "Profil ini dibekukan admin — pencatatan dihentikan sementara" untuk pengurus/mubaligh | `pemeriksaan-akhir.test.tsx` |
+| 5 | Ringan | Daftar "Token yang sudah diterbitkan" menampilkan kode mentah `aktif`/`dibekukan`/`kedaluwarsa` | Label Bahasa Indonesia (`LABEL_STATUS_TOKEN`) | `pemeriksaan-akhir.test.tsx` |
+| 6 | Ringan | EXE Impor Setoran hanya menerima `*.ppg`; berkas WA yang namanya diubah (mis. tanpa ekstensi) tidak bisa dipilih | Filter tambahan "Semua berkas" (isi tetap divalidasi core) | — (dialog Electron) |
+| 7 | Ringan | Jendela serah terima belum mengingatkan bahwa mubaligh baru harus segera mengirim Balasan (sisa risiko Fase 1b) | Pesan sukses serah terima (EXE) + keterangan di layar Kirim Balasan (APK) + panduan | — |
+
+Hal yang diperiksa dan **tidak** cacat: profil generus hanya melihat datanya sendiri (Materiku/Catat memakai `generus_ids` profil aktif,
+Jadwal per kelompok); wali hanya anak-anak di tokennya (`generusProfil`) — HP wali tidak menerima data generus lain (dibuktikan di uji
+ujung-ke-ujung: `laporanPekanan` Citra = null di HP wali); PIN diminta saat aplikasi dibuka bila > 1 profil; pembekuan mondok
+menghentikan pencatatan di core (`catatKemajuan` melempar, `simakLangsung` menolak generus tidak aktif, `lembarPresensi`/Terbitkan Token
+hanya generus aktif, BELAJAR dari profil beku ditolak mubaligh) dan di UI (tombol nonaktif + spanduk); Buka Berkas menerima semua jenis
+(PAKET/BALASAN/JADWAL/MATERI/BELAJAR, SETOR → pesan "untuk admin"; berkas rusak → pesan ramah) dari tombol maupun intent WA; data
+disimpan 500 ms setelah perubahan + saat ke latar belakang + segera setelah membuka berkas/aktivasi; EXE menyimpan sebelum jendela
+ditutup; semua tombol APK ≥ 44 px (Chrome 360×740, termasuk jendela token).
+
+### Uji ujung-ke-ujung lintas aplikasi (C)
+`packages/core/test/ujung-ke-ujung.test.ts` — satu siklus dengan fungsi yang sama yang dipanggil UI: admin (pengaturan awal, ekspor
+`.ppgkey`, wilayah, **impor CSV dari berkas**, pengajian, materi) → pengurus & mubaligh (Kode Perangkat & token lewat berkas teks /
+**QR berseri** dipindai acak dengan bagian ganda) → paket + materi (`imporBanyak`, seperti tombol Buka Berkas) → mubaligh menerbitkan token
+2 generus di satu HP (PIN) + wali → presensi pengurus → Setor Data keduanya → admin Impor Setoran (impor ulang = `sudahPernah`) → paket →
+Balasan ke semua (berkas yang bukan untuk HP itu ditolak dengan pesan) → generus catat 2 profil → Setor Belajar → mubaligh sahkan/tolak →
+Balasan → **wali** melihat laporan pekanan (hanya anaknya) + teks/tautan WA → Setor Data → **admin rekap** (Ali 1 disahkan, Budi 0;
+hadir 2) → mondok (admin → paket → balasan → profil Ali beku, Budi tetap) → **cadangan HP terenkripsi** dipulihkan di "HP baru" dan lanjut
+Setor Belajar → laptop admin baru dipulihkan dari `.ppgkey`, lalu menerima setoran. Setiap berkas ditulis ke folder sementara dan dibaca
+ulang sebagai byte; setiap database disimpan ke berkas dan dibuka ulang di antara langkah.
+
+### Panduan pengguna (D)
+`docs/PANDUAN-PENGGUNA.md`: unduh dari GitHub Actions (Artifacts kedaluwarsa 30 hari → buat tag `v0.1.0` untuk rilis permanen),
+SmartScreen "Info lainnya → Tetap jalankan", izin "instal dari sumber tidak dikenal", langkah Admin (cadangan kunci WAJIB di 2 tempat,
+wilayah, CSV, aktivasi, impor setoran, usulan, paket, materi, rekap/Excel, serah terima + pesan Balasan pada hari serah terima, lupa sandi),
+Mubaligh, Pengurus, Generus, Wali, cadangan HP, jadwal rutin, dan "Jika terjadi masalah".
+
+### Hasil uji akhir
+- `npm test`: core **18 berkas / 111 test**, desktop **5 / 11**, mobile **4 / 6** — **128 test lulus**, 0 gagal (Fase 3: 115).
+- Cakupan core: statements 95,6 %, branches 87,1 %, functions 99,0 %, lines 97,9 %.
+- `npm run typecheck` bersih (3 workspace); `npm run build` sukses (semua workspace); `npx cap sync android` berhasil.
+- Chrome headless: uji asap APK 360×740 (diperluas: QR berseri berganti, cadangan terenkripsi) **0 galat konsol, 0 tombol < 44 px**;
+  uji asap EXE **0 galat konsol**. (`playwright-core` dipasang di luar repo; tidak ada dependensi baru, `package-lock.json` tidak berubah.)
+
+### Perubahan desain
+T35 & T36 diubah; **T38** QR berseri, **T39** cadangan HP terenkripsi, **T40** tombol kembali Android + pengingat belajar (lihat rencana).
+API core baru: `qr-seri`, `cadangan-hp`, field `InfoSinkronHp.hariSejakBelajar/perluPengingatBelajar` (README §Catatan Fase 4).
+
+### Sisa masalah (jujur)
+- **Belum diuji di HP & Windows nyata**: pemindaian QR berseri dengan kamera sungguhan (diuji hanya jsQR pada gambar sempurna — layar
+  silau/kamera buruk bisa lebih lambat; jalur Tempel tetap ada), `minimizeApp`, Share/intent dari WA, EXE hasil electron-builder.
+- **Kunci di HP tetap polos** di IndexedDB (hanya berkas cadangan yang dienkripsi). Orang yang memegang HP tak terkunci bisa membaca
+  datanya. PIN profil hanya kunci antarsaudara; token yang sama bisa ditempel ulang dengan PIN baru (dipakai untuk "lupa PIN").
+- Jendela sesudah serah terima (Fase 1b) tetap ada sampai HP generus membuka Balasan pertama mubaligh baru — kini diingatkan di UI & panduan.
+- Penyimpanan HP saat ke latar belakang bersifat asinkron; bila Android mematikan aplikasi tepat dalam jeda < 0,5 detik setelah
+  perubahan terakhir, perubahan itu bisa hilang.
+- Ikon/splash bawaan, APK debug & EXE tanpa tanda tangan (SmartScreen/Play Protect memperingatkan), PAKET tidak inkremental,
+  jam perangkat menentukan waktu — sama seperti fase sebelumnya.
