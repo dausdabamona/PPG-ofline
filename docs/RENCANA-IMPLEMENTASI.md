@@ -41,6 +41,18 @@ Pemilik: Firdaus Dabamona ("Pak Fir"). Bahasa UI, komentar logika bisnis, pesan 
 | T7 | Kunci privat admin di EXE dienkripsi dengan **kata sandi admin** (PBKDF2-SHA256 210.000 iterasi + secretbox) | Laptop bisa dipakai orang lain |
 | T8 | Folder Python lama `desktop/` dibiarkan (arsip), workflow lamanya diganti | Tidak menghapus pekerjaan lama |
 | T9 | Impor generus massal di EXE lewat **CSV** | Admin tidak mengetik ratusan nama satu per satu |
+| T10 | **PAKET memakai amplop per penerima**: isi dienkripsi kunci berkas acak, kunci itu disegel (`segelKe`) ke `box_pub` tiap perangkat pengurus/mubaligh **aktif** yang wilayahnya = wilayah paket atau di atasnya (header `kunci_penerima`). `kunci_wilayah` tidak dipakai lagi | Celah: dengan kunci wilayah tetap, mubaligh/pengurus yang sudah dicabut masih bisa membuka paket berikutnya. Dengan amplop, perangkat dicabut otomatis tidak bisa membuka paket baru, tanpa rotasi kunci |
+| T11 | Tabel `perangkat` & `pencabutan` berbasis **token** (`perangkat.id = token_id`, `pencabutan.token_id`) | Satu HP bisa memegang beberapa token (K13); membekukan token kakak yang mondok tidak boleh membekukan adiknya di HP yang sama |
+| T12 | Bila penerbit (mubaligh) sudah dicabut, token generus/wali hanya diterima bila **terdaftar** (pernah dilaporkan lewat SETOR → ikut PAKET) | Mencegah mubaligh tercabut memalsukan tanggal `terbit` (memundurkan jam HP) untuk menerbitkan token baru |
+| T13 | Admin menolak rekaman kegiatan yang `perangkat_id`-nya bukan pengirim (kecuali `kemajuan_belajar` yang diteruskan mubaligh berhak `sahkan`), kemajuan berstatus disahkan/ditolak dari pengirim tanpa hak `sahkan`, dan usulan yang statusnya diubah perangkat | Data kegiatan milik pencatat (K5); hanya admin yang memutus usulan |
+| T14 | Berkas JADWAL lama ditolak: dari pengirim sama bila `versi` ≤ terpasang; dari pengirim lain (mubaligh baru) bila `dibuat_pada` ≤ terpasang | Nomor versi mubaligh baru mulai dari 1 lagi setelah serah terima |
+| T15 | `log_bentrok` hanya bila isi berbeda, lokal pernah ditulis di sini (`seq_lokal > 0`) **dan** pemenang tidak punya `versi` lebih tinggi | Membedakan suntingan bersamaan dari sekadar gema data lama |
+| T16 | Pindah kelompok mencabut token generus yang terikat kelompok lama; mubaligh kelompok baru menerbitkan token baru. Status `pindah`/`keluar`/`lulus_menikah` mencabut token | Token generus terikat `wilayah_id` kelompok penerbit |
+| T17 | Id kurikulum tetap: `BDG-<urutan>`, `KAT-<kode>`, `MAT-<kode>-<nnn>` | Sama di semua instalasi (pulih dari cadangan tidak menggandakan materi) |
+| T18 | CSV generus: kategori kosong → dihitung dari umur (<6 paud, 6–12 caberawit, 13–15 praremaja, 16–18 remaja, ≥19 pranikah); tanggal boleh `DD/MM/YYYY`; pemisah `,`/`;` otomatis; kolom `mulai` opsional | Data Excel lapangan |
+| T19 | Riwayat keanggotaan/status: `mulai` inklusif, `selesai` eksklusif. Laporan pekanan berstatus mondok bila status pada **tanggal acuan** = mondok | Definisi tegas untuk rekap per periode |
+| T20 | SHA-256 diimplementasikan murni TS (`sha256.ts`) | `libsodium-wrappers` standar tidak menyediakan `crypto_hash_sha256` |
+| T21 | `urut` SETOR/BELAJAR = max(`meta.seq`, seq tertinggi rekaman yang dibawa) | Konfirmasi selalu menutup semua rekaman yang terkirim |
 
 ---
 
@@ -143,7 +155,9 @@ interface RahasiaToken {
 - Generus/wali: ditandatangani **kunci tanda tangan perangkat mubaligh**, `penerbit` berisi token mubaligh.
 - `periksaToken(teks, { adminSignPub, sekarang, pencabutan })` → `{ sah: true, payload } | { sah: false, alasan }`. Untuk generus/wali periksa juga: token penerbit sah, role mubaligh, punya hak `terbit_generus`, `wilayah_id` sama, `terbit` generus ≤ `berlaku_sampai` penerbit, dan penerbit tidak dicabut **sebelum** `terbit` generus.
 - Kedaluwarsa: token kedaluwarsa tetap bisa membaca data lokal, tetapi tidak bisa mencatat/menyetor.
-- Kunci wilayah: pengurus desa memegang kunci desa **dan** kunci semua kelompok di desanya; pengurus daerah memegang semua. (Paket dibuat per wilayah token.)
+- ~~Kunci wilayah~~ (diganti T10): PAKET dibuat per wilayah dan bisa dibuka setiap perangkat aktif yang wilayah tokennya sama dengan atau di atas wilayah paket. Pengurus/mubaligh kelompok menerima `kunci_umum_kelompok` (JADWAL); mubaligh menerima semua versi `kunci_kelompok_setor` beserta rahasianya.
+- Bila penerbit token generus/wali sudah dicabut, token itu hanya diterima bila terdaftar (`tokenDikenal`, T12).
+- `periksaToken` mengembalikan `{ sah:false, kode, alasan, payload? }`; kode `KEDALUWARSA`/`DIBEKUKAN`/`DICABUT` tetap membawa `payload` agar data lokal bisa dibaca.
 
 ---
 
@@ -164,6 +178,7 @@ interface HeaderBerkas {
   versi?: number       // PAKET/MATERI/JADWAL: nomor versi
   versi_kunci?: number // BELAJAR: versi kunci kelompok setor
   penerima_perangkat_id?: string  // BALASAN
+  kunci_penerima?: Record<string, string> // PAKET (T10): perangkat_id → b64url(segelKe(box_pub, kunci berkas))
 }
 ```
 
@@ -172,7 +187,7 @@ Isi = `gzip(JSON)` (fflate) lalu dienkripsi:
 | Jenis | Arah | Enkripsi | Penanda tangan |
 |---|---|---|---|
 | SETOR | pengurus/mubaligh → admin | `segelKe(admin_box_pub)` | kunci perangkat pengirim |
-| PAKET | admin → pengurus/mubaligh | `enkripsiRahasia(kunci_wilayah[wilayah_id])` | admin |
+| PAKET | admin → pengurus/mubaligh | `enkripsiRahasia(kunci berkas acak)`; kunci berkas disegel per penerima aktif di `kunci_penerima` (T10) | admin |
 | BELAJAR | generus → mubaligh | `segelKe(kunci_kelompok_setor.publik versi n)` | kunci perangkat generus |
 | BALASAN | mubaligh → HP generus/wali | `segelKe(device_box_pub penerima)` | kunci perangkat mubaligh |
 | JADWAL | mubaligh → grup WA kelompok | `enkripsiRahasia(kunci_umum_kelompok)` | kunci perangkat mubaligh |
@@ -218,11 +233,11 @@ seq_lokal INTEGER NOT NULL DEFAULT 0   -- TIDAK ikut dikirim; >0 berarti perlu d
 ### 6.3 Lokal (tidak tersinkron, tanpa kolom sinkron)
 - `meta(kunci PK, nilai)` — mis. `seq`, `org_id`, `admin_sign_pub`, `admin_box_pub`, `konfirmasi_seq`, `versi_paket:<wilayah>`, `versi_materi`, `versi_jadwal:<kelompok>`
 - `identitas_perangkat(id PK, sign_pub, sign_rahasia, box_pub, box_rahasia, label)` — HP; admin menyimpan kuncinya terenkripsi sandi di `meta`
-- `profil(id PK, token TEXT, role, nama, generus_ids_json, pin_hash NULL, rahasia_json, dibekukan INTEGER, aktif INTEGER)` — HP
-- `perangkat(id PK, label, role, tingkat, wilayah_id, nama, token_id, token, sign_pub, box_pub, generus_ids_json, seq_diterima INTEGER, dicabut_pada NULL, dibekukan INTEGER, diterbitkan_oleh)` — admin (semua pengurus/mubaligh + generus/wali yang dilaporkan mubaligh) dan HP mubaligh (generus/wali kelompoknya)
-- `pencabutan(id PK, perangkat_id, jenis 'cabut'|'beku'|'cair', tanggal)` — juga ikut dibagikan dalam PAKET/BALASAN
+- `profil(id PK, token_id, token TEXT, role, nama, wilayah_id, tingkat, generus_ids_json, pin_hash NULL, pin_garam NULL, rahasia_json, dibekukan INTEGER, dicabut_pada NULL, aktif INTEGER, berlaku_sampai, dibuat_pada)` — HP
+- `perangkat(id PK = token_id, perangkat_id, label, role, tingkat, wilayah_id, nama, token_id, token, sign_pub, box_pub, generus_ids_json, seq_diterima INTEGER, dicabut_pada NULL, dibekukan INTEGER, diterbitkan_oleh, berlaku_sampai, setor_akhir_urut NULL, terakhir_setor NULL, dibuat_pada)` — **satu baris per token** (T11); admin (semua pengurus/mubaligh + generus/wali yang dilaporkan mubaligh), HP mubaligh/pengurus (token di wilayahnya, dari PAKET + yang diterbitkan sendiri)
+- `pencabutan(id PK, token_id, perangkat_id, jenis 'cabut'|'beku'|'cair', tanggal ISO)` — juga ikut dibagikan dalam PAKET/BALASAN; cabut permanen, beku/cair memakai catatan terakhir
 - `kunci_kelompok(kelompok_id, versi, publik, rahasia_terenkripsi, dibuat_pada, PK(kelompok_id, versi))` — admin
-- `kunci_wilayah(wilayah_id PK, kunci_terenkripsi)` dan `kunci_umum_kelompok(kelompok_id PK, kunci_terenkripsi)` — admin (dienkripsi kunci induk admin)
+- `kunci_umum_kelompok(kelompok_id PK, kunci_terenkripsi)` — admin (dienkripsi kunci induk admin). Tabel `kunci_wilayah` dihapus (T10)
 - `log_bentrok(id, tabel, rekaman_id, lama_json, baru_json, tanggal)`, `riwayat_impor(id, jenis, nama_berkas, pengirim, tanggal, ringkasan_json)`
 
 `seq_lokal`: setiap tulis lokal (termasuk impor BELAJAR di HP mubaligh) menaikkan `meta.seq` dan memberi nilai itu ke rekaman. Menerapkan PAKET/BALASAN/JADWAL/MATERI memberi `seq_lokal = 0`.
@@ -241,7 +256,7 @@ seq_lokal INTEGER NOT NULL DEFAULT 0   -- TIDAK ikut dikirim; >0 berarti perlu d
 | `kemajuan_belajar` | Rekaman `disahkan`/`ditolak` tidak bisa ditimpa versi `diajukan`; perangkat generus hanya boleh mengubah rekaman miliknya yang masih `diajukan` |
 | Hapus | `dihapus = 1` diperlakukan sebagai perubahan biasa |
 
-Admin juga memeriksa **wewenang**: rekaman dari perangkat harus berada dalam `wilayah_id` token pengirim; generus hanya untuk `generus_ids`-nya.
+Admin juga memeriksa **wewenang**: rekaman dari perangkat harus berada dalam `wilayah_id` token pengirim; generus hanya untuk `generus_ids`-nya; aturan pemilik & status usulan (T13). Bentrok dicatat menurut T15. Presensi dan penilaian akhlaq dideduplikasi saat dibaca: per kunci alami dipilih rekaman dengan `diubah_pada` terbesar (seri → `perangkat_id`).
 
 ---
 
@@ -251,15 +266,15 @@ Admin juga memeriksa **wewenang**: rekaman dari perangkat harus berada dalam `wi
 |---|---|---|
 | `buatSetor(db)` | HP pengurus/mubaligh | Semua rekaman tersinkron dengan `seq_lokal > konfirmasi_seq` + usulan + daftar perangkat generus/wali yang diterbitkan (untuk dicatat admin). Header `urut` = seq tertinggi. |
 | `imporSetor(dbAdmin, bytes, kunciAdmin)` | EXE | Verifikasi tanda tangan & token, tolak perangkat dicabut, gabung, catat `perangkat.seq_diterima`, kembalikan ringkasan (masuk, usulan, bentrok, ditolak + alasan). Idempoten. |
-| `buatPaket(dbAdmin, wilayahId, kunciAdmin)` | EXE | Untuk wilayah: master (rantai wilayah, generus, jamaah, pengajian, riwayat), kegiatan semua perangkat di wilayah itu, koreksi, pencabutan, `konfirmasi: {perangkat_id: seq}`, kunci kelompok setor terbaru (dibungkus per perangkat aktif mubaligh: `segelKe(box_pub)`), `versi` naik. |
+| `buatPaket(dbAdmin, wilayahId, kunciAdmin)` | EXE | Untuk wilayah: master (rantai wilayah, generus anggota **atau pernah anggota** — agar HP kelompok lama tahu generus sudah pindah —, jamaah, pengajian, riwayat, penugasan), kegiatan di wilayah itu (+ kemajuan/penilaian milik generusnya dari kelompok lama), koreksi untuk perangkat di wilayah, daftar token wilayah, pencabutan, `konfirmasi: {perangkat_id: seq}`, semua versi kunci kelompok setor (disegel per perangkat mubaligh aktif), amplop T10, `versi` naik. |
 | `terapkanPaket(db, bytes)` | HP | Tolak versi ≤ terpasang; gabung sebagai sumber admin; perbarui `konfirmasi_seq`, kunci, pencabutan; bila profil tercabut/dibekukan, tandai profil. |
-| `buatBelajar(db)` | HP generus | Untuk semua profil generus di HP: `kemajuan_belajar` milik profil dengan `seq_lokal > konfirmasi_belajar_seq`. Satu berkas. |
+| `buatBelajar(db, { kelompokId? })` | HP generus | Untuk semua profil generus di HP: `kemajuan_belajar` milik profil dengan `seq_lokal > konfirmasi_belajar_seq`. Satu berkas (bila profil dari beberapa kelompok, wajib pilih `kelompokId`). |
 | `imporBelajar(dbMubaligh, bytes)` | HP mubaligh | Verifikasi rantai token, enkripsi versi kunci, generus milik kelompok, profil tidak dibekukan; simpan `diajukan`; beri `seq_lokal` baru. Impor massal: `imporBanyak(db, [bytes])`. |
 | `sahkan(db, kemajuanId, { keputusan, catatan })` | HP mubaligh | `disahkan`/`ditolak`, isi `disahkan_oleh` (nama mubaligh), `disahkan_pada`. |
 | `simakLangsung(db, data)` | HP mubaligh | Buat `kemajuan_belajar` sumber mubaligh, langsung `disahkan`. |
 | `buatBalasan(dbMubaligh, perangkatPenerimaId)` | HP mubaligh | Untuk semua generus_ids di perangkat itu (profil generus + anak profil wali): kemajuan, presensi, penilaian akhlaq, koreksi, pengajian & jadwal kelompok, status generus, pencabutan/pembekuan perangkat itu, `konfirmasi_belajar_seq`, kunci kelompok setor terbaru (publik). |
 | `terapkanBalasan(db, bytes)` | HP generus/wali | Gabung; perbarui konfirmasi & kunci publik; bekukan/cairkan profil. |
-| `buatJadwal(dbMubaligh)` / `terapkanJadwal(db, bytes)` | mubaligh / semua anggota | Pengajian rutin kelompok + jadwal tambahan; versi naik. |
+| `buatJadwal(dbMubaligh)` / `terapkanJadwal(db, bytes)` | mubaligh / semua anggota | Pengajian rutin kelompok + jadwal tambahan; versi naik; aturan berkas lama T14. Isi BALASAN/JADWAL membawa `token_pengirim` (token mubaligh) untuk diverifikasi penerima. |
 | `buatMateri(dbAdmin)` / `terapkanMateri(db, bytes)` | admin / semua | Bidang, kategori, materi (termasuk PDF base64). |
 | `bukaBerkasApaSaja(db, bytes)` | HP | Baca header → arahkan ke fungsi terapkan/impor yang cocok; pesan jelas bila berkas bukan untuk HP ini. |
 
@@ -284,9 +299,9 @@ Admin juga memeriksa **wewenang**: rekaman dari perangkat harus berada dalam `wi
 - `terbitkanTokenGenerus(db, profilMubaligh, { kodePerangkat, role: 'generus'|'wali', generusIds, nama })` → teks token (ditandatangani kunci perangkat mubaligh, `penerbit` = token mubaligh, `rahasia` berisi kunci kelompok setor publik + kunci umum kelompok). Catat di `perangkat` HP mubaligh; ikut dilaporkan dalam SETOR.
 
 `siklus.ts`:
-- `pindahKelompok(db, generusId, kelompokTujuanId, tanggal)` — tutup & buka `riwayat_keanggotaan`, ubah `generus.kelompok_id`.
+- `pindahKelompok(db, generusId, kelompokTujuanId, tanggal)` — tutup & buka `riwayat_keanggotaan`, ubah `generus.kelompok_id`, cabut token generus kelompok lama (T16).
 - `ubahStatus(db, generusId, status, tanggal, keterangan)` — tutup & buka `riwayat_status`; `mondok` → bekukan semua perangkat generus/wali yang hanya memegang generus itu; `aktif` → cairkan; `lulus_menikah`/`keluar` → cabut token generus.
-- `serahTerimaMubaligh(db, kunci, { kelompokId, perangkatLamaId })` — prasyarat: `seq_diterima` mubaligh lama ≥ urut Setor Akhirnya (fungsi `statusSetorAkhir`); cabut perangkat lama; `gantiKunciKelompok`.
+- `serahTerimaMubaligh(db, kunci, { kelompokId, perangkatLamaId, paksa? })` — prasyarat: `seq_diterima` mubaligh lama ≥ urut Setor Akhirnya (fungsi `statusSetorAkhir`; `paksa` untuk HP hilang); cabut token lama, tutup penugasan; `gantiKunciKelompok`. `perangkatLamaId` boleh token_id atau perangkat_id.
 - HP mubaligh: `setorAkhir(db)` = `buatSetor` dengan penanda `setor_akhir: true` di isi.
 
 ---
