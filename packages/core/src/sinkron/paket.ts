@@ -1,5 +1,5 @@
 // PAKET: admin → HP pengurus/mubaligh. Isi dienkripsi kunci berkas acak yang disegel untuk tiap perangkat penerima (T10).
-import { daftarKunciSetor, type KunciAdmin } from '../admin'
+import { daftarKunciSetor, kunciUmumKelompokVersi, type KunciAdmin } from '../admin'
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, slug, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { bukaSegel, dariB64url, dariUtf8, dekripsiRahasia, enkripsiRahasia, keB64url, keUtf8, kunciAcak32, segelKe } from '../crypto'
 import type { Db } from '../db'
@@ -14,7 +14,7 @@ import {
   seqDiterima,
   type BarisPencabutan,
 } from '../repo/perangkat'
-import { daftarProfil, simpanRahasiaProfil } from '../repo/profil'
+import { daftarProfil, simpanRahasiaProfil, type Profil } from '../repo/profil'
 import { adalahAdmin, ambilMeta, ambilMetaAngka, aturMeta, tandaTanya, type Rekaman } from '../repo/umum'
 import { ambilWilayah, kelompokDalamWilayah, leluhurWilayah, turunanWilayah } from '../repo/wilayah'
 import type { NamaTabelSinkron } from '../skema'
@@ -30,6 +30,11 @@ export interface IsiPaket {
   konfirmasi: Record<string, number>
   /** perangkat_id → b64url(segelKe(box_pub, JSON {kelompok_id: KunciSetor[]})) — hanya untuk mubaligh. */
   kunci_setor: Record<string, string>
+  /**
+   * perangkat_id → b64url(segelKe(box_pub, JSON {kelompok_id: {versi, kunci}})) — kunci umum kelompok (JADWAL)
+   * untuk pengurus/mubaligh tingkat kelompok. Kunci baru tiba di sini setelah serah terima (Fase 1b).
+   */
+  kunci_umum?: Record<string, string>
 }
 
 function pilih(db: Db, tabel: NamaTabelSinkron, kolom: string, nilai: string[], tambahan = ''): Rekaman[] {
@@ -99,7 +104,14 @@ export function buatPaket(dbAdmin: Db, wilayahId: string, kunciAdmin: KunciAdmin
     const isiKunci = { [p.wilayah_id]: daftarKunciSetor(dbAdmin, kunciAdmin, p.wilayah_id, true) }
     kunciSetor[p.perangkat_id] = keB64url(segelKe(dariB64url(p.box_pub), keUtf8(JSON.stringify(isiKunci))))
   }
+  const kunciUmum: Record<string, string> = {}
+  for (const p of penerima.filter((x) => x.tingkat === 'kelompok')) {
+    const ku = kunciUmumKelompokVersi(dbAdmin, kunciAdmin, p.wilayah_id)
+    const segel = keB64url(segelKe(dariB64url(p.box_pub), keUtf8(JSON.stringify({ [p.wilayah_id]: ku }))))
+    kunciUmum[p.perangkat_id] = segel
+  }
   const isi: IsiPaket = {
+    kunci_umum: kunciUmum,
     wilayah_id: wilayahId,
     rekaman: dataWilayah(dbAdmin, wilayahId),
     pencabutan: daftarPencabutan(dbAdmin, tokenWilayah.map((p) => p.id)),
@@ -162,7 +174,8 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
   const wilayahId = b.header.wilayah_id ?? ''
   const versi = Number(b.header.versi ?? 0)
   const terpasang = ambilMetaAngka(db, `versi_paket:${wilayahId}`)
-  if (versi <= terpasang) {
+  const dibuatTerpasang = ambilMeta(db, `paket_dibuat:${wilayahId}`) ?? ''
+  if (!berkasLebihBaru(versi, b.header.dibuat_pada, terpasang, dibuatTerpasang)) {
     throw new GalatPpg('PAKET_LAMA', `Paket ini (v${versi}) tidak lebih baru dari yang sudah terpasang (v${terpasang}).`)
   }
   const identitas = ambilIdentitas(db)
@@ -195,7 +208,13 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
         if (baru) simpanRahasiaProfil(db, p.id, { ...p.rahasia, kunci_kelompok_setor: gabungKunciSetor(p.rahasia.kunci_kelompok_setor, baru) })
       }
     }
-    aturMeta(db, `versi_paket:${wilayahId}`, versi)
+    const segelUmum = isi.kunci_umum?.[identitas.id]
+    if (segelUmum) {
+      const peta = JSON.parse(dariUtf8(bukaSegel(dariB64url(segelUmum), identitas.kotak))) as Record<string, { versi: number; kunci: string }>
+      for (const p of daftarProfil(db, ['pengurus', 'mubaligh'])) perbaruiKunciUmum(db, p, peta[p.wilayah_id])
+    }
+    aturMeta(db, `versi_paket:${wilayahId}`, Math.max(versi, terpasang))
+    if (b.header.dibuat_pada > dibuatTerpasang) aturMeta(db, `paket_dibuat:${wilayahId}`, b.header.dibuat_pada)
     aturMeta(db, 'terakhir_paket', sekarangIso())
     const ringkasan: RingkasanTerapkan = {
       jenis: 'PAKET',
@@ -208,6 +227,24 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
     catatImpor(db, b.header, ringkasan, sidikBerkas(bytes), namaBerkas)
     return ringkasan
   })
+}
+
+/**
+ * Berkas admin (PAKET/MATERI) diterima bila versinya ATAU cap waktunya lebih baru dari yang terpasang.
+ * Berkas lama yang diputar ulang punya keduanya ≤ terpasang → ditolak; admin yang memulihkan database dari
+ * cadangan (nomor versi mundur, cap waktu maju) tetap diterima (Fase 1b).
+ */
+export function berkasLebihBaru(versi: number, dibuat: string, versiTerpasang: number, dibuatTerpasang: string): boolean {
+  return versi > versiTerpasang || (!!dibuatTerpasang && dibuat > dibuatTerpasang)
+}
+
+/** Ganti kunci umum kelompok profil bila versi yang diterima lebih baru (atau profil belum punya). */
+export function perbaruiKunciUmum(db: Db, p: Profil, baru: { versi: number; kunci: string } | undefined): boolean {
+  if (!baru || typeof baru.kunci !== 'string' || typeof baru.versi !== 'number') return false
+  const versiLama = p.rahasia.kunci_umum_kelompok ? (p.rahasia.kunci_umum_versi ?? 1) : 0
+  if (baru.versi <= versiLama) return false
+  simpanRahasiaProfil(db, p.id, { ...p.rahasia, kunci_umum_kelompok: baru.kunci, kunci_umum_versi: baru.versi })
+  return true
 }
 
 /** Versi paket yang terpasang di HP untuk wilayah tertentu (0 = belum ada). */

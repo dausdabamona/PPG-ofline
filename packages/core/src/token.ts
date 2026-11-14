@@ -55,6 +55,31 @@ export interface KunciSetor {
   versi: number
   publik: string
   rahasia?: string
+  /**
+   * Tanda tangan admin (b64url) atas `PPGKS1.<org_id>.<kelompok_id>.<versi>.<publik>` (Fase 1b).
+   * HP generus/wali hanya memakai kunci bertanda tangan sah, sehingga mubaligh (atau mubaligh yang sudah
+   * dicabut) tidak bisa menyisipkan kunci setor palsu untuk menyadap BELAJAR.
+   */
+  tt?: string
+}
+
+function pesanKunciSetor(orgId: string, kelompokId: string, versi: number, publik: string): Uint8Array {
+  return keUtf8(`PPGKS1.${orgId}.${kelompokId}.${versi}.${publik}`)
+}
+
+/** Admin menandatangani kunci setor publik satu kelompok. */
+export function tandaTanganiKunciSetor(orgId: string, kelompokId: string, k: Pick<KunciSetor, 'versi' | 'publik'>, rahasiaAdmin: Uint8Array): string {
+  return keB64url(tandaTangani(pesanKunciSetor(orgId, kelompokId, k.versi, k.publik), rahasiaAdmin))
+}
+
+/** Apakah kunci setor bertanda tangan sah admin untuk kelompok itu. Tidak pernah melempar. */
+export function kunciSetorSah(k: KunciSetor | undefined, o: { orgId: string; kelompokId: string; adminSignPub: string }): boolean {
+  if (!k || typeof k.versi !== 'number' || typeof k.publik !== 'string' || typeof k.tt !== 'string') return false
+  try {
+    return periksaTandaTangan(pesanKunciSetor(o.orgId, o.kelompokId, k.versi, k.publik), dariB64url(k.tt), dariB64url(o.adminSignPub))
+  } catch {
+    return false
+  }
 }
 
 export interface RahasiaToken {
@@ -62,6 +87,8 @@ export interface RahasiaToken {
   kunci_wilayah?: Record<string, string>
   kunci_kelompok_setor?: KunciSetor[]
   kunci_umum_kelompok?: string
+  /** Versi kunci umum kelompok (naik saat serah terima / ganti kunci kelompok). Tidak ada = 1. */
+  kunci_umum_versi?: number
 }
 
 export interface DataKodePerangkat {

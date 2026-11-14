@@ -99,7 +99,7 @@ function catatBentrok(db: Db, tabel: string, lama: Rekaman, baru: Rekaman): void
 
 /**
  * Gabungkan rekaman masuk ke satu tabel menurut §7:
- * - master: hanya dari sumber admin, menang bila versi ≥ lokal;
+ * - master: hanya dari sumber admin, menang bila versi ≥ lokal atau diubah_pada lebih baru;
  * - kegiatan: last-writer-wins; bentrok dicatat bila isi berbeda, lokal pernah ditulis di sini (seq_lokal > 0),
  *   dan pemenang tidak memiliki versi lebih tinggi (suntingan bersamaan, bukan gema data lama);
  * - kemajuan_belajar: hasil pengesahan tidak bisa ditimpa versi `diajukan`; generus hanya mengubah miliknya yang masih diajukan.
@@ -137,7 +137,9 @@ export function gabungRekaman(db: Db, tabel: NamaTabelSinkron, rekamanMasuk: rea
       continue
     }
     if (info.jenis === 'master') {
-      if (Number(rek.versi) >= Number(lama.versi)) {
+      // Penulis master hanya admin: versi ≥ lokal, atau suntingan admin yang lebih baru setelah database admin
+      // dipulihkan dari cadangan (versi mundur, diubah_pada maju) — Fase 1b.
+      if (Number(rek.versi) >= Number(lama.versi) || String(rek.diubah_pada) > String(lama.diubah_pada)) {
         tulisBaris(db, tabel, { ...rek, seq_lokal: seqBaru })
         hasil.diperbarui++
       } else hasil.diabaikan++

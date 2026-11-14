@@ -8,8 +8,10 @@ import { GalatPpg } from '../galat'
 import { ambilIdentitas } from '../perangkat'
 import { catatSeqDiterima, daftarkanToken, daftarPencabutan, daftarPerangkat } from '../repo/perangkat'
 import { daftarProfil, statusProfil } from '../repo/profil'
-import { adalahAdmin, ambilMeta, ambilMetaAngka, type Rekaman } from '../repo/umum'
+import { adalahAdmin, ambilMeta, ambilMetaAngka, aturMeta, type Rekaman } from '../repo/umum'
 import { ambilWilayah, kelompokDalamWilayah } from '../repo/wilayah'
+import { daftarGenerus } from '../repo/generus'
+import { PetaRiwayat } from '../laporan'
 import { DAFTAR_TABEL_SINKRON, TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
 import { periksaToken, uraiToken, type PayloadToken } from '../token'
 import { sekarangIso, tanggalRingkas } from '../waktu'
@@ -34,7 +36,7 @@ export function jumlahBelumDisetor(db: Db): number {
  * Buat berkas SETOR berisi semua rekaman dengan seq_lokal > konfirmasi_seq (kumulatif: berkas yang hilang
  * tidak menghilangkan data), usulan, dan token generus/wali yang diterbitkan HP ini.
  */
-export function buatSetor(db: Db, opsi: { setorAkhir?: boolean } = {}): BerkasKeluar {
+export function buatSetor(db: Db, opsi: { setorAkhir?: boolean; semua?: boolean } = {}): BerkasKeluar {
   if (adalahAdmin(db)) throw new GalatPpg('DB_ADMIN', 'Admin tidak menyetor; admin membuat paket.')
   const admin = kunciAdminTerpasang(db)
   const identitas = ambilIdentitas(db)
@@ -45,7 +47,8 @@ export function buatSetor(db: Db, opsi: { setorAkhir?: boolean } = {}): BerkasKe
     const st = statusProfil(profil[0]!)
     throw new GalatPpg(st.kode ?? 'TIDAK_BERWENANG', `Tidak bisa menyetor: ${st.alasan}`)
   }
-  const konf = ambilMetaAngka(db, 'konfirmasi_seq')
+  // `semua`: kirim ulang seluruh data lokal (mis. admin memulihkan database dari cadangan lama)
+  const konf = opsi.semua ? 0 : ambilMetaAngka(db, 'konfirmasi_seq')
   const rekaman: RekamanPerTabel = {}
   let urut = ambilMetaAngka(db, 'seq')
   for (const t of DAFTAR_TABEL_SINKRON) {
@@ -72,6 +75,7 @@ export function buatSetor(db: Db, opsi: { setorAkhir?: boolean } = {}): BerkasKe
     urut,
   }
   const bytes = kemasBerkas(header, segelKe(dariB64url(admin.boxPub), kompresJson(isi)), identitas.tandaTangan.rahasia)
+  aturMeta(db, 'terakhir_setor', sekarangIso())
   const namaW = slug(ambilWilayah(db, wilayah)?.nama ?? wilayah)
   return {
     nama: `PPG_SETOR${opsi.setorAkhir ? '_AKHIR' : ''}_${namaW}_${tanggalRingkas()}_${urut}.ppg`,
@@ -144,6 +148,24 @@ export function imporSetor(dbAdmin: Db, bytes: Uint8Array, kunciAdmin: KunciAdmi
       if (p.hak.includes('sahkan')) kelompokSahkan.add(k)
     }
   }
+  // Keanggotaan generus menurut riwayat admin: kegiatan hanya sah untuk kelompok tempat generus
+  // menjadi anggota pada tanggal kegiatan (Fase 1b; mencegah kelompok A mencatat/mengesahkan generus kelompok B).
+  const idGenerusMasuk = new Set<string>()
+  for (const t of ['presensi', 'kemajuan_belajar', 'penilaian_akhlaq'] as const) {
+    for (const r of (isi.rekaman?.[t] ?? []) as Record<string, unknown>[]) if (typeof r?.generus_id === 'string') idGenerusMasuk.add(r.generus_id)
+  }
+  const petaRiwayat = new PetaRiwayat(dbAdmin, [...idGenerusMasuk])
+  const generusAda = new Set(daftarGenerus(dbAdmin, { ids: [...idGenerusMasuk] }).map((g) => g.id))
+  const periksaAnggota = (tabel: NamaTabelSinkron, rek: Rekaman, kel: string): string | null => {
+    if (tabel !== 'presensi' && tabel !== 'kemajuan_belajar' && tabel !== 'penilaian_akhlaq') return null
+    const gid = String(rek.generus_id ?? '')
+    if (!generusAda.has(gid)) return 'Generus tidak dikenal admin.'
+    const anggota =
+      tabel === 'penilaian_akhlaq'
+        ? petaRiwayat.anggotaDalamRentang(gid, kel, `${rek.periode}-01`, `${rek.periode}-31`)
+        : petaRiwayat.kelompokPada(gid, String(rek.tanggal ?? '')) === kel
+    return anggota ? null : 'Generus bukan anggota kelompok ini pada tanggal tersebut.'
+  }
   const ditolak: RingkasanImporSetor['ditolak'] = []
   const usulanSebelum = dbAdmin.nilai<number>(`SELECT COUNT(*) FROM usulan WHERE status = 'menunggu'`) ?? 0
 
@@ -166,7 +188,7 @@ export function imporSetor(dbAdmin: Db, bytes: Uint8Array, kunciAdmin: KunciAdmi
         if (tabel === 'usulan' && rek.status !== 'menunggu' && lamaRek?.status !== rek.status) {
           return 'Status usulan hanya diputuskan admin.'
         }
-        return null
+        return periksaAnggota(tabel, rek, kel)
       },
     }))
     for (const [t, h] of Object.entries(g.perTabel)) for (const d of h!.ditolak) ditolak.push({ tabel: t, ...d })

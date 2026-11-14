@@ -59,6 +59,13 @@ export class PetaRiwayat {
     return this.cadangan.get(generusId)?.kelompok_id ?? null
   }
 
+  /** Apakah generus pernah menjadi anggota `kelompokId` pada suatu hari dalam [mulai, selesai] (inklusif). */
+  anggotaDalamRentang(generusId: string, kelompokId: string, mulai: string, selesai: string): boolean {
+    const l = this.anggota.get(generusId)
+    if (!l?.length) return this.cadangan.get(generusId)?.kelompok_id === kelompokId
+    return l.some((r) => r.kelompok_id === kelompokId && r.mulai <= selesai && (r.selesai === null || r.selesai > mulai))
+  }
+
   /** Apakah presensi dihitung: generus aktif dan anggota kelompok presensi pada tanggal itu. */
   dihitung(p: Pick<Presensi, 'generus_id' | 'kelompok_id' | 'tanggal'>): boolean {
     return this.statusPada(p.generus_id, p.tanggal) === 'aktif' && this.kelompokPada(p.generus_id, p.tanggal) === p.kelompok_id

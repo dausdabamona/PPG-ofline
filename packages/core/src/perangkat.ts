@@ -23,6 +23,7 @@ import {
   bukaRahasiaToken,
   buatKodePerangkat,
   HAK_BAWAAN,
+  kunciSetorSah,
   periksaToken,
   statusPencabutan,
   tandaTanganiToken,
@@ -103,7 +104,8 @@ export function gabungKunciSetor(lama: KunciSetor[] = [], baru: KunciSetor[] = [
   for (const k of [...lama, ...baru]) {
     if (!k || typeof k.versi !== 'number' || typeof k.publik !== 'string') continue
     const ada = peta.get(k.versi)
-    if (!ada || (!ada.rahasia && k.rahasia)) peta.set(k.versi, { ...k })
+    if (!ada || (!ada.rahasia && k.rahasia)) peta.set(k.versi, { ...k, tt: k.tt ?? (ada?.publik === k.publik ? ada.tt : undefined) })
+    else if (!ada.tt && k.tt && ada.publik === k.publik) ada.tt = k.tt
   }
   return [...peta.values()].sort((a, b) => a.versi - b.versi)
 }
@@ -141,6 +143,12 @@ export async function aktifkanProfil(db: Db, teksToken: string, opsi: { pin?: st
     throw new GalatPpg('TOKEN_BUKAN_UNTUK_HP_INI', 'Token ini dibuat untuk HP lain. Kirim Kode Perangkat HP ini untuk mendapat token sendiri.')
   }
   const rahasia = bukaRahasiaToken(p, identitas.kotak)
+  if (p.role === 'generus' || p.role === 'wali') {
+    // kunci setor dari mubaligh hanya dipakai bila bertanda tangan admin (Fase 1b)
+    rahasia.kunci_kelompok_setor = (rahasia.kunci_kelompok_setor ?? [])
+      .filter((k) => kunciSetorSah(k, { orgId: p.org_id, kelompokId: p.wilayah_id, adminSignPub }))
+      .map((k) => ({ versi: k.versi, publik: k.publik, tt: k.tt }))
+  }
   if (opsi.pin !== undefined) pastikanPin(opsi.pin)
 
   return db.transaksi(() => {
@@ -162,7 +170,12 @@ export async function aktifkanProfil(db: Db, teksToken: string, opsi: { pin?: st
       kunci_kelompok_setor: gabungKunciSetor(sama?.rahasia.kunci_kelompok_setor, rahasia.kunci_kelompok_setor),
     }
     if (!rahasiaFinal.kunci_kelompok_setor?.length) delete rahasiaFinal.kunci_kelompok_setor
-    if (!rahasiaFinal.kunci_umum_kelompok && sama?.rahasia.kunci_umum_kelompok) rahasiaFinal.kunci_umum_kelompok = sama.rahasia.kunci_umum_kelompok
+    const versiUmumLama = sama?.rahasia.kunci_umum_kelompok ? (sama.rahasia.kunci_umum_versi ?? 1) : 0
+    const versiUmumBaru = rahasiaFinal.kunci_umum_kelompok ? (rahasiaFinal.kunci_umum_versi ?? 1) : 0
+    if (versiUmumLama > versiUmumBaru) {
+      rahasiaFinal.kunci_umum_kelompok = sama!.rahasia.kunci_umum_kelompok
+      rahasiaFinal.kunci_umum_versi = versiUmumLama
+    }
     let pinHash = lama?.pin_hash ?? null
     let pinGaram = lama?.pin_garam ?? null
     if (opsi.pin !== undefined) {
@@ -276,8 +289,11 @@ export function terbitkanTokenGenerus(db: Db, profilMubalighId: string, o: OpsiT
   const setor = gabungKunciSetor(m.rahasia.kunci_kelompok_setor)
   const terbaru = setor[setor.length - 1]
   if (!terbaru) throw new GalatPpg('KUNCI_TIDAK_ADA', 'Kunci kelompok setor belum ada di profil mubaligh.')
-  const rahasia: RahasiaToken = { kunci_kelompok_setor: [{ versi: terbaru.versi, publik: terbaru.publik }] }
-  if (m.rahasia.kunci_umum_kelompok) rahasia.kunci_umum_kelompok = m.rahasia.kunci_umum_kelompok
+  const rahasia: RahasiaToken = { kunci_kelompok_setor: [{ versi: terbaru.versi, publik: terbaru.publik, tt: terbaru.tt }] }
+  if (m.rahasia.kunci_umum_kelompok) {
+    rahasia.kunci_umum_kelompok = m.rahasia.kunci_umum_kelompok
+    rahasia.kunci_umum_versi = m.rahasia.kunci_umum_versi ?? 1
+  }
   const berlakuHari = o.berlakuHari ?? 365
   const terbit = sekarangIso()
   const payload: PayloadToken = {

@@ -9,8 +9,8 @@ import { ambilGenerus } from '../repo/generus'
 import { validasiKemajuan, type DataKemajuan, type KemajuanBelajar } from '../repo/kemajuan'
 import { catatSeqDiterima, daftarkanToken, daftarPencabutan, tokenDikenal } from '../repo/perangkat'
 import { cariProfilPencatat, daftarProfil, pastikanProfilBolehMencatat, statusProfil, type Profil } from '../repo/profil'
-import { adalahAdmin, ambilMetaAngka, ambilRekaman, seqBerikut, sisipkanRekaman, tandaTanya, ubahRekaman, type Rekaman } from '../repo/umum'
-import { periksaToken, uraiToken, type PayloadToken } from '../token'
+import { adalahAdmin, ambilMetaAngka, aturMeta, ambilRekaman, seqBerikut, sisipkanRekaman, tandaTanya, ubahRekaman, type Rekaman } from '../repo/umum'
+import { kunciSetorSah, periksaToken, uraiToken, type PayloadToken } from '../token'
 import { sekarangIso, tanggalHariIni, tanggalRingkas } from '../waktu'
 import { bacaBerkasJenis, catatImpor, imporTerdahulu, kunciAdminTerpasang, sidikBerkas } from './umum'
 
@@ -19,10 +19,28 @@ export interface IsiBelajar {
   rekaman: { kemajuan_belajar: Record<string, unknown>[] }
 }
 
-/** Jumlah catatan kemajuan di HP generus yang belum dikonfirmasi mubaligh. */
-export function jumlahBelumDisetorBelajar(db: Db): number {
-  const konf = ambilMetaAngka(db, 'konfirmasi_belajar_seq')
-  return db.nilai<number>(`SELECT COUNT(*) FROM kemajuan_belajar WHERE seq_lokal > ? AND sumber = 'generus'`, [konf]) ?? 0
+/** Seq tertinggi yang sudah dikonfirmasi mubaligh kelompok itu untuk HP ini (per kelompok, Fase 1b). */
+export function konfirmasiBelajar(db: Db, kelompokId: string): number {
+  return ambilMetaAngka(db, `konfirmasi_belajar_seq:${kelompokId}`)
+}
+
+/**
+ * Jumlah catatan kemajuan di HP generus yang belum dikonfirmasi mubaligh (opsional untuk satu kelompok).
+ * Konfirmasi dihitung per kelompok, sehingga HP dengan profil dari beberapa kelompok tidak kehilangan data.
+ */
+export function jumlahBelumDisetorBelajar(db: Db, kelompokId?: string): number {
+  const kelompok = kelompokId
+    ? [kelompokId]
+    : [...new Set(daftarProfil(db, 'generus').filter((p) => !p.dicabut_pada).map((p) => p.wilayah_id))]
+  let n = 0
+  for (const k of kelompok) {
+    n +=
+      db.nilai<number>(`SELECT COUNT(*) FROM kemajuan_belajar WHERE seq_lokal > ? AND sumber = 'generus' AND kelompok_id = ?`, [
+        konfirmasiBelajar(db, k),
+        k,
+      ]) ?? 0
+  }
+  return n
 }
 
 /**
@@ -46,17 +64,29 @@ export function buatBelajar(db: Db, opsi: { kelompokId?: string } = {}): BerkasK
   }
   if (!profil.length) throw new GalatPpg('TIDAK_ADA_PROFIL', 'Tidak ada profil generus untuk kelompok itu.')
   const kelompokId = profil[0]!.wilayah_id
-  const kunci = gabungKunciSetor(profil.flatMap((p) => p.rahasia.kunci_kelompok_setor ?? []))
+  const kunci = gabungKunciSetor(profil.flatMap((p) => p.rahasia.kunci_kelompok_setor ?? [])).filter((k) =>
+    kunciSetorSah(k, { orgId: admin.orgId, kelompokId, adminSignPub: admin.signPub }),
+  )
   const terbaru = kunci[kunci.length - 1]
   if (!terbaru) throw new GalatPpg('KUNCI_TIDAK_ADA', 'Kunci kelompok belum ada. Minta token baru dari mubaligh.')
   const generusIds = profil.flatMap((p) => p.generus_ids)
-  const konf = ambilMetaAngka(db, 'konfirmasi_belajar_seq')
+  const konf = konfirmasiBelajar(db, kelompokId)
   const rows = db.kueri<Rekaman>(
-    `SELECT * FROM kemajuan_belajar WHERE seq_lokal > ? AND perangkat_id = ? AND generus_id IN (${tandaTanya(generusIds.length)}) ORDER BY seq_lokal`,
-    [konf, identitas.id, ...generusIds],
+    `SELECT * FROM kemajuan_belajar WHERE seq_lokal > ? AND perangkat_id = ? AND kelompok_id = ? AND generus_id IN (${tandaTanya(generusIds.length)}) ORDER BY seq_lokal`,
+    [konf, identitas.id, kelompokId, ...generusIds],
   )
   const isi: IsiBelajar = { tokens: profil.map((p) => p.token), rekaman: { kemajuan_belajar: rekamanKirim(rows) } }
-  const urut = Math.max(ambilMetaAngka(db, 'seq'), ...rows.map((r) => Number(r.seq_lokal)))
+  let urut = Math.max(ambilMetaAngka(db, 'seq'), ...rows.map((r) => Number(r.seq_lokal)))
+  // Catatan profil kelompok ini yang sedang tidak boleh menyetor (mis. dibekukan karena mondok) belum terkirim:
+  // konfirmasi tidak boleh melewatinya, agar terkirim setelah profil aktif lagi (Fase 1b).
+  const tertundaIds = semua.filter((p) => p.wilayah_id === kelompokId && !p.dicabut_pada && !profil.includes(p)).flatMap((p) => p.generus_ids)
+  if (tertundaIds.length) {
+    const minTertunda = db.nilai<number | null>(
+      `SELECT MIN(seq_lokal) FROM kemajuan_belajar WHERE seq_lokal > ? AND perangkat_id = ? AND kelompok_id = ? AND generus_id IN (${tandaTanya(tertundaIds.length)})`,
+      [konf, identitas.id, kelompokId, ...tertundaIds],
+    )
+    if (minTertunda) urut = Math.min(urut, minTertunda - 1)
+  }
   const header: HeaderBerkas = {
     jenis: 'BELAJAR',
     versi_format: 1,
@@ -68,6 +98,7 @@ export function buatBelajar(db: Db, opsi: { kelompokId?: string } = {}): BerkasK
     versi_kunci: terbaru.versi,
   }
   const bytes = kemasBerkas(header, segelKe(dariB64url(terbaru.publik), kompresJson(isi)), identitas.tandaTangan.rahasia)
+  aturMeta(db, 'terakhir_belajar', sekarangIso())
   const nama = profil.length === 1 ? profil[0]!.nama : `${profil[0]!.nama}-dkk`
   return { nama: `PPG_BELAJAR_${slug(nama)}_${tanggalRingkas()}.ppg`, bytes, header, jumlah: rows.length }
 }

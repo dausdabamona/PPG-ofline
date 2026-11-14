@@ -60,9 +60,10 @@ export * from './perangkat'
 export * from './siklus'
 export * from './laporan'
 export * from './kurikulum'
+export * from './kueri'
 export * from './sinkron/umum'
 export { buatSetor, imporSetor, jumlahBelumDisetor, type IsiSetor, type RingkasanImporSetor } from './sinkron/setor'
-export { buatPaket, terapkanPaket, versiPaketTerpasang, dataWilayah, type IsiPaket, type RingkasanTerapkan } from './sinkron/paket'
+export { buatPaket, terapkanPaket, versiPaketTerpasang, dataWilayah, berkasLebihBaru, type IsiPaket, type RingkasanTerapkan } from './sinkron/paket'
 export {
   buatBelajar,
   imporBelajar,
@@ -70,6 +71,7 @@ export {
   simakLangsung,
   daftarDiajukan,
   jumlahBelumDisetorBelajar,
+  konfirmasiBelajar,
   type IsiBelajar,
   type RingkasanImporBelajar,
 } from './sinkron/belajar'

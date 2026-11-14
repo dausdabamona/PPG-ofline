@@ -31,6 +31,7 @@ import {
   bacaKodePerangkat,
   HAK,
   HAK_BAWAAN,
+  tandaTanganiKunciSetor,
   tandaTanganiToken,
   type Hak,
   type KunciSetor,
@@ -152,7 +153,7 @@ interface IsiCadanganKunci {
   sign_rahasia_enc: string
   box_rahasia_enc: string
   kunci_kelompok: { kelompok_id: string; versi: number; publik: string; rahasia_terenkripsi: string; dibuat_pada: string }[]
-  kunci_umum_kelompok: { kelompok_id: string; kunci_terenkripsi: string }[]
+  kunci_umum_kelompok: { kelompok_id: string; kunci_terenkripsi: string; versi?: number }[]
   dibuat_pada: string
 }
 
@@ -226,7 +227,11 @@ export async function imporCadanganKunci(db: Db, bytes: Uint8Array, sandiCadanga
       )
     }
     for (const k of isi.kunci_umum_kelompok ?? []) {
-      db.jalankan('INSERT OR IGNORE INTO kunci_umum_kelompok (kelompok_id, kunci_terenkripsi) VALUES (?, ?)', [k.kelompok_id, k.kunci_terenkripsi])
+      db.jalankan('INSERT OR IGNORE INTO kunci_umum_kelompok (kelompok_id, kunci_terenkripsi, versi) VALUES (?, ?, ?)', [
+        k.kelompok_id,
+        k.kunci_terenkripsi,
+        Number(k.versi ?? 1),
+      ])
     }
     seedKurikulum(db)
   })
@@ -244,7 +249,7 @@ export function daftarKunciSetor(db: Db, kunci: KunciAdmin, kelompokId: string, 
       [kelompokId],
     )
     .map((k) => {
-      const ks: KunciSetor = { versi: k.versi, publik: k.publik }
+      const ks: KunciSetor = { versi: k.versi, publik: k.publik, tt: tandaTanganiKunciSetor(kunci.orgId, kelompokId, k, kunci.tandaTangan.rahasia) }
       if (denganRahasia) ks.rahasia = keB64url(decB64(kunci.induk, k.rahasia_terenkripsi))
       return ks
     })
@@ -271,19 +276,39 @@ function buatKunciKelompok(db: Db, kunci: KunciAdmin, kelompokId: string, versi:
   return versi
 }
 
-/** Ganti kunci kelompok setor → versi baru (mubaligh lama tidak bisa membuka BELAJAR versi baru). */
+/**
+ * Ganti kunci kelompok setor → versi baru (mubaligh lama tidak bisa membuka BELAJAR versi baru).
+ * Kunci umum kelompok (JADWAL) ikut diganti agar mubaligh lama tidak bisa membaca jadwal baru (Fase 1b).
+ */
 export function gantiKunciKelompok(db: Db, kunci: KunciAdmin, kelompokId: string): number {
-  const v = pastikanKunciKelompok(db, kunci, kelompokId)
-  return buatKunciKelompok(db, kunci, kelompokId, v + 1)
+  return db.transaksi(() => {
+    const v = pastikanKunciKelompok(db, kunci, kelompokId)
+    const baru = buatKunciKelompok(db, kunci, kelompokId, v + 1)
+    gantiKunciUmumKelompok(db, kunci, kelompokId)
+    return baru
+  })
+}
+
+/** Kunci umum kelompok beserta versinya; dibuat (v1) bila belum ada. */
+export function kunciUmumKelompokVersi(db: Db, kunci: KunciAdmin, kelompokId: string): { versi: number; kunci: string } {
+  const ada = db.satu<{ kunci_terenkripsi: string; versi: number }>('SELECT kunci_terenkripsi, versi FROM kunci_umum_kelompok WHERE kelompok_id = ?', [kelompokId])
+  if (ada) return { versi: Number(ada.versi), kunci: keB64url(decB64(kunci.induk, ada.kunci_terenkripsi)) }
+  const k = kunciAcak32()
+  db.jalankan('INSERT INTO kunci_umum_kelompok (kelompok_id, kunci_terenkripsi, versi) VALUES (?, ?, 1)', [kelompokId, encB64(kunci.induk, k)])
+  return { versi: 1, kunci: keB64url(k) }
 }
 
 /** Kunci umum kelompok (32 byte, b64url) untuk berkas JADWAL; dibuat bila belum ada. */
 export function kunciUmumKelompok(db: Db, kunci: KunciAdmin, kelompokId: string): string {
-  const ada = db.nilai<string>('SELECT kunci_terenkripsi FROM kunci_umum_kelompok WHERE kelompok_id = ?', [kelompokId])
-  if (ada) return keB64url(decB64(kunci.induk, ada))
-  const k = kunciAcak32()
-  db.jalankan('INSERT INTO kunci_umum_kelompok (kelompok_id, kunci_terenkripsi) VALUES (?, ?)', [kelompokId, encB64(kunci.induk, k)])
-  return keB64url(k)
+  return kunciUmumKelompokVersi(db, kunci, kelompokId).kunci
+}
+
+/** Ganti kunci umum kelompok dengan kunci acak baru (versi naik). Tersebar lewat PAKET (pengurus/mubaligh) dan BALASAN (generus/wali). */
+export function gantiKunciUmumKelompok(db: Db, kunci: KunciAdmin, kelompokId: string): number {
+  const lama = kunciUmumKelompokVersi(db, kunci, kelompokId)
+  const versi = lama.versi + 1
+  db.jalankan('UPDATE kunci_umum_kelompok SET kunci_terenkripsi = ?, versi = ? WHERE kelompok_id = ?', [encB64(kunci.induk, kunciAcak32()), versi, kelompokId])
+  return versi
 }
 
 // ---------------- token ----------------
@@ -333,7 +358,11 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
 
   return db.transaksi(() => {
     const rahasia: RahasiaToken = {}
-    if (w.tingkat === 'kelompok') rahasia.kunci_umum_kelompok = kunciUmumKelompok(db, kunci, w.id)
+    if (w.tingkat === 'kelompok') {
+      const ku = kunciUmumKelompokVersi(db, kunci, w.id)
+      rahasia.kunci_umum_kelompok = ku.kunci
+      rahasia.kunci_umum_versi = ku.versi
+    }
     if (o.role === 'mubaligh') rahasia.kunci_kelompok_setor = daftarKunciSetor(db, kunci, w.id, true)
     const terbit = sekarangIso()
     const payload: PayloadToken = {

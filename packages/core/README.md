@@ -36,13 +36,14 @@ const db = await bukaDb(bytesTersimpan /* atau undefined */, { locateFile: () =>
 | waktu | `sekarangIso`, `tanggalHariIni`, `awalPekan`, `akhirPekan`, `tambahHari`, `tanggalDariIso`, `formatTanggal`, `umurPada`, `aturJam` (uji) |
 | ids | `ulid()` |
 | crypto | `siapkanKripto`, `buatPasanganTandaTangan`, `buatPasanganKotak`, `tandaTangani`, `periksaTandaTangan`, `segelKe`, `bukaSegel`, `enkripsiRahasia`, `dekripsiRahasia`, `kunciAcak32`, `turunkanKunciSandi`, `keB64url`, `dariB64url`, `sha256Hex` |
-| token | `buatKodePerangkat`, `bacaKodePerangkat`, `tandaTanganiToken`, `uraiToken`, `periksaToken`, `statusPencabutan`, `bukaRahasiaToken`, tipe `PayloadToken`, `RahasiaToken`, `Role`, `Hak` |
+| token | `buatKodePerangkat`, `bacaKodePerangkat`, `tandaTanganiToken`, `uraiToken`, `periksaToken`, `statusPencabutan`, `bukaRahasiaToken`, `tandaTanganiKunciSetor`, `kunciSetorSah`, tipe `PayloadToken`, `RahasiaToken`, `Role`, `Hak` |
 | berkas | `kemasBerkas`, `bacaBerkas`, `bacaHeader`, `periksaBerkas`, `kompresJson`, `dekompresJson`, `slug`, tipe `HeaderBerkas`, `BerkasKeluar` |
 | gabung | `gabungRekaman`, `gabungSemua` |
-| admin | `inisialisasiAdmin`, `bukaKunciAdmin`, `gantiSandiAdmin`, `eksporCadanganKunci`, `imporCadanganKunci`, `terbitkanToken`, `cabutPerangkat`, `bekukanPerangkat`, `cairkanPerangkat`, `gantiKunciKelompok`, `daftarKunciSetor`, `kunciUmumKelompok`, `setujuiUsulan`, `tolakUsulan`, `imporGenerusCsv`, `kelompokBerpenerima` |
+| admin | `inisialisasiAdmin`, `bukaKunciAdmin`, `gantiSandiAdmin`, `eksporCadanganKunci`, `imporCadanganKunci`, `terbitkanToken`, `cabutPerangkat`, `bekukanPerangkat`, `cairkanPerangkat`, `gantiKunciKelompok` (ikut mengganti kunci umum), `gantiKunciUmumKelompok`, `daftarKunciSetor`, `kunciUmumKelompok`, `kunciUmumKelompokVersi`, `setujuiUsulan`, `tolakUsulan`, `imporGenerusCsv`, `kelompokBerpenerima` |
 | perangkat (HP) | `inisialisasiPerangkat`, `kodePerangkatSaya`, `ambilIdentitas`, `aktifkanProfil`, `daftarProfil`, `ambilProfil`, `profilAktif`, `pilihProfil`, `aturPin`, `hapusProfil`, `terbitkanTokenGenerus`, `statusProfil` |
 | siklus | `pindahKelompok`, `ubahStatus`, `serahTerimaMubaligh`, `statusSetorAkhir`, `setorAkhir`, `tokenMilikGenerusSaja` |
-| sinkron | `buatSetor`, `imporSetor`, `jumlahBelumDisetor`, `buatPaket`, `terapkanPaket`, `versiPaketTerpasang`, `buatBelajar`, `imporBelajar`, `jumlahBelumDisetorBelajar`, `daftarDiajukan`, `sahkan`, `simakLangsung`, `buatBalasan`, `terapkanBalasan`, `daftarPenerimaBalasan`, `buatJadwal`, `terapkanJadwal`, `buatMateri`, `terapkanMateri`, `bukaBerkasApaSaja`, `imporBanyak`, `daftarRiwayatImpor` |
+| sinkron | `buatSetor(db, {setorAkhir?, semua?})`, `imporSetor`, `jumlahBelumDisetor`, `buatPaket`, `terapkanPaket`, `versiPaketTerpasang`, `buatBelajar`, `imporBelajar`, `jumlahBelumDisetorBelajar(db, kelompokId?)`, `konfirmasiBelajar`, `daftarDiajukan`, `sahkan`, `simakLangsung`, `buatBalasan`, `terapkanBalasan`, `daftarPenerimaBalasan`, `buatJadwal`, `terapkanJadwal`, `buatMateri`, `terapkanMateri`, `bukaBerkasApaSaja`, `imporBanyak`, `daftarRiwayatImpor`, `berkasLebihBaru` |
+| kueri (layar UI) | `ringkasanBerandaAdmin`, `ringkasanKelompok`, `infoSinkronHp`, `pohonWilayah`, `cariGenerus`, `generusProfil`, `daftarPerangkatRinci`, `statusPerangkat`, `daftarDiajukanRinci`, `materiGenerus`, `jadwalPekan`, `namaHari`, `lembarPresensi`, `laporanWaKelompok` — lihat §11 di bawah |
 | laporan | `laporanPekanan`, `teksWaLaporanPekanan`, `tautanWa`, `normalNoHp`, `rekapPresensi`, `rekapKemajuan` |
 | kurikulum | `seedKurikulum`, `targetMateriBerikutnya`, `PEMETAAN_MATERI`, `idMateri` |
 | repo master (admin) | wilayah: `tambahWilayah`, `ubahWilayah`, `hapusWilayah`, `daftarWilayah`, `turunanWilayah`, `leluhurWilayah`, `kelompokDalamWilayah`; generus/jamaah: `tambahGenerus`, `ubahGenerus`, `daftarGenerus`, `ambilGenerus`, `tambahJamaah`, `ubahJamaah`, `daftarJamaah`, `kategoriDariUmur`; pengajian: `tambahPengajian`, `ubahPengajian`, `hapusPengajian`, `daftarPengajian`, `pengajianUntukKelompok`; materi: `tambahBidang`, `tambahKategori`, `tambahMateri`, `ubahMateri`, `aturLampiranMateri`, `daftarBidang`, `daftarKategoriMateri`, `daftarMateri`, `ambilMateri`; koreksi: `buatKoreksi`, `daftarKoreksi` |
@@ -163,6 +164,32 @@ statusSetorAkhir(db, perangkatLamaId) // { lengkap }
 serahTerimaMubaligh(db, kunci, { kelompokId: k1.id, perangkatLamaId }) // cabut + kunci kelompok baru
 ```
 
+### 11. Kueri untuk layar UI (tanpa SQL di aplikasi)
+
+| Layar | Fungsi |
+|---|---|
+| EXE Beranda | `ringkasanBerandaAdmin(db, { hariTerlambat? })` → jumlah generus aktif/mondok, token aktif per role, usulan menunggu, `setoranPerKelompok[]` (`terakhir_setor`, `hari_sejak`, `terlambat` bila > 14 hari / belum pernah) |
+| EXE Wilayah | `pohonWilayah(db)` → daerah → desa → kelompok (`anak[]`) |
+| EXE Generus · APK Generus (mubaligh) | `cariGenerus(db, { wilayahId?, kelompokId?, kategori?, status?, cari? })` → generus + `kelompok_nama` |
+| EXE Perangkat & Token | `daftarPerangkatRinci(db, { wilayahId?, role?, status? })` → token + `status` (`aktif`/`dibekukan`/`dicabut`/`kedaluwarsa`) + `wilayah_nama`; `statusPerangkat(p)` |
+| APK indikator setor | `infoSinkronHp(db)` → `belumDisetor`, `belumDisetorBelajar`, `terakhirSetor/Belajar/Paket/Balasan`, `hariSejakSetor`, `perluPengingat` (> 7 hari) |
+| APK Beranda mubaligh/pengurus | `ringkasanKelompok(db, kelompokId)` |
+| APK Setoran Generus | `daftarDiajukanRinci(db, kelompokId)` → kemajuan diajukan + `generus_nama`, `materi_nama`, `materi_tipe`, `kategori_nama`, `bidang_nama` |
+| APK Materiku · Kemajuan wali | `materiGenerus(db, generusId)` → `bidang[].kategori[].materi[]` dengan `status` (`belum`/`diajukan`/`ditolak`/`sedang`/`selesai`), `kemajuan`, `target`, `ada_lampiran`; `ringkasan` |
+| APK Jadwal | `jadwalPekan(db, kelompokId, tanggalAcuan?)` → acara Ahad–Sabtu (rutin + tambahan, `dibatalkan`) |
+| APK/EXE Presensi | `lembarPresensi(db, { kelompokId, tanggal, pengajianId?, jadwalTambahanId? })` → generus aktif & anggota pada tanggal itu + status tercatat |
+| APK Laporan Pekanan + WA | `laporanWaKelompok(db, kelompokId, tanggal?)` → `laporan`, `teks`, `tautan` wa.me (null bila nomor wali kosong) |
+| APK Wali | `generusProfil(db, profilId)` lalu `laporanPekanan` / `materiGenerus` per anak |
+
+Lainnya sudah tersedia: `daftarUsulan`, `daftarKoreksi`, `daftarRiwayatImpor`, `daftarPenerimaBalasan`, `daftarProfil`, `daftarPengajian`, `daftarMateri`, `rekapPresensi`, `rekapKemajuan`, `kelompokBerpenerima`.
+
+### Catatan keamanan (Fase 1b)
+
+- Kunci setor kelompok bertanda tangan admin (`tt`); HP generus/wali mengabaikan kunci tanpa tanda tangan sah.
+- `gantiKunciKelompok`/`serahTerimaMubaligh` juga mengganti **kunci umum kelompok** (JADWAL). Kunci baru tiba ke pengurus/mubaligh lewat PAKET dan ke generus/wali lewat BALASAN mubaligh baru — kirim BALASAN ke semua HP segera setelah serah terima.
+- BALASAN/JADWAL membawa pencabutan token mubaligh kelompok, sehingga berkas mubaligh lama ditolak.
+- Setelah admin memulihkan database dari cadangan: PAKET/MATERI baru tetap diterima (cap waktu lebih baru); minta HP mengirim `buatSetor(db, { semua: true })` agar data yang hilang di admin terisi lagi.
+
 ## Pengujian
 
 ```bash
@@ -171,4 +198,4 @@ npm run coverage -w @ppg/core
 npm run typecheck
 ```
 
-`test/skenario-lengkap.test.ts` menjalankan skenario §13 dengan satu database per aktor.
+`test/skenario-lengkap.test.ts` menjalankan skenario §13 dengan satu database per aktor. `test/pemeriksaan.test.ts` berisi reproduksi cacat Fase 1b; `test/kueri.test.ts` menguji kueri UI dan memastikan `src/` tidak mengimpor modul bawaan Node.

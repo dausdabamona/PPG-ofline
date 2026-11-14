@@ -8,6 +8,8 @@ import { ambilIdentitas } from '../perangkat'
 import { daftarProfil, pastikanProfilBolehMencatat } from '../repo/profil'
 import { ambilMeta, aturMeta, tandaTanya, uraiJson, type Rekaman } from '../repo/umum'
 import { ambilWilayah, leluhurWilayah } from '../repo/wilayah'
+import { daftarPencabutan, daftarPerangkat, gabungPencabutan, type BarisPencabutan } from '../repo/perangkat'
+import { rantaiWilayah } from './balasan'
 import { sekarangIso } from '../waktu'
 import { potretProfil, profilBerubah, type RingkasanTerapkan } from './paket'
 import { periksaPengirimMubaligh } from './pengirim'
@@ -17,6 +19,8 @@ interface IsiJadwal {
   kelompok_id: string
   token_pengirim: string
   rekaman: RekamanPerTabel
+  /** Pencabutan token mubaligh kelompok (agar anggota menolak berkas mubaligh lama). */
+  pencabutan?: BarisPencabutan[]
 }
 
 interface CatatanJadwal {
@@ -43,6 +47,7 @@ export function buatJadwal(dbMubaligh: Db, opsi: { kelompokId?: string } = {}): 
     kelompok_id: kel,
     token_pengirim: m.token,
     rekaman: { pengajian: rekamanKirim(pengajian), jadwal_tambahan: rekamanKirim(tambahan) },
+    pencabutan: daftarPencabutan(dbMubaligh, daftarPerangkat(dbMubaligh, { role: 'mubaligh', wilayahIds: [kel] }).map((t) => t.id)),
   }
   const kunciMeta = `versi_jadwal_terbit:${kel}`
   const versi = Number(ambilMeta(dbMubaligh, kunciMeta) ?? 0) + 1
@@ -67,13 +72,21 @@ export function buatJadwal(dbMubaligh: Db, opsi: { kelompokId?: string } = {}): 
 export function terapkanJadwal(db: Db, bytes: Uint8Array, namaBerkas?: string): RingkasanTerapkan {
   const b = bacaBerkasJenis(db, bytes, 'JADWAL')
   const kel = b.header.wilayah_id ?? ''
-  const profil = daftarProfil(db).find((p) => p.wilayah_id === kel && p.rahasia.kunci_umum_kelompok)
-  if (!profil) throw new GalatPpg('BUKAN_ANGGOTA_KELOMPOK', 'Berkas jadwal ini untuk kelompok lain.')
-  let isi: IsiJadwal
-  try {
-    isi = dekompresJson<IsiJadwal>(dekripsiRahasia(dariB64url(profil.rahasia.kunci_umum_kelompok!), b.isi))
-  } catch {
-    throw new GalatPpg('TIDAK_BISA_DIBUKA', 'Berkas jadwal tidak bisa dibuka.')
+  const kunciKandidat = [
+    ...new Set(daftarProfil(db).filter((p) => p.wilayah_id === kel && p.rahasia.kunci_umum_kelompok).map((p) => p.rahasia.kunci_umum_kelompok!)),
+  ]
+  if (!kunciKandidat.length) throw new GalatPpg('BUKAN_ANGGOTA_KELOMPOK', 'Berkas jadwal ini untuk kelompok lain.')
+  let isi: IsiJadwal | undefined
+  for (const k of kunciKandidat) {
+    try {
+      isi = dekompresJson<IsiJadwal>(dekripsiRahasia(dariB64url(k), b.isi))
+      break
+    } catch {
+      // coba kunci berikutnya
+    }
+  }
+  if (!isi) {
+    throw new GalatPpg('TIDAK_BISA_DIBUKA', 'Berkas jadwal tidak bisa dibuka (kunci kelompok sudah diganti). Terapkan balasan/paket terbaru.')
   }
   if (isi.kelompok_id !== kel) throw new GalatPpg('BERKAS_TIDAK_SAH', 'Isi jadwal tidak cocok dengan kepalanya.')
   periksaPengirimMubaligh(db, b, isi.token_pengirim, kel)
@@ -86,8 +99,18 @@ export function terapkanJadwal(db: Db, bytes: Uint8Array, namaBerkas?: string): 
   }
   const sebelum = potretProfil(db)
   return db.transaksi(() => {
-    const rek = isi.rekaman ?? {}
-    const g = gabungSemua(db, { pengajian: rek.pengajian ?? [], jadwal_tambahan: rek.jadwal_tambahan ?? [] }, { sumber: 'admin', seqLokalBaru: 0 })
+    const rek = isi!.rekaman ?? {}
+    // pengajian hanya untuk kelompok ini & induknya; jadwal tambahan hanya kelompok ini
+    const wilayah = ambilWilayah(db, kel) ? rantaiWilayah(db, kel) : null
+    const g = gabungSemua(db, { pengajian: rek.pengajian ?? [], jadwal_tambahan: rek.jadwal_tambahan ?? [] }, (tabel) => ({
+      sumber: 'admin',
+      seqLokalBaru: 0,
+      periksa: (r) =>
+        tabel === 'pengajian'
+          ? !wilayah || wilayah.has(String(r.wilayah_id)) ? null : 'Pengajian di luar kelompok ini.'
+          : r.kelompok_id === kel ? null : 'Jadwal kelompok lain.',
+    }))
+    gabungPencabutan(db, (isi!.pencabutan ?? []).filter((c) => c?.jenis === 'cabut'))
     aturMeta(db, `jadwal:${kel}`, JSON.stringify({ pengirim: b.header.pengirim_perangkat_id, versi, dibuat_pada: b.header.dibuat_pada }))
     const ringkasan: RingkasanTerapkan = { jenis: 'JADWAL', versi, perTabel: g.perTabel, total: g.total, pencabutanBaru: 0, profilTerdampak: profilBerubah(db, sebelum) }
     catatImpor(db, b.header, ringkasan, sidikBerkas(bytes), namaBerkas)

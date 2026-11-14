@@ -156,7 +156,7 @@ CREATE INDEX IF NOT EXISTS idx_penilaian_generus ON penilaian_akhlaq(generus_id)
 `
 
 /** Versi skema saat ini. */
-export const VERSI_SKEMA = 1
+export const VERSI_SKEMA = 2
 
 /** Daftar migrasi berurutan; indeks 0 = menuju versi 1. */
 const MIGRASI: ((db: Db) => void)[] = [
@@ -168,6 +168,10 @@ const MIGRASI: ((db: Db) => void)[] = [
     for (const n of DAFTAR_TABEL_SINKRON) {
       db.jalankanSkrip(`CREATE INDEX IF NOT EXISTS idx_${n}_seq ON ${n}(seq_lokal);`)
     }
+  },
+  // v2 (Fase 1b): kunci umum kelompok berversi — diganti saat serah terima / ganti kunci kelompok.
+  (db) => {
+    db.jalankanSkrip('ALTER TABLE kunci_umum_kelompok ADD COLUMN versi INTEGER NOT NULL DEFAULT 1;')
   },
 ]
 
