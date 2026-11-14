@@ -11,7 +11,8 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
+    # ubuntu-24.04 sudah berisi Android SDK (ANDROID_HOME); setup-android@v3 gagal di runner baru
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,8 +30,8 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Cek Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME" && ls "$ANDROID_HOME"
 
       - name: Pasang dependensi
         run: npm ci
