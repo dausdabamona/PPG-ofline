@@ -985,3 +985,8 @@ details.lanjutan[open] {
 .toast-info {
   background: var(--teal-tua);
 }
+
+/* Logo PPG Sorong (gambar) */
+img.logo { display: block; background: none; }
+.merek { display: inline-flex; align-items: center; gap: 8px; }
+.merek-ikon { width: 28px; height: 28px; border-radius: 7px; display: block; }

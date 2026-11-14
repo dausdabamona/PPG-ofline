@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="latar" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14B8A6"/>
+      <stop offset="1" stop-color="#0F5E58"/>
+    </linearGradient>
+    <linearGradient id="daun" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#F4C95D"/>
+      <stop offset="1" stop-color="#FFE7A3"/>
+    </linearGradient>
+  </defs>
+  <!-- Latar: kotak membulat teal -->
+  <rect width="1024" height="1024" rx="224" fill="url(#latar)"/>
+  <!-- Lingkaran cahaya lembut di belakang tunas -->
+  <circle cx="512" cy="430" r="250" fill="#FFFFFF" opacity="0.08"/>
+  <!-- Tunas: batang + dua daun (pertumbuhan generus) -->
+  <path d="M512 640 C512 560 512 470 512 380" stroke="#F4C95D" stroke-width="34" stroke-linecap="round" fill="none"/>
+  <path d="M512 470 C440 470 370 420 352 330 C440 322 505 370 512 470 Z" fill="url(#daun)"/>
+  <path d="M512 410 C580 410 650 362 670 268 C580 262 518 312 512 410 Z" fill="url(#daun)"/>
+  <!-- Bintang kecil di puncak -->
+  <path d="M512 218 L528 262 L574 262 L537 290 L551 334 L512 308 L473 334 L487 290 L450 262 L496 262 Z" fill="#FFF8E7"/>
+  <!-- Kitab terbuka (ivory) -->
+  <path d="M512 660 C430 610 320 596 206 612 L206 806 C320 790 430 804 512 852 Z" fill="#FFF8E7"/>
+  <path d="M512 660 C594 610 704 596 818 612 L818 806 C704 790 594 804 512 852 Z" fill="#F3E9D2"/>
+  <path d="M512 660 L512 852" stroke="#0F5E58" stroke-width="10" opacity="0.35"/>
+  <!-- Garis halaman -->
+  <g stroke="#0F766E" stroke-width="12" stroke-linecap="round" opacity="0.35" fill="none">
+    <path d="M262 676 C330 668 400 676 460 702"/>
+    <path d="M262 730 C330 722 400 730 460 756"/>
+    <path d="M762 676 C694 668 624 676 564 702"/>
+    <path d="M762 730 C694 722 624 730 564 756"/>
+  </g>
+</svg>

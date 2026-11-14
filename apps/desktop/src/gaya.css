@@ -723,3 +723,6 @@ textarea:focus,
 .toast-info {
   border-left-color: var(--kuning);
 }
+
+/* Logo PPG Sorong (gambar) */
+img.merek-logo { display: block; background: none; object-fit: contain; }

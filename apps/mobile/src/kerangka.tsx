@@ -95,7 +95,7 @@ export function Kerangka(p: { akun: boolean }) {
   return (
     <div className="kerangka">
       <header className="kepala-app">
-        <span className="merek">PPG Sorong</span>
+        <span className="merek"><img className="merek-ikon" src="./logo.svg" alt="" aria-hidden="true" />PPG Sorong</span>
         <button type="button" className="chip-profil" onClick={() => ke(p.akun ? 'utama' : 'akun')} aria-label={`Profil: ${profil.nama}`}>
           <span className="avatar kecil" aria-hidden="true">{profil.nama.slice(0, 1).toUpperCase()}</span>
           <span>

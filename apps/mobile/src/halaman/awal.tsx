@@ -13,7 +13,7 @@ export function LayarSambut(p: { db: Db; selesai: () => void; toast: FnToast }) 
   const [nama, setNama] = useState('')
   return (
     <main className="layar-awal">
-      <div className="logo" aria-hidden="true">PPG</div>
+      <img className="logo" src="./logo.svg" alt="" aria-hidden="true" />
       <h1>Selamat datang di PPG Sorong</h1>
       <p className="keterangan">Aplikasi catatan pengajian untuk pengurus, mubaligh, generus, dan orang tua. Bisa dipakai tanpa internet.</p>
       <Kartu>

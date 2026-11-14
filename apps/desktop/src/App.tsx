@@ -248,9 +248,7 @@ function BilahSamping(p: { halaman: KunciMenu; pilih: (k: KunciMenu) => void }) 
   return (
     <nav className="bilah-samping" aria-label="Menu utama">
       <div className="merek">
-        <div className="merek-logo" aria-hidden="true">
-          PPG
-        </div>
+        <img className="merek-logo" src="./logo.svg" alt="" aria-hidden="true" />
         <div>
           <strong>PPG Sorong Admin</strong>
           <small>{kunci.namaOrganisasi}</small>

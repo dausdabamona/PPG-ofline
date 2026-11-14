@@ -11,9 +11,7 @@ export function LayarPengaturanAwal(p: { db: Db; platform: Platform; selesai: (d
     <div className="layar-tengah">
       <div className="kartu kartu-sempit">
         <div className="merek merek-besar">
-          <div className="merek-logo" aria-hidden="true">
-            PPG
-          </div>
+          <img className="merek-logo" src="./logo.svg" alt="" aria-hidden="true" />
           <div>
             <h1>PPG Sorong Admin</h1>
             <small>Pengaturan awal</small>
@@ -164,9 +162,7 @@ export function LayarMasuk(p: { db: Db; platform: Platform; masuk: (kunci: Kunci
   const nama = ambilMeta(p.db, 'nama_organisasi') ?? ''
   const merek = (
     <div className="merek merek-besar">
-      <div className="merek-logo" aria-hidden="true">
-        PPG
-      </div>
+      <img className="merek-logo" src="./logo.svg" alt="" aria-hidden="true" />
       <div>
         <h1>PPG Sorong Admin</h1>
         <small>{nama}</small>
