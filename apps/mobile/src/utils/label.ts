@@ -16,6 +16,7 @@ export const LABEL_STATUS_GENERUS: Record<string, string> = {
   keluar: 'Keluar',
 }
 export const LABEL_ROLE: Record<string, string> = { pengurus: 'Pengurus', mubaligh: 'Mubaligh', generus: 'Generus', wali: 'Wali (orang tua)' }
+export const LABEL_STATUS_TOKEN: Record<string, string> = { aktif: 'Aktif', dibekukan: 'Dibekukan', dicabut: 'Dicabut', kedaluwarsa: 'Habis masa' }
 export const LABEL_PRESENSI: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa' }
 export const LABEL_STATUS_MATERI: Record<string, string> = {
   belum: 'Belum',

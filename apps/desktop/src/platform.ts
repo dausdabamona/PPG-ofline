@@ -89,7 +89,8 @@ export function platformPeramban(urlWasm: string): Platform {
         const input = document.createElement('input')
         input.type = 'file'
         input.multiple = banyak
-        input.accept = filter.flatMap((f) => f.ekstensi.map((e) => `.${e}`)).join(',')
+        const eks = filter.flatMap((f) => f.ekstensi)
+        if (!eks.includes('*')) input.accept = eks.map((e) => `.${e}`).join(',')
         input.onchange = async () => {
           const daftar = await Promise.all([...(input.files ?? [])].map(async (f) => ({ nama: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })))
           selesai(daftar)

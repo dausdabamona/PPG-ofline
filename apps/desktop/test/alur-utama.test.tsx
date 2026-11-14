@@ -136,7 +136,7 @@ describe('alur utama EXE admin', () => {
     dialog = await screen.findByRole('dialog', { name: 'Token untuk Ust. Hasan' })
     const token = (within(dialog).getByTestId('teks-token') as HTMLTextAreaElement).value
     expect(token.startsWith('PPGT1.')).toBe(true)
-    await within(dialog).findByAltText('QR token', {}, { timeout: 20000 })
+    await within(dialog).findByRole('img', { name: /^QR token/ }, { timeout: 20000 })
     await u.click(within(dialog).getByRole('button', { name: 'Salin token' }))
     expect(pf.disalin).toContain(token)
     await u.click(within(dialog).getByRole('button', { name: 'Tutup jendela' }))

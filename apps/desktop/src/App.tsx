@@ -203,7 +203,7 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
       />
     )
   } else if (tahap.t === 'masuk') {
-    isi = <LayarMasuk db={db} masuk={(kunci) => setTahap({ t: 'siap', kunci })} />
+    isi = <LayarMasuk db={db} platform={platform} masuk={(kunci) => setTahap({ t: 'siap', kunci })} />
   } else if (nilai) {
     isi = (
       <PenyediaApp nilai={nilai}>

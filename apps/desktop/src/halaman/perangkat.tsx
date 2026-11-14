@@ -1,7 +1,6 @@
 // Layar 7: Perangkat & Token — terbitkan token dari Kode Perangkat (teks + QR + salin), daftar perangkat,
 // cabut/bekukan/cairkan, ganti kunci kelompok, serah terima mubaligh.
 import { useEffect, useMemo, useState } from 'react'
-import QRCode from 'qrcode'
 import {
   HAK_BAWAAN,
   ambilWilayah,
@@ -22,6 +21,7 @@ import {
 import { useApp, useData } from '../konteks'
 import { AreaTeks, Isian, KeadaanData, Kartu, KepalaHalaman, Konfirmasi, KotakGalat, Lencana, Memuat, Modal, Pilihan, Tombol } from '../komponen/ui'
 import { PilihWilayah } from '../komponen/wilayah'
+import { QrBerseri } from '../komponen/qr'
 import { LABEL_HAK, LABEL_ROLE, LABEL_STATUS_PERANGKAT, label, pesanGalat, waktuLokal } from '../utils/label'
 
 const HAK_ROLE: Record<'pengurus' | 'mubaligh', Hak[]> = {
@@ -130,16 +130,6 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
 /** Tampilan token: teks + QR + salin + simpan. */
 export function ModalToken(p: { token: string; nama: string; tutup: () => void }) {
   const { platform, toast, aksi } = useApp()
-  const [qr, setQr] = useState<{ memuat: boolean; url?: string; galat?: string }>({ memuat: true })
-  useEffect(() => {
-    let batal = false
-    QRCode.toString(p.token, { type: 'svg', errorCorrectionLevel: 'L', margin: 2 })
-      .then((svg) => !batal && setQr({ memuat: false, url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` }))
-      .catch(() => !batal && setQr({ memuat: false, galat: 'Token terlalu panjang untuk QR. Kirim teks token lewat WA.' }))
-    return () => {
-      batal = true
-    }
-  }, [p.token])
   return (
     <Modal
       judul={`Token untuk ${p.nama}`}
@@ -168,10 +158,10 @@ export function ModalToken(p: { token: string; nama: string; tutup: () => void }
     >
       <div className="tampil-token">
         <div className="qr">
-          {qr.memuat ? <Memuat teks="Membuat QR…" /> : qr.galat ? <KotakGalat pesan={qr.galat} /> : <img src={qr.url} alt="QR token" width={280} height={280} />}
+          <QrBerseri teks={p.token} label="QR token" />
         </div>
         <div className="teks-token">
-          <p>Pindai QR ini dari HP penerima, atau salin teks token dan kirim lewat WA. Token hanya bisa dipakai di HP pemilik Kode Perangkat.</p>
+          <p>Pindai QR ini dari HP penerima (menu “Pindai QR Token”; token panjang tampil sebagai beberapa QR bergantian), atau salin teks token dan kirim lewat WA. Token hanya bisa dipakai di HP pemilik Kode Perangkat.</p>
           <textarea readOnly rows={10} value={p.token} aria-label="Teks token" data-testid="teks-token" />
         </div>
       </div>
@@ -358,7 +348,7 @@ function ModalSerahTerima(p: { kelompokId: string; tutup: () => void }) {
             onClick={async () => {
               const h = await aksi(() => serahTerimaMubaligh(db, kunci, { kelompokId: p.kelompokId, perangkatLamaId: pilih, paksa }))
               if (h) {
-                toast('sukses', `Serah terima selesai: ${h.tokenDicabut.length} token dicabut, kunci kelompok versi ${h.versiKunciBaru}. Terbitkan token mubaligh baru lalu kirim paket.`)
+                toast('sukses', `Serah terima selesai: ${h.tokenDicabut.length} token dicabut, kunci kelompok versi ${h.versiKunciBaru}. Terbitkan token mubaligh baru lalu kirim paket. Hari itu juga, mubaligh baru WAJIB mengirim Balasan ke semua HP generus dan wali.`)
                 p.tutup()
               }
             }}

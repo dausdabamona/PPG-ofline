@@ -3,9 +3,9 @@
 // setor data → balasan → generus catat & setor belajar → mubaligh impor, sahkan/tolak → laporan WA → balasan →
 // wali melihat laporan pekanan → generus dibekukan (mondok) → spanduk.
 import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, screen, within } from '@testing-library/react'
+import { act, cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { bacaKodePerangkat, buatPaket, imporSetor, tanggalHariIni, targetMateriBerikutnya, terbitkanToken, ubahStatus } from '@ppg/core'
+import { bacaKodePerangkat, buatPaket, pecahQr, imporSetor, tanggalHariIni, targetMateriBerikutnya, terbitkanToken, ubahStatus } from '@ppg/core'
 import { buatPlatformPalsu } from './platform-palsu'
 import { aktifkan, balasanUntuk, bukaAkun, dibagikan, jeda, mulai, nav, sambut, siapkanAdmin, tungguTeks, tutup, waitFor } from './bantu'
 
@@ -55,11 +55,24 @@ describe('alur mubaligh – generus – wali', () => {
       const dialog = await screen.findByRole('dialog', { name: `Token untuk ${nama}` })
       const token = within(dialog).getByTestId('token-hasil').textContent ?? ''
       expect(token.startsWith('PPGT1.')).toBe(true)
-      // QR token (atau pesan bila terlalu panjang) + kirim WA
-      expect(within(dialog).queryByRole('img', { name: 'QR token' }) ?? within(dialog).getByText(/terlalu panjang untuk QR/)).toBeTruthy()
+      // token ±3,7 KB → QR berseri: bagian 1 dari n, tombol Berikutnya/Sebelumnya, berganti otomatis
+      const qr1 = within(dialog).getByRole('img', { name: /^QR token bagian 1 dari \d+$/ })
+      const n = Number(/dari (\d+)$/.exec(qr1.getAttribute('aria-label') ?? '')![1])
+      expect(n).toBeGreaterThanOrEqual(2)
+      await u.click(within(dialog).getByRole('button', { name: 'Berikutnya ›' }))
+      expect(within(dialog).getByRole('img', { name: `QR token bagian 2 dari ${n}` })).toBeTruthy()
+      await u.click(within(dialog).getByRole('button', { name: '‹ Sebelumnya' }))
+      expect(within(dialog).getByRole('img', { name: `QR token bagian 1 dari ${n}` })).toBeTruthy()
+      await waitFor(() => expect(within(dialog).getByRole('img', { name: `QR token bagian 2 dari ${n}` })).toBeTruthy(), { timeout: 4000 })
       await u.click(within(dialog).getByRole('button', { name: 'Kirim lewat WA' }))
       expect(pfM.teks.at(-1)).toBe(token)
-      await u.click(within(dialog).getByRole('button', { name: 'Tutup' }))
+      // tombol kembali Android menutup jendela token (aplikasi tidak keluar)
+      let ditangani = false
+      act(() => {
+        ditangani = pfM.tekanKembali()
+      })
+      expect(ditangani).toBe(true)
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: `Token untuk ${nama}` })).toBeNull())
       return token
     }
     const tokenAli = await terbitGenerus(ali.id, 'Ali')
@@ -99,7 +112,20 @@ describe('alur mubaligh – generus – wali', () => {
     await bukaAkun(u)
     await u.click(screen.getByRole('button', { name: '+ Tambah Profil' }))
     await screen.findByRole('heading', { name: 'Tambah Profil' })
-    await aktifkan(u, tokenBudi)
+    // Budi: "Pindai QR Token" — kamera tidak ada di uji, jadi bagian QR berseri ditempel satu per satu
+    await u.click(await screen.findByRole('button', { name: 'Pindai QR Token' }))
+    await tungguTeks(/Kamera tidak bisa dipakai/)
+    const bagianBudi = pecahQr(tokenBudi)
+    expect(bagianBudi.length).toBeGreaterThanOrEqual(2)
+    for (const [i, b] of bagianBudi.entries()) {
+      await u.click(screen.getByLabelText('Atau tempel token di sini'))
+      await u.paste(b)
+      await u.click(screen.getByRole('button', { name: 'Pakai teks ini' }))
+      if (i < bagianBudi.length - 1) await tungguTeks(new RegExp(`${i + 1} dari ${bagianBudi.length}`))
+    }
+    expect((await screen.findByLabelText('Token') as HTMLTextAreaElement).value).toBe(tokenBudi)
+    await u.click(screen.getByRole('button', { name: 'Aktifkan' }))
+    await screen.findByRole('navigation', { name: 'Menu utama' }, { timeout: 20000 })
     expect(screen.getByRole('button', { name: 'Profil: Budi' })).toBeTruthy()
     await nav(u, 'Setor')
     pfG.antreanBuka.push([balasanG1, admin.materi])

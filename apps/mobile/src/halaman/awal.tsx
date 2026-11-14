@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { aktifkanProfil, daftarProfil, inisialisasiPerangkat, kodePerangkatSaya, pilihProfil, statusProfil, type Db } from '@ppg/core'
 import type { JenisToast } from '../konteks'
 import type { BerkasMasuk, Platform } from '../platform'
-import { GambarQr, PemindaiQr } from '../komponen/qr'
+import { PemindaiQr, QrBerseri } from '../komponen/qr'
 import { AreaTeks, Isian, Kartu, Lencana, Modal, Tombol } from '../komponen/ui'
 import { label, LABEL_ROLE, pesanGalat } from '../utils/label'
 
@@ -82,7 +82,7 @@ export function LayarAwal(p: {
           Pengurus & mubaligh: kirim ke <b>admin</b>. Generus & orang tua: tunjukkan atau kirim ke <b>mubaligh</b>.
         </p>
         <div className="kotak-qr">
-          <GambarQr teks={kode} label="QR Kode Perangkat" />
+          <QrBerseri teks={kode} label="QR Kode Perangkat" />
         </div>
         <details className="teks-kode">
           <summary>Lihat teks kode</summary>

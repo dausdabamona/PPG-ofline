@@ -58,20 +58,23 @@ function IndikatorSetor(p: { pergi: (tab: string) => void }) {
   const { db, profil } = useApp()
   const info = useData(() => infoSinkronHp(db), [db])
   if (!info.data || profil.role === 'wali') return null
-  const n = profil.role === 'generus' ? info.data.belumDisetorBelajar : info.data.belumDisetor
+  const generus = profil.role === 'generus'
+  const n = generus ? info.data.belumDisetorBelajar : info.data.belumDisetor
+  const ingat = generus ? info.data.perluPengingatBelajar : info.data.perluPengingat
+  const hari = generus ? info.data.hariSejakBelajar : info.data.hariSejakSetor
   if (!n) return null
   return (
-    <div className={`indikator-setor${info.data.perluPengingat ? ' pengingat' : ''}`} role="status">
+    <div className={`indikator-setor${ingat ? ' pengingat' : ''}`} role="status">
       <span>
         Ada <b>{n}</b> data belum disetor.
-        {info.data.perluPengingat ? (
+        {ingat ? (
           <>
             {' '}
-            {info.data.hariSejakSetor === null ? 'Belum pernah setor.' : `Sudah ${info.data.hariSejakSetor} hari sejak setor terakhir.`} Yuk setor sekarang.
+            {hari === null ? 'Belum pernah setor.' : `Sudah ${hari} hari sejak setor terakhir.`} Yuk setor sekarang.
           </>
         ) : null}
       </span>
-      <Tombol kecil varian={info.data.perluPengingat ? 'utama' : 'kedua'} onClick={() => p.pergi(TAB_SETOR[profil.role])}>
+      <Tombol kecil varian={ingat ? 'utama' : 'kedua'} onClick={() => p.pergi(TAB_SETOR[profil.role])}>
         Setor
       </Tombol>
     </div>
@@ -102,7 +105,13 @@ export function Kerangka(p: { akun: boolean }) {
         </button>
       </header>
       <main className="isi">
-        {st.kode === 'DIBEKUKAN' ? <Spanduk jenis="peringatan">Sedang mondok — pencatatan dihentikan sementara.</Spanduk> : null}
+        {st.kode === 'DIBEKUKAN' ? (
+          <Spanduk jenis="peringatan">
+            {profil.role === 'generus' || profil.role === 'wali'
+              ? 'Sedang mondok — pencatatan dihentikan sementara.'
+              : 'Profil ini dibekukan admin — pencatatan dihentikan sementara.'}
+          </Spanduk>
+        ) : null}
         {st.kode === 'DICABUT' ? <Spanduk jenis="bahaya">Profil ini sudah tidak berlaku. Data lama tetap bisa dilihat.</Spanduk> : null}
         {st.kode === 'KEDALUWARSA' ? <Spanduk jenis="bahaya">Masa berlaku profil habis. Minta token baru untuk mencatat lagi.</Spanduk> : null}
         {p.akun ? (

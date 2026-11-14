@@ -20,11 +20,14 @@ export interface PlatformPalsu extends Platform {
   keLatar: () => void
   /** Kirim berkas seolah dibuka dari WA (intent). */
   kirimIntent: (b: BerkasMasuk) => void
+  /** Tekan tombol kembali Android; true bila ditangani aplikasi, false bila aplikasi akan diperkecil. */
+  tekanKembali: () => boolean
 }
 
 export function buatPlatformPalsu(awal: Uint8Array | null = null): PlatformPalsu {
   const latar = new Set<() => void>()
   const masuk = new Set<(b: BerkasMasuk) => void>()
+  const kembali = new Set<() => boolean>()
   const p: PlatformPalsu = {
     jenis: 'web',
     db: awal,
@@ -37,6 +40,11 @@ export function buatPlatformPalsu(awal: Uint8Array | null = null): PlatformPalsu
     disalin: [],
     keLatar: () => latar.forEach((f) => f()),
     kirimIntent: (b) => masuk.forEach((f) => f(b)),
+    tekanKembali: () => [...kembali].some((f) => f()),
+    saatTombolKembali(fn) {
+      kembali.add(fn)
+      return () => kembali.delete(fn)
+    },
     async opsiSqlJs() {
       return { wasmBinary: new Uint8Array(wasm) }
     },

@@ -82,9 +82,34 @@ await page.getByLabel('Materi').waitFor()
 await foto('5-simak')
 
 // ukuran sentuh: semua tombol terlihat ≥ 44 px
-const kecil = await page.$$eval('button', (bs) =>
-  bs.filter((b) => b.offsetParent !== null).map((b) => ({ t: b.textContent?.trim(), h: b.getBoundingClientRect().height })).filter((x) => x.h < 44),
-)
+const ukurTombol = () =>
+  page.$$eval('button', (bs) =>
+    bs.filter((b) => b.offsetParent !== null).map((b) => ({ t: b.textContent?.trim(), h: b.getBoundingClientRect().height })).filter((x) => x.h < 44),
+  )
+const kecil = await ukurTombol()
+
+// Fase 4: token generus ±3,7 KB tampil sebagai QR berseri yang berganti otomatis
+await page.getByRole('navigation').getByRole('button', { name: /Lainnya/ }).click()
+await page.getByRole('button', { name: /^Terbitkan Token/ }).click()
+await page.getByLabel('Generus', { exact: true }).selectOption({ label: 'Ahmad' })
+await page.getByLabel('Kode Perangkat HP tujuan').fill(kode)
+await page.getByRole('button', { name: 'Terbitkan Token', exact: true }).click()
+await page.getByRole('img', { name: /QR token bagian 1 dari \d+/ }).waitFor({ timeout: 30000 })
+await foto('7-qr-berseri')
+await page.getByRole('img', { name: /QR token bagian 2 dari \d+/ }).waitFor({ timeout: 4000 })
+kecil.push(...(await ukurTombol()))
+await page.getByRole('button', { name: 'Tutup', exact: true }).click()
+
+// Fase 4: cadangan HP wajib kata sandi → berkas terenkripsi (PBKDF2 + secretbox di bawah CSP)
+await page.getByRole('button', { name: /^Profil:/ }).click()
+await page.getByRole('button', { name: 'Cadangkan data HP' }).click()
+await page.getByLabel('Kata sandi cadangan').fill('sandi-hp-1')
+await page.getByLabel('Ulangi kata sandi').fill('sandi-hp-1')
+const [unduhan] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Buat cadangan' }).click()])
+const isiCadangan = readFileSync(await unduhan.path())
+if (isiCadangan.subarray(0, 6).toString() !== 'PPGCB1') galat.push('cadangan HP tidak terenkripsi')
+await foto('8-cadangan')
+await page.getByRole('button', { name: 'Kembali' }).click()
 
 // muat ulang → data tersimpan di IndexedDB, langsung ke layar utama
 await page.waitForTimeout(800)

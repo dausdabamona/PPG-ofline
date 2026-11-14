@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { bacaHeader, buatPaket, bukaDb, daftarProfil, daftarUsulan, imporSetor, terbitkanToken, type Db } from '@ppg/core'
+import { bacaHeader, buatPaket, bukaDb, daftarProfil, daftarUsulan, imporSetor, jenisCadanganHp, terbitkanToken, type Db } from '@ppg/core'
 import { buatPlatformPalsu } from './platform-palsu'
 import { aktifkan, bukaAkun, dibagikan, jeda, mulai, nav, sambut, siapkanAdmin, tungguTeks, tutup, waitFor } from './bantu'
 
@@ -69,12 +69,23 @@ describe('pengurus', () => {
     pf.keLatar()
     await waitFor(() => expect(pf.jumlahSimpan).toBeGreaterThan(n))
 
-    // cadangkan data HP lalu pulihkan
+    // cadangkan data HP (wajib kata sandi, berkas terenkripsi) lalu pulihkan
     await bukaAkun(u)
     await u.click(screen.getByRole('button', { name: 'Cadangkan data HP' }))
+    const dlgCad = await screen.findByRole('dialog', { name: 'Buat cadangan data HP' })
+    const tBuat = within(dlgCad).getByRole('button', { name: 'Buat cadangan' }) as HTMLButtonElement
+    expect(tBuat.disabled).toBe(true)
+    await u.type(within(dlgCad).getByLabelText('Kata sandi cadangan'), 'kel-rahmat')
+    await u.type(within(dlgCad).getByLabelText('Ulangi kata sandi'), 'kel-rahmaX')
+    expect(tBuat.disabled).toBe(true)
+    await u.clear(within(dlgCad).getByLabelText('Ulangi kata sandi'))
+    await u.type(within(dlgCad).getByLabelText('Ulangi kata sandi'), 'kel-rahmat')
+    await u.click(tBuat)
     await tungguTeks(/Berkas cadangan siap disimpan/)
     const cad = dibagikan(pf, 'PPG_CADANGAN_HP_')
     expect(cad.nama).toMatch(/\.ppgdb$/)
+    expect(jenisCadanganHp(cad.bytes)).toBe('terenkripsi')
+    expect(new TextDecoder('latin1').decode(cad.bytes).includes('SQLite format 3')).toBe(false)
     await tutup(pf)
 
     mulai(pf)
@@ -82,12 +93,18 @@ describe('pengurus', () => {
     await bukaAkun(u)
     pf.antreanBuka.push([{ nama: 'bukan.ppgdb', bytes: new Uint8Array([9, 9, 9]) }])
     await u.click(screen.getByRole('button', { name: 'Pulihkan dari cadangan' }))
-    await u.click(within(await screen.findByRole('dialog', { name: 'Pulihkan data HP' })).getByRole('button', { name: 'Pulihkan' }))
-    await tungguTeks(/Cadangan tidak bisa dipulihkan/)
+    await tungguTeks(/bukan cadangan data HP/)
     pf.antreanBuka.push([cad])
     await u.click(screen.getByRole('button', { name: 'Pulihkan dari cadangan' }))
-    await u.click(within(await screen.findByRole('dialog', { name: 'Pulihkan data HP' })).getByRole('button', { name: 'Pulihkan' }))
-    await tungguTeks(/Data HP berhasil dipulihkan/)
+    let dlg = await screen.findByRole('dialog', { name: 'Pulihkan data HP' })
+    await u.type(within(dlg).getByLabelText('Kata sandi cadangan'), 'sandi-salah')
+    await u.click(within(dlg).getByRole('button', { name: 'Pulihkan' }))
+    await tungguTeks(/Kata sandi cadangan salah/)
+    dlg = screen.getByRole('dialog', { name: 'Pulihkan data HP' })
+    await u.clear(within(dlg).getByLabelText('Kata sandi cadangan'))
+    await u.type(within(dlg).getByLabelText('Kata sandi cadangan'), 'kel-rahmat')
+    await u.click(within(dlg).getByRole('button', { name: 'Pulihkan' }))
+    await tungguTeks(/Data HP berhasil dipulihkan/, 30000)
     await screen.findByRole('heading', { name: /Assalamu'alaikum, Pak Rahmat/ })
     const dbPulih: Db = await bukaDb(pf.db!)
     expect(daftarProfil(dbPulih).map((p) => p.nama)).toEqual(['Pak Rahmat'])

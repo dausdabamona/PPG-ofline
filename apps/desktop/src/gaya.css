@@ -627,6 +627,24 @@ textarea:focus,
   height: 280px;
   image-rendering: pixelated;
 }
+.qr-svg {
+  display: block;
+}
+.qr-berseri {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.qr-berseri p {
+  margin: 0;
+}
+.aksi-qr {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 .teks-token textarea {
   word-break: break-all;
 }

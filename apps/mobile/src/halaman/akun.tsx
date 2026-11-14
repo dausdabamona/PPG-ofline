@@ -1,9 +1,9 @@
 // Layar Profil & HP: ganti/tambah profil, PIN, hapus profil, Kode Perangkat, cadangkan & pulihkan data HP.
 import { useMemo, useState } from 'react'
-import { aturPin, daftarProfil, hapusProfil, kodePerangkatSaya, statusProfil, tanggalHariIni } from '@ppg/core'
+import { aturPin, buatCadanganHp, bukaCadanganHp, daftarProfil, hapusProfil, jenisCadanganHp, kodePerangkatSaya, PANJANG_SANDI_CADANGAN_MIN, statusProfil } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import type { BerkasMasuk } from '../platform'
-import { GambarQr } from '../komponen/qr'
+import { QrBerseri } from '../komponen/qr'
 import { Isian, JudulHalaman, KeadaanData, Kartu, Konfirmasi, Lencana, Modal, Tombol } from '../komponen/ui'
 import { label, LABEL_ROLE, pesanGalat, tanggalTeks } from '../utils/label'
 
@@ -15,7 +15,15 @@ export function HalamanAkun() {
   const [pinLama, setPinLama] = useState('')
   const [pinBaru, setPinBaru] = useState('')
   const [tanyaHapus, setTanyaHapus] = useState(false)
-  const [pulih, setPulih] = useState<BerkasMasuk | null>(null)
+  const [pulih, setPulih] = useState<(BerkasMasuk & { terenkripsi: boolean }) | null>(null)
+  const [formCadangan, setFormCadangan] = useState(false)
+  const [sandi, setSandi] = useState('')
+  const [ulang, setUlang] = useState('')
+  const tutupCadangan = () => {
+    setFormCadangan(false)
+    setSandi('')
+    setUlang('')
+  }
   const st = statusProfil(profil)
   const angka = (v: string) => v.replace(/\D/g, '').slice(0, 4)
 
@@ -63,7 +71,7 @@ export function HalamanAkun() {
       <Kartu judul="Kode Perangkat">
         <p>Dipakai untuk meminta token baru (mis. untuk anak lain atau perpanjangan).</p>
         <div className="kotak-qr">
-          <GambarQr teks={kode} label="QR Kode Perangkat" />
+          <QrBerseri teks={kode} label="QR Kode Perangkat" />
         </div>
         <div className="baris-tombol">
           <Tombol varian="wa" onClick={() => platform.bagikanTeks(kode, 'Kode Perangkat PPG')}>
@@ -84,13 +92,10 @@ export function HalamanAkun() {
       <Kartu judul="Cadangan data HP">
         <p>
           Simpan salinan seluruh data HP ini (misalnya ke Google Drive atau WA “pesan untuk diri sendiri”) agar bisa dipulihkan bila HP rusak atau
-          ganti HP. <b>Jangan berikan berkas cadangan ke orang lain.</b>
+          ganti HP. Cadangan dikunci dengan <b>kata sandi cadangan</b> — catat sandinya; tanpa sandi, cadangan tidak bisa dibuka.
         </p>
         <div className="tumpuk">
-          <Tombol
-            penuh
-            onClick={() => kirimBerkas({ nama: `PPG_CADANGAN_HP_${tanggalHariIni().replace(/-/g, '')}.ppgdb`, bytes: db.ekspor() }, 'Berkas cadangan siap disimpan.')}
-          >
+          <Tombol penuh onClick={() => setFormCadangan(true)}>
             Cadangkan data HP
           </Tombol>
           <Tombol
@@ -98,13 +103,47 @@ export function HalamanAkun() {
             varian="kedua"
             onClick={async () => {
               const [b] = await platform.pilihBerkas({ banyak: false })
-              if (b) setPulih(b)
+              if (!b) return
+              const jenis = jenisCadanganHp(b.bytes)
+              if (jenis === 'bukan') return toast('galat', `“${b.nama ?? 'Berkas'}” bukan cadangan data HP PPG Sorong.`)
+              setSandi('')
+              setPulih({ ...b, terenkripsi: jenis === 'terenkripsi' })
             }}
           >
             Pulihkan dari cadangan
           </Tombol>
         </div>
       </Kartu>
+
+      {formCadangan ? (
+        <Modal
+          judul="Buat cadangan data HP"
+          tutup={tutupCadangan}
+          aksi={
+            <Tombol
+              disabled={sandi.length < PANJANG_SANDI_CADANGAN_MIN || sandi !== ulang}
+              onClick={async () => {
+                const c = await aksi(() => buatCadanganHp(db, sandi))
+                if (!c) return
+                tutupCadangan()
+                await kirimBerkas(c, 'Berkas cadangan siap disimpan. Ingat kata sandinya.')
+              }}
+            >
+              Buat cadangan
+            </Tombol>
+          }
+        >
+          <p>Kata sandi ini diminta saat memulihkan. Minimal {PANJANG_SANDI_CADANGAN_MIN} karakter.</p>
+          <Isian label="Kata sandi cadangan" type="password" nilai={sandi} ubah={setSandi} />
+          <Isian
+            label="Ulangi kata sandi"
+            type="password"
+            nilai={ulang}
+            ubah={setUlang}
+            bantuan={ulang && sandi !== ulang ? 'Kata sandi belum sama.' : undefined}
+          />
+        </Modal>
+      ) : null}
 
       {pinForm ? (
         <Modal
@@ -169,23 +208,36 @@ export function HalamanAkun() {
       ) : null}
 
       {pulih ? (
-        <Konfirmasi
+        <Modal
           judul="Pulihkan data HP"
-          pesan={`Semua data di HP ini akan diganti dengan isi “${pulih.nama ?? 'cadangan'}”. Lanjutkan?`}
-          ya="Pulihkan"
-          bahaya
-          batal={() => setPulih(null)}
-          setuju={async () => {
-            const b = pulih
-            setPulih(null)
-            try {
-              await gantiDb(b.bytes)
-              toast('sukses', 'Data HP berhasil dipulihkan.')
-            } catch (e) {
-              toast('galat', `Cadangan tidak bisa dipulihkan: ${pesanGalat(e)}`)
-            }
-          }}
-        />
+          tutup={() => setPulih(null)}
+          aksi={
+            <Tombol
+              varian="bahaya"
+              disabled={pulih.terenkripsi && !sandi}
+              onClick={async () => {
+                const b = pulih
+                try {
+                  const bytes = await bukaCadanganHp(b.bytes, sandi)
+                  await gantiDb(bytes)
+                  setPulih(null)
+                  toast('sukses', 'Data HP berhasil dipulihkan.')
+                } catch (e) {
+                  toast('galat', `Cadangan tidak bisa dipulihkan: ${pesanGalat(e)}`)
+                }
+              }}
+            >
+              Pulihkan
+            </Tombol>
+          }
+        >
+          <p>Semua data di HP ini akan diganti dengan isi “{pulih.nama ?? 'cadangan'}”.</p>
+          {pulih.terenkripsi ? (
+            <Isian label="Kata sandi cadangan" type="password" nilai={sandi} ubah={setSandi} />
+          ) : (
+            <p className="keterangan">Cadangan lama ini tidak dikunci sandi. Setelah dipulihkan, buat cadangan baru yang dikunci sandi.</p>
+          )}
+        </Modal>
       ) : null}
     </>
   )

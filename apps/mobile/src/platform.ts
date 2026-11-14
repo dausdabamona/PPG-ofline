@@ -34,6 +34,11 @@ export interface Platform {
   /** Tampilkan PDF (native: dibagikan ke aplikasi pembaca PDF; peramban: tab baru). */
   bukaPdf(nama: string, bytes: Uint8Array): Promise<void>
   salinTeks(teks: string): Promise<void>
+  /**
+   * Tombol kembali Android. `fn` mengembalikan true bila sudah ditangani (tutup jendela / kembali ke menu);
+   * bila false, aplikasi diperkecil (bukan ditutup) agar data tetap aman. Peramban: tidak ada.
+   */
+  saatTombolKembali(fn: () => boolean): () => void
 }
 
 const KUNCI_DB = 'ppg-hp-db'
@@ -164,6 +169,7 @@ export function platformWeb(urlWasm: string): Platform {
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
     },
     salinTeks: salinKePapan,
+    saatTombolKembali: () => () => undefined,
   }
 }
 
@@ -240,6 +246,12 @@ export async function platformNative(urlWasm: string): Promise<Platform> {
     bukaTautan(url) {
       // Capacitor membuka URL di luar host aplikasi dengan aplikasi luar (wa.me → WhatsApp).
       window.location.href = url
+    },
+    saatTombolKembali(fn) {
+      const h = App.addListener('backButton', () => {
+        if (!fn()) void App.minimizeApp()
+      })
+      return () => void h.then((x) => x.remove())
     },
     async bukaPdf(nama, bytes) {
       const uri = await tulisCache(nama.toLowerCase().endsWith('.pdf') ? nama : `${nama}.pdf`, bytes)

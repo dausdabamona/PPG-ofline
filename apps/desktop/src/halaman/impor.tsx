@@ -12,7 +12,7 @@ export function HalamanImpor() {
   const riwayat = useData(() => daftarRiwayatImpor(db, 50), [db])
 
   const pilih = async () => {
-    const berkas = await aksi(() => platform.bukaBanyak([{ nama: 'Berkas setoran PPG', ekstensi: ['ppg'] }], true))
+    const berkas = await aksi(() => platform.bukaBanyak([{ nama: 'Berkas setoran PPG', ekstensi: ['ppg'] }, { nama: 'Semua berkas', ekstensi: ['*'] }], true))
     if (!berkas || berkas.length === 0) return
     setSibuk(true)
     // beri kesempatan UI menampilkan status memuat sebelum kerja sinkron

@@ -95,6 +95,24 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
     }
   }, [platform, pasangDb])
 
+  // Tombol kembali Android: tutup jendela yang terbuka, atau tekan tombol "Kembali" halaman; selain itu perkecil aplikasi.
+  useEffect(
+    () =>
+      platform.saatTombolKembali(() => {
+        if (document.querySelector('[role="dialog"]')) {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+          return true
+        }
+        const kembali = document.querySelector<HTMLButtonElement>('.tombol-kembali')
+        if (kembali) {
+          kembali.click()
+          return true
+        }
+        return false
+      }),
+    [platform],
+  )
+
   // Simpan saat aplikasi ke latar belakang.
   useEffect(() => platform.saatLatarBelakang(() => void simpanSekarang()), [platform, simpanSekarang])
 

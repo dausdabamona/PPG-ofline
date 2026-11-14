@@ -156,11 +156,33 @@ function FormPulihkan(p: { db: Db; platform: Platform; selesai: (db: Db, kunci: 
   )
 }
 
-export function LayarMasuk(p: { db: Db; masuk: (kunci: KunciAdmin) => void }) {
+export function LayarMasuk(p: { db: Db; platform: Platform; masuk: (kunci: KunciAdmin) => void }) {
   const [sandi, setSandi] = useState('')
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
+  const [lupa, setLupa] = useState(false)
   const nama = ambilMeta(p.db, 'nama_organisasi') ?? ''
+  const merek = (
+    <div className="merek merek-besar">
+      <div className="merek-logo" aria-hidden="true">
+        PPG
+      </div>
+      <div>
+        <h1>PPG Sorong Admin</h1>
+        <small>{nama}</small>
+      </div>
+    </div>
+  )
+  if (lupa) {
+    return (
+      <div className="layar-tengah">
+        <div className="kartu kartu-sempit">
+          {merek}
+          <FormLupaSandi db={p.db} platform={p.platform} masuk={p.masuk} batal={() => setLupa(false)} />
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="layar-tengah">
       <form
@@ -180,23 +202,80 @@ export function LayarMasuk(p: { db: Db; masuk: (kunci: KunciAdmin) => void }) {
           }
         }}
       >
-        <div className="merek merek-besar">
-          <div className="merek-logo" aria-hidden="true">
-            PPG
-          </div>
-          <div>
-            <h1>PPG Sorong Admin</h1>
-            <small>{nama}</small>
-          </div>
-        </div>
+        {merek}
         <Isian label="Kata sandi admin" type="password" nilai={sandi} ubah={setSandi} wajib />
         {galat ? <KotakGalat pesan={galat} /> : null}
         <div className="aksi">
+          <Tombol varian="tipis" onClick={() => setLupa(true)}>
+            Lupa kata sandi?
+          </Tombol>
           <Tombol type="submit" sibuk={sibuk}>
             Masuk
           </Tombol>
         </div>
       </form>
     </div>
+  )
+}
+
+/** Lupa kata sandi admin: buka ulang kunci dengan berkas cadangan kunci (.ppgkey) + sandi cadangannya, lalu pasang sandi baru. */
+function FormLupaSandi(p: { db: Db; platform: Platform; masuk: (kunci: KunciAdmin) => void; batal: () => void }) {
+  const [berkas, setBerkas] = useState<BerkasDibuka | null>(null)
+  const [sandiCadangan, setSandiCadangan] = useState('')
+  const [baru, setBaru] = useState('')
+  const [ulang, setUlang] = useState('')
+  const [galat, setGalat] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  return (
+    <form
+      className="formulir"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        setGalat('')
+        if (!berkas) return setGalat('Pilih berkas cadangan kunci (.ppgkey) dulu.')
+        if (baru !== ulang) return setGalat('Ulangi kata sandi baru tidak sama.')
+        setSibuk(true)
+        try {
+          const k = await imporCadanganKunci(p.db, berkas.bytes, sandiCadangan, baru)
+          p.masuk(k)
+        } catch (err) {
+          setGalat(pesanGalat(err))
+        } finally {
+          setSibuk(false)
+        }
+      }}
+    >
+      <p>
+        Pakai berkas <b>cadangan kunci admin (.ppgkey)</b> dan kata sandi cadangannya. Data di komputer ini tetap utuh; kata sandi admin diganti
+        dengan yang baru.
+      </p>
+      <div className="kolom kolom-lebar">
+        <span className="label">Cadangan kunci admin</span>
+        <div className="baris-pilih">
+          <Tombol
+            varian="kedua"
+            onClick={async () => {
+              const b = await p.platform.bukaBanyak([{ nama: 'Cadangan kunci PPG', ekstensi: ['ppgkey'] }], false)
+              if (b[0]) setBerkas(b[0])
+            }}
+          >
+            Pilih berkas .ppgkey
+          </Tombol>
+          <span>{berkas?.nama ?? 'Belum dipilih'}</span>
+        </div>
+      </div>
+      <Isian label="Kata sandi cadangan kunci" type="password" nilai={sandiCadangan} ubah={setSandiCadangan} wajib />
+      <Isian label="Kata sandi admin baru" type="password" nilai={baru} ubah={setBaru} wajib bantuan="Minimal 8 karakter." />
+      <Isian label="Ulangi kata sandi admin baru" type="password" nilai={ulang} ubah={setUlang} wajib />
+      {galat ? <KotakGalat pesan={galat} /> : null}
+      <div className="aksi">
+        <Tombol varian="kedua" onClick={p.batal}>
+          Kembali
+        </Tombol>
+        <Tombol type="submit" sibuk={sibuk}>
+          Pulihkan &amp; masuk
+        </Tombol>
+      </div>
+    </form>
   )
 }

@@ -24,10 +24,10 @@ import {
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import type { PropHalaman } from '../kerangka'
-import { bisaQr, GambarQr, PemindaiQr } from '../komponen/qr'
+import { PemindaiQr, QrBerseri } from '../komponen/qr'
 import { cariMateri, FormKemajuan, keDataKemajuan, KEMAJUAN_KOSONG, PemilihMateri, useMateriGenerus, type IsianKemajuan } from '../komponen/materi'
 import { Angka, AreaTeks, Isian, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, MenuDaftar, Modal, Pilihan, Segmen, Tombol } from '../komponen/ui'
-import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_ROLE, tanggalTeks } from '../utils/label'
+import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_TOKEN, LABEL_ROLE, tanggalTeks } from '../utils/label'
 import { DaftarUsulan, FormGenerusBaru, FormUsulanGenerus, HalamanPresensi, KartuBukaBerkas, KartuSetorData } from './bersama'
 import { KartuGenerus } from './pengurus'
 
@@ -424,7 +424,7 @@ function TerbitkanToken(p: { kembali: () => void }) {
                   <span>
                     {t.nama} <small>· {label(LABEL_ROLE, t.role)} · {t.label ?? 'HP'}</small>
                   </span>
-                  <Lencana warna={t.status === 'aktif' ? 'hijau' : t.status === 'dibekukan' ? 'kuning' : 'merah'}>{t.status}</Lencana>
+                  <Lencana warna={t.status === 'aktif' ? 'hijau' : t.status === 'dibekukan' ? 'kuning' : 'merah'}>{label(LABEL_STATUS_TOKEN, t.status)}</Lencana>
                 </li>
               ))}
             </ul>
@@ -452,18 +452,13 @@ function TerbitkanToken(p: { kembali: () => void }) {
             </>
           }
         >
-          {bisaQr(hasil.token) ? (
-            <>
-              <p>Minta pemilik HP memindai QR ini di menu “Pindai QR Token”, atau kirim teksnya lewat WA.</p>
-              <div className="kotak-qr">
-                <GambarQr teks={hasil.token} label="QR token" />
-              </div>
-            </>
-          ) : (
-            <p>
-              Token ini terlalu panjang untuk QR. Tekan <b>Kirim lewat WA</b> lalu pemilik HP memilih “Tempel Token” dan menempelkan teksnya.
-            </p>
-          )}
+          <div className="kotak-qr">
+            <QrBerseri teks={hasil.token} label="QR token" />
+          </div>
+          <p>
+            Pemilik HP membuka <b>Pindai QR Token</b> lalu mengarahkan kamera ke layar ini sampai semua bagian terbaca. Bisa juga tekan{' '}
+            <b>Kirim lewat WA</b>, lalu pemilik HP memilih “Tempel Token”.
+          </p>
           <details className="teks-kode">
             <summary>Lihat teks token</summary>
             <code data-testid="token-hasil">{hasil.token}</code>
@@ -609,6 +604,7 @@ function KirimBalasan(p: { kembali: () => void }) {
   return (
     <>
       <JudulHalaman judul="Kirim Balasan" keterangan="Kirim hasil pengesahan, kehadiran, dan jadwal ke HP generus/orang tua." kembali={p.kembali} />
+      <p className="keterangan">Mubaligh baru setelah serah terima: kirim Balasan ke semua HP pada hari itu juga, agar HP generus tidak lagi menerima berkas dari mubaligh lama.</p>
       <KeadaanData hasil={daftar} kosong={(d) => d.length === 0} teksKosong="Belum ada HP generus/orang tua. Terbitkan token dulu.">
         {(d) => (
           <>

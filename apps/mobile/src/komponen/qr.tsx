@@ -1,7 +1,12 @@
-// QR: tampilkan teks sebagai QR (SVG, tanpa kanvas) dan pindai QR dengan kamera (getUserMedia + jsQR).
-import { useEffect, useMemo, useRef, useState } from 'react'
+// QR: tampilkan teks sebagai QR (SVG, tanpa kanvas) — teks panjang sebagai QR berseri yang berganti otomatis —
+// dan pindai QR dengan kamera (getUserMedia + jsQR), termasuk mengumpulkan semua bagian QR berseri.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
+import { AWALAN_QR_SERI, pecahQr, pengumpulQrBaru, tambahBagianQr, type PengumpulQr } from '@ppg/core'
 import { AreaTeks, Tombol } from './ui'
+
+/** Jeda pergantian QR berseri (ms). */
+export const JEDA_QR_SERI_MS = 1500
 
 /** Apakah teks muat dalam satu QR (versi ≤ 40, koreksi L). */
 export function bisaQr(teks: string): boolean {
@@ -40,8 +45,83 @@ export function GambarQr(p: { teks: string; label: string }) {
 }
 
 /**
+ * QR untuk teks apa saja: teks pendek → satu QR; teks panjang (token generus/wali) → QR berseri yang berganti
+ * otomatis tiap 1,5 detik, dengan tombol Sebelumnya/Berikutnya dan Jeda.
+ */
+export function QrBerseri(p: { teks: string; label: string; jedaMs?: number }) {
+  const bagian = useMemo(() => pecahQr(p.teks), [p.teks])
+  const [ke, setKe] = useState(0)
+  const [jalan, setJalan] = useState(true)
+  const n = bagian.length
+  useEffect(() => setKe(0), [p.teks])
+  useEffect(() => {
+    if (n < 2 || !jalan) return
+    const t = setInterval(() => setKe((i) => (i + 1) % n), p.jedaMs ?? JEDA_QR_SERI_MS)
+    return () => clearInterval(t)
+  }, [n, jalan, p.jedaMs])
+  if (n < 2) return <GambarQr teks={p.teks} label={p.label} />
+  const i = Math.min(ke, n - 1)
+  return (
+    <div className="qr-berseri">
+      <GambarQr teks={bagian[i]!} label={`${p.label} bagian ${i + 1} dari ${n}`} />
+      <p className="keterangan-qr" aria-live="off">
+        QR <b>{i + 1}</b> dari <b>{n}</b> (berganti sendiri)
+      </p>
+      <div className="baris-tombol">
+        <Tombol kecil varian="kedua" onClick={() => setKe((x) => (x - 1 + n) % n)}>
+          ‹ Sebelumnya
+        </Tombol>
+        <Tombol kecil varian="tipis" onClick={() => setJalan((j) => !j)}>
+          {jalan ? 'Jeda' : 'Putar'}
+        </Tombol>
+        <Tombol kecil varian="kedua" onClick={() => setKe((x) => (x + 1) % n)}>
+          Berikutnya ›
+        </Tombol>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Pengumpul hasil pindai/tempel: QR biasa langsung selesai; QR berseri dikumpulkan sampai lengkap.
+ * `dapat` dipanggil sekali dengan teks utuh yang berawalan `awalan`.
+ */
+function useKumpulQr(awalan: string, dapat: (teks: string) => void) {
+  const pengumpul = useRef<PengumpulQr>(pengumpulQrBaru())
+  const [kemajuan, setKemajuan] = useState<{ terbaca: number; total: number } | null>(null)
+  const [salah, setSalah] = useState('')
+  const terima = useCallback(
+    (teks: string): boolean => {
+      const r = tambahBagianQr(pengumpul.current, teks)
+      pengumpul.current = r.pengumpul
+      if (r.status === 'bagian') {
+        setKemajuan({ terbaca: r.terbaca, total: r.total })
+        setSalah('')
+        return false
+      }
+      if (r.status === 'bukan' || !r.hasil) {
+        setSalah('QR ini rusak atau bukan milik PPG.')
+        return false
+      }
+      if (!r.hasil.startsWith(awalan)) {
+        setSalah(r.status === 'lengkap' ? 'QR ini bukan untuk langkah ini.' : `QR ini bukan ${awalan.startsWith('PPGT') ? 'token' : 'Kode Perangkat'}.`)
+        pengumpul.current = pengumpulQrBaru()
+        setKemajuan(null)
+        return false
+      }
+      setKemajuan(r.status === 'lengkap' ? { terbaca: r.total, total: r.total } : null)
+      dapat(r.hasil)
+      return true
+    },
+    [awalan, dapat],
+  )
+  return { terima, kemajuan, salah }
+}
+
+/**
  * Pemindai QR lewat kamera belakang. Bila kamera tidak tersedia/ditolak, pengguna bisa menempel teks.
- * `awalan` (mis. 'PPGT1.') dipakai untuk mengabaikan QR yang bukan milik PPG.
+ * `awalan` (mis. 'PPGT1.') dipakai untuk mengabaikan QR yang bukan milik PPG. QR berseri (PPGQ1|…) dikumpulkan
+ * dan ditampilkan "2 dari 3 terbaca".
  */
 export function PemindaiQr(p: { awalan: string; dapat: (teks: string) => void; batal: () => void; labelTempel: string }) {
   const video = useRef<HTMLVideoElement>(null)
@@ -50,11 +130,16 @@ export function PemindaiQr(p: { awalan: string; dapat: (teks: string) => void; b
   const [tempel, setTempel] = useState('')
   const dapatRef = useRef(p.dapat)
   dapatRef.current = p.dapat
+  const dapatStabil = useCallback((t: string) => dapatRef.current(t), [])
+  const { terima, kemajuan, salah } = useKumpulQr(p.awalan, dapatStabil)
+  const terimaRef = useRef(terima)
+  terimaRef.current = terima
 
   useEffect(() => {
     let aliran: MediaStream | null = null
     let berhenti = false
     let timer: ReturnType<typeof setTimeout> | null = null
+    let terakhir = ''
     ;(async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('Kamera tidak tersedia di HP ini.')
@@ -71,20 +156,23 @@ export function PemindaiQr(p: { awalan: string; dapat: (teks: string) => void; b
         const pindai = () => {
           if (berhenti || !ctx) return
           if (v.videoWidth) {
-            // perkecil agar ringan di HP 2 GB
+            // perkecil agar ringan di HP 2 GB (QR berseri ±97 modul tetap terbaca pada lebar 640 px)
             const skala = Math.min(1, 640 / v.videoWidth)
             kanvas.width = Math.round(v.videoWidth * skala)
             kanvas.height = Math.round(v.videoHeight * skala)
             ctx.drawImage(v, 0, 0, kanvas.width, kanvas.height)
             const img = ctx.getImageData(0, 0, kanvas.width, kanvas.height)
             const kode = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' })
-            if (kode?.data && kode.data.trim().startsWith(p.awalan)) {
-              berhenti = true
-              dapatRef.current(kode.data.trim())
-              return
+            const isi = kode?.data?.trim()
+            if (isi && isi !== terakhir && (isi.startsWith(p.awalan) || isi.startsWith(AWALAN_QR_SERI))) {
+              terakhir = isi
+              if (terimaRef.current(isi)) {
+                berhenti = true
+                return
+              }
             }
           }
-          timer = setTimeout(pindai, 250)
+          timer = setTimeout(pindai, 200)
         }
         pindai()
       } catch (e) {
@@ -109,12 +197,32 @@ export function PemindaiQr(p: { awalan: string; dapat: (teks: string) => void; b
       ) : (
         <p className="pesan-kamera">{pesan} Silakan tempel teksnya di bawah.</p>
       )}
+      {kemajuan && kemajuan.terbaca < kemajuan.total ? (
+        <p className="kemajuan-qr" role="status">
+          <b>
+            {kemajuan.terbaca} dari {kemajuan.total}
+          </b>{' '}
+          bagian QR terbaca. Tahan kamera sampai semua bagian terbaca.
+        </p>
+      ) : null}
+      {salah ? (
+        <p className="qr-gagal" role="alert">
+          {salah}
+        </p>
+      ) : null}
       <AreaTeks label={p.labelTempel} nilai={tempel} ubah={setTempel} baris={3} placeholder={`${p.awalan}…`} />
       <div className="baris-tombol">
         <Tombol varian="kedua" onClick={p.batal}>
           Batal
         </Tombol>
-        <Tombol disabled={!tempel.trim()} onClick={() => p.dapat(tempel.trim())}>
+        <Tombol
+          disabled={!tempel.trim()}
+          onClick={() => {
+            // boleh berisi beberapa bagian QR berseri dipisah spasi/baris baru
+            for (const x of tempel.trim().split(/\s+/)) if (terima(x)) return
+            setTempel('')
+          }}
+        >
           Pakai teks ini
         </Tombol>
       </div>
