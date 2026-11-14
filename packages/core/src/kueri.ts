@@ -195,6 +195,10 @@ export interface InfoSinkronHp {
   hariSejakSetor: number | null
   /** true bila ada data belum disetor dan sudah > `hariPengingat` hari (bawaan 7) atau belum pernah setor. */
   perluPengingat: boolean
+  /** Hari sejak Setor Belajar terakhir (null bila belum pernah). Dipakai profil generus di HP bersama. */
+  hariSejakBelajar: number | null
+  /** true bila ada catatan belajar belum disetor dan Setor Belajar terakhir > `hariPengingat` hari (atau belum pernah). */
+  perluPengingatBelajar: boolean
 }
 
 /** Indikator "Ada N data belum disetor" + pengingat setor (§12). */
@@ -208,6 +212,8 @@ export function infoSinkronHp(db: Db, o: { hariPengingat?: number } = {}): InfoS
   const relevan = pengurus ? terakhirSetor : terakhirBelajar
   const tertunda = pengurus ? belumDisetor : belumDisetorBelajar
   const h = hariSejak(relevan, tanggalHariIni())
+  const batas = o.hariPengingat ?? 7
+  const hb = hariSejak(terakhirBelajar, tanggalHariIni())
   return {
     belumDisetor,
     belumDisetorBelajar,
@@ -216,7 +222,9 @@ export function infoSinkronHp(db: Db, o: { hariPengingat?: number } = {}): InfoS
     terakhirPaket: ambilMeta(db, 'terakhir_paket') ?? null,
     terakhirBalasan: ambilMeta(db, 'terakhir_balasan') ?? null,
     hariSejakSetor: h,
-    perluPengingat: tertunda > 0 && (h === null || h > (o.hariPengingat ?? 7)),
+    perluPengingat: tertunda > 0 && (h === null || h > batas),
+    hariSejakBelajar: hb,
+    perluPengingatBelajar: belumDisetorBelajar > 0 && (hb === null || hb > batas),
   }
 }
 

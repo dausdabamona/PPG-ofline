@@ -39,6 +39,8 @@ const db = await bukaDb(bytesTersimpan /* atau undefined */, { locateFile: () =>
 | token | `buatKodePerangkat`, `bacaKodePerangkat`, `tandaTanganiToken`, `uraiToken`, `periksaToken`, `statusPencabutan`, `bukaRahasiaToken`, `tandaTanganiKunciSetor`, `kunciSetorSah`, tipe `PayloadToken`, `RahasiaToken`, `Role`, `Hak` |
 | berkas | `kemasBerkas`, `bacaBerkas`, `bacaHeader`, `periksaBerkas`, `kompresJson`, `dekompresJson`, `slug`, tipe `HeaderBerkas`, `BerkasKeluar` |
 | gabung | `gabungRekaman`, `gabungSemua` |
+| qr-seri (Fase 4) | `pecahQr(teks, {maks?})`, `uraiBagianQr`, `susunQr(daftar)`, `pengumpulQrBaru`, `tambahBagianQr(pengumpul, teks)`, `AWALAN_QR_SERI`, `MAKS_BAGIAN_QR` |
+| cadangan-hp (Fase 4) | `buatCadanganHp(db, sandi)`, `bukaCadanganHp(bytes, sandi)`, `enkripsiCadanganHp`, `jenisCadanganHp`, `PANJANG_SANDI_CADANGAN_MIN` |
 | admin | `inisialisasiAdmin`, `bukaKunciAdmin`, `gantiSandiAdmin`, `eksporCadanganKunci`, `imporCadanganKunci`, `terbitkanToken`, `cabutPerangkat`, `bekukanPerangkat`, `cairkanPerangkat`, `gantiKunciKelompok` (ikut mengganti kunci umum), `gantiKunciUmumKelompok`, `daftarKunciSetor`, `kunciUmumKelompok`, `kunciUmumKelompokVersi`, `setujuiUsulan`, `tolakUsulan`, `imporGenerusCsv`, `kelompokBerpenerima` |
 | perangkat (HP) | `inisialisasiPerangkat`, `kodePerangkatSaya`, `ambilIdentitas`, `aktifkanProfil`, `daftarProfil`, `ambilProfil`, `profilAktif`, `pilihProfil`, `aturPin`, `hapusProfil`, `terbitkanTokenGenerus`, `statusProfil` |
 | siklus | `pindahKelompok`, `ubahStatus`, `serahTerimaMubaligh`, `statusSetorAkhir`, `setorAkhir`, `tokenMilikGenerusSaja` |
@@ -172,7 +174,7 @@ serahTerimaMubaligh(db, kunci, { kelompokId: k1.id, perangkatLamaId }) // cabut 
 | EXE Wilayah | `pohonWilayah(db)` → daerah → desa → kelompok (`anak[]`) |
 | EXE Generus · APK Generus (mubaligh) | `cariGenerus(db, { wilayahId?, kelompokId?, kategori?, status?, cari? })` → generus + `kelompok_nama` |
 | EXE Perangkat & Token | `daftarPerangkatRinci(db, { wilayahId?, role?, status? })` → token + `status` (`aktif`/`dibekukan`/`dicabut`/`kedaluwarsa`) + `wilayah_nama`; `statusPerangkat(p)` |
-| APK indikator setor | `infoSinkronHp(db)` → `belumDisetor`, `belumDisetorBelajar`, `terakhirSetor/Belajar/Paket/Balasan`, `hariSejakSetor`, `perluPengingat` (> 7 hari) |
+| APK indikator setor | `infoSinkronHp(db)` → `belumDisetor`, `belumDisetorBelajar`, `terakhirSetor/Belajar/Paket/Balasan`, `hariSejakSetor`, `perluPengingat` (> 7 hari); untuk profil generus di HP bersama: `hariSejakBelajar`, `perluPengingatBelajar` |
 | APK Beranda mubaligh/pengurus | `ringkasanKelompok(db, kelompokId)` |
 | APK Setoran Generus | `daftarDiajukanRinci(db, kelompokId)` → kemajuan diajukan + `generus_nama`, `materi_nama`, `materi_tipe`, `kategori_nama`, `bidang_nama` |
 | APK Materiku · Kemajuan wali | `materiGenerus(db, generusId)` → `bidang[].kategori[].materi[]` dengan `status` (`belum`/`diajukan`/`ditolak`/`sedang`/`selesai`), `kemajuan`, `target`, `ada_lampiran`; `ringkasan` |
@@ -186,6 +188,29 @@ Lainnya sudah tersedia: `daftarUsulan`, `daftarKoreksi`, `daftarRiwayatImpor`, `
 ### Catatan Fase 3
 
 - PAKET membawa seluruh pohon wilayah (nama & kode) agar HP bisa memilih kelompok tujuan usulan pindah (`daftarWilayah(db, { tingkat: 'kelompok' })`). Data generus/kegiatan tetap per wilayah paket (T32).
+
+### Catatan Fase 4
+
+**QR berseri** — token generus/wali (±3,7 KB) tidak muat satu QR yang mudah dipindai. `pecahQr` memecah teks > 800 karakter
+menjadi bagian `PPGQ1|<id>|<ke>/<dari>|<potongan>` (QR versi ≤ 20); teks pendek dikembalikan apa adanya (satu QR).
+Pemindai menyimpan `PengumpulQr` dan memanggil `tambahBagianQr` untuk setiap hasil pindai → `status`: `tunggal` | `bagian`
+(tampilkan `terbaca` dari `total`) | `lengkap` (`hasil` = teks utuh) | `bukan`. Bagian dari seri lain (id beda) memulai ulang.
+
+```ts
+const bagian = pecahQr(token)            // tampilkan bergantian tiap 1,5 detik
+let p = pengumpulQrBaru()
+const r = tambahBagianQr(p, hasilPindai) // r.pengumpul → simpan; r.status === 'lengkap' → aktifkanProfil(db, r.hasil!)
+susunQr(daftarBagian)                    // susun sekaligus (urutan bebas)
+```
+
+**Cadangan HP terenkripsi** — `.ppgdb` = `"PPGCB1" | garam 16 | iterasi u32 | secretbox(PBKDF2-SHA256(sandi), gzip(db))`.
+Sandi minimal 6 karakter (`SANDI_LEMAH`), sandi salah/berkas rusak → `SANDI_SALAH`, berkas lain → `BUKAN_CADANGAN`.
+Cadangan polos lama (sebelum Fase 4) masih bisa dipulihkan (`jenisCadanganHp` → `'lama'`).
+
+```ts
+const c = await buatCadanganHp(db, 'sandi-keluarga') // { nama: PPG_CADANGAN_HP_YYYYMMDD.ppgdb, bytes }
+const dbBytes = await bukaCadanganHp(c.bytes, 'sandi-keluarga')
+```
 
 ### Catatan keamanan (Fase 1b)
 
@@ -202,4 +227,6 @@ npm run coverage -w @ppg/core
 npm run typecheck
 ```
 
-`test/skenario-lengkap.test.ts` menjalankan skenario §13 dengan satu database per aktor. `test/pemeriksaan.test.ts` berisi reproduksi cacat Fase 1b; `test/kueri.test.ts` menguji kueri UI dan memastikan `src/` tidak mengimpor modul bawaan Node.
+`test/skenario-lengkap.test.ts` menjalankan skenario §13 dengan satu database per aktor. `test/ujung-ke-ujung.test.ts` (Fase 4)
+menjalankan satu siklus admin → pengurus/mubaligh → generus → wali → admin dengan berkas yang ditulis ke disk lalu dibaca ulang
+(meniru WA), database tiap aplikasi disimpan/dibuka ulang, token lewat QR berseri, dan cadangan HP terenkripsi. `test/pemeriksaan.test.ts` berisi reproduksi cacat Fase 1b; `test/kueri.test.ts` menguji kueri UI dan memastikan `src/` tidak mengimpor modul bawaan Node.

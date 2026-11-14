@@ -20,6 +20,8 @@ export {
 export * from './token'
 export * from './berkas'
 export * from './gabung'
+export * from './qr-seri'
+export * from './cadangan-hp'
 
 // repositori
 export {
