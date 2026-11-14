@@ -41,6 +41,7 @@
   "build": {
     "appId": "id.ppgsorong.admin",
     "productName": "PPG Sorong Admin",
+    "electronVersion": "45.3.2",
     "directories": {
       "output": "release",
       "buildResources": "build"
