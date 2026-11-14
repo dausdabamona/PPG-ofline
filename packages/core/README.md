@@ -183,6 +183,10 @@ serahTerimaMubaligh(db, kunci, { kelompokId: k1.id, perangkatLamaId }) // cabut 
 
 Lainnya sudah tersedia: `daftarUsulan`, `daftarKoreksi`, `daftarRiwayatImpor`, `daftarPenerimaBalasan`, `daftarProfil`, `daftarPengajian`, `daftarMateri`, `rekapPresensi`, `rekapKemajuan`, `kelompokBerpenerima`.
 
+### Catatan Fase 3
+
+- PAKET membawa seluruh pohon wilayah (nama & kode) agar HP bisa memilih kelompok tujuan usulan pindah (`daftarWilayah(db, { tingkat: 'kelompok' })`). Data generus/kegiatan tetap per wilayah paket (T32).
+
 ### Catatan keamanan (Fase 1b)
 
 - Kunci setor kelompok bertanda tangan admin (`tt`); HP generus/wali mengabaikan kunci tanpa tanda tangan sah.

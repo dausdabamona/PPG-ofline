@@ -127,3 +127,44 @@ npm run dist:win -w apps/desktop      # hasil: apps/desktop/release/PPG Sorong A
 # pengembangan: npm run dev -w apps/desktop  (Vite :5173 + Electron)
 ```
 Data admin tersimpan di `%APPDATA%\PPG Sorong Admin\ppg-admin.db` (cadangan harian di `cadangan\`).
+
+---
+
+## Fase 3 — APK (`apps/mobile`, 2026-11-14)
+
+### Yang dibuat
+- **`apps/mobile` (@ppg/mobile)**: React 19 + Vite 8 + TS strict + Capacitor 7 (`@capacitor/core`, `cli`, `android`, `filesystem`, `share`, `app`) + `qrcode`, `jsqr`, `idb-keyval`. `capacitor.config.ts`: appId `id.ppgsorong.app`, appName `PPG Sorong`, webDir `dist`. sql.js build peramban (`sql-wasm-browser.wasm?url`), CSP ketat disisipkan saat build. Tanpa pustaka UI; CSS sendiri (teal–ivory, huruf 17 px, tombol ≥ 44 px, lembar bawah, navigasi bawah).
+- **`src/platform.ts`**: `platformNative` (Filesystem → Cache + Share untuk "Kirim lewat WA"/PDF/cadangan; `appStateChange`; berkas dari intent lewat `appUrlOpen`/`getLaunchUrl` + `Filesystem.readFile`) dan `platformWeb` (IndexedDB, `<input type=file multiple>`, unduhan blob, Web Share/salin) — aplikasi bisa dijalankan & diuji di peramban biasa. Uji memakai platform palsu.
+- **Persistensi**: DB diekspor ke IndexedDB (jeda 500 ms setelah setiap perubahan + saat ke latar belakang). "Cadangkan data HP" (`.ppgdb`) & "Pulihkan dari cadangan" (menolak berkas bukan DB HP/DB admin).
+- **Layar §12** — Awal: nama HP → Kode Perangkat (QR besar + teks + Kirim lewat WA + Salin), Pindai QR Token (kamera + jsQR, cadangan tempel) / Tempel Token + PIN opsional, Buka Berkas. Pilih Profil (PIN 4 angka) + Tambah Profil. Profil & HP (ganti/tambah/hapus profil, atur/hapus PIN, Kode Perangkat, cadangan).
+  - **Pengurus**: Beranda · Presensi (pilih kelompok bila tingkat desa/daerah, pertemuan dari jadwal hari itu, Semua hadir) · Data (cari, rincian, usulan generus baru, daftar usulan) · Rekap (kehadiran per kelompok/generus, kemajuan) · Sinkron (Setor Data, Kirim ulang semua data, Buka Berkas).
+  - **Mubaligh**: Beranda · Setoran Generus (impor massal BELAJAR, kartu per generus, catatan + Sahkan/Tolak) · Simak Langsung · Generus (rincian + ajukan ubah status / pindah kelompok / generus baru) · Lainnya (Presensi, Terbitkan Token dari pindai QR / tempel Kode Perangkat → QR/teks token + Kirim WA, Jadwal Tambahan + bagikan berkas jadwal, Laporan Pekanan + "Kirim WA ke wali" via `tautanWa`, Kirim Balasan per HP & "ke semua", Setor Data / Setor Akhir, Buka Berkas).
+  - **Generus**: Materiku (ringkasan %, ★ target, per bidang/kategori dengan status, bacaan teks & PDF, catat dari rincian) · Catat Kemajuan (status/nilai/tingkat/pesan) · Jadwal (pekan, maju/mundur) · Setor (Setor Belajar, Buka Berkas). Spanduk "Sedang mondok — pencatatan dihentikan sementara" saat dibekukan (juga dicabut/kedaluwarsa).
+  - **Wali**: Laporan Pekanan tiap anak · Kemajuan · Kehadiran (60 hari) · Berkas.
+  - Indikator "Ada N data belum disetor" + pengingat > 7 hari (`infoSinkronHp`), toast sukses/galat, status memuat/kosong/galat di tiap tampilan data. "Buka Berkas" universal (`imporBanyak` → `bukaBerkasApaSaja`) dengan kalimat hasil ramah (`pesanHasilBerkas`).
+- **Android** (`npx cap add android`, dikomit): izin `CAMERA` (+ `uses-feature` opsional), intent-filter VIEW (`application/octet-stream`; `*/*` + `pathPattern .*\\.ppg`) dan SEND (`application/octet-stream`), `MainActivity` mengubah SEND→VIEW, nama app "PPG Sorong". `npx cap sync android` berhasil lokal (3 plugin).
+- **`.github/workflows/build-apk.yml`**: ubuntu-latest, Node 22, Java 21 temurin, `android-actions/setup-android@v3`, `npm ci` → `npm test` → `npm run typecheck` → `npm run build -w apps/mobile` → `npx cap sync android` → `./gradlew assembleDebug` → artifact `PPG-Sorong-APK` (rilis bila tag `v*`). Trigger sama dengan build-exe.yml.
+- **Core (kecil)**: PAKET membawa seluruh pohon wilayah (T32) + `test/fase3.test.ts`; README core & rencana (T32–T37) diperbarui.
+
+### Hasil uji
+- `npm test`: core **16 berkas / 103 test**, desktop **4 / 9**, mobile **2 / 3** — semua lulus (total 115). `npm run typecheck` bersih (3 workspace). `npm run build -w apps/mobile` sukses (JS ±885 KB / 295 KB gzip, jsQR 130 KB dimuat saat memindai, wasm 688 KB).
+- `test/alur-mubaligh-generus.test.tsx` (jsdom, UI sungguhan, admin via core, 3 HP masing-masing platform palsu): aktivasi mubaligh dari token → paket + materi → terbitkan token Ali & Budi untuk **satu HP** + wali (2 anak) → Setor Data (admin menerima 3 token) → Kirim Balasan ke semua → HP generus 2 profil (Ali ber-PIN, PIN salah ditolak) buka balasan + materi → catat kemajuan keduanya → indikator "Ada 2 data belum disetor" → Setor Belajar → mubaligh impor, sahkan Ali (catatan), tolak Budi → Laporan Pekanan → tautan wa.me 62… berisi catatan → balasan wali → wali melihat laporan pekanan Ali + kemajuan + kehadiran → admin set Budi mondok → paket → balasan → HP generus menampilkan spanduk mondok, tombol catat nonaktif, Ali tetap aktif.
+- `test/pengurus-dan-lain.test.tsx`: pengurus — berkas rusak & PAKET lewat intent, presensi (Semua hadir + 1 alpa), usulan generus baru, rekap 66,7 %, Setor Data (admin: 3 presensi + 1 usulan), simpan saat latar belakang, cadangkan → pulihkan (berkas salah ditolak). Mubaligh — Simak Langsung, jadwal tambahan + berkas JADWAL, usulan mondok & pindah ke kelompok lain (T32), Setor Akhir (admin: 2 usulan, 1 kemajuan, 1 jadwal).
+- **Chrome headless** (Chrome for Testing 153 + `playwright-core`, viewport **360×740** seluler, `uji-peramban/uji-asap.mjs`): `dist/` dengan CSP produksi → sambut → QR Kode Perangkat → aktivasi mubaligh (token dari admin core yang dibundel rolldown) → buka PAKET+MATERI lewat pemilih berkas → beranda → presensi 4 generus → Simak → muat ulang (data tetap dari IndexedDB, indikator setor tampil). **0 galat konsol, 0 tombol terlihat < 44 px**.
+
+### Keputusan otonom baru (T32–T37 di rencana)
+- **T32** PAKET membawa seluruh pohon wilayah — satu-satunya perubahan core (agar usulan pindah kelompok dari HP mubaligh mungkin).
+- **T33** berkas keluar & PDF lewat Share dari folder Cache; wa.me lewat navigasi luar (tanpa plugin tambahan / izin penyimpanan).
+- **T34** SEND→VIEW di `MainActivity`; intent-filter VIEW/SEND.
+- **T35** IndexedDB untuk native & peramban; cadangan `.ppgdb` tidak terenkripsi (diperingatkan di UI).
+- **T36** QR SVG tanpa kanvas; jsQR dimuat dinamis & bingkai diperkecil; token generus/wali tidak muat QR.
+- **T37** nama HP diminta sekali; CSP hanya di build.
+- Lainnya: setelah aktivasi, profil baru langsung dipilih; aplikasi meminta Pilih Profil saat dibuka bila > 1 profil atau profil ber-PIN; Setor Belajar memakai `kelompokId` profil aktif (aman untuk HP lintas kelompok, T26); "Kirim ulang semua data" (`buatSetor({ semua: true })`) di bawah "Pilihan lain" untuk kasus pemulihan admin (sisa catatan Fase 1b).
+
+### Sisa masalah / catatan
+- **Gradle belum dijalankan** di sini (Google Maven tidak terjangkau); APK pertama dibangun CI. Kode Java `MainActivity` & manifest belum dikompilasi — periksa log workflow pertama.
+- Token generus/wali ±3,7 KB (membawa token mubaligh penerbit beserta rahasianya) **melebihi kapasitas QR**; alurnya "Kirim lewat WA" → "Tempel Token". Memperkecil token butuh perubahan format di core (mis. token penerbit tanpa bagian `rahasia`) — belum dilakukan.
+- Belum diuji di perangkat nyata: izin kamera WebView, `content://` dari WA lewat `Filesystem.readFile`, lembar Share berkas `.ppg`, pembuka PDF eksternal, tombol kembali Android (belum ditangani khusus — menutup aplikasi).
+- Cadangan `.ppgdb` berisi kunci rahasia HP tanpa enkripsi (sama seperti DB di IndexedDB — catatan Fase 1); PIN hanya kunci antarsaudara.
+- Ikon & splash masih bawaan Capacitor; APK debug tidak ditandatangani rilis.
+- Pemindai belum diuji dengan kamera nyata (jsdom/headless tanpa kamera → jalur cadangan tempel teks).

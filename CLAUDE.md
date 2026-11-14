@@ -18,3 +18,4 @@ Kontrak teknis: `docs/RENCANA-IMPLEMENTASI.md` (wajib dibaca sebelum mengubah ko
 - `npm install` (di lingkungan tanpa akses GitHub: `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install`)
 - `npm test` — semua test workspace
 - `npm run typecheck`, `npm run build`
+- APK: `npm run build -w apps/mobile && (cd apps/mobile && npx cap sync android)`; Gradle hanya di CI (`.github/workflows/build-apk.yml`). Uji asap peramban 360×740: lihat kepala `apps/mobile/uji-peramban/uji-asap.mjs`

@@ -61,7 +61,9 @@ export function dataWilayah(db: Db, wilayahId: string): RekamanPerTabel {
   ]
   const perangkatIds = [...new Set(daftarPerangkat(db, { wilayahIds: turunan }).map((p) => p.perangkat_id))]
   const r: Record<string, Rekaman[]> = {
-    wilayah: pilih(db, 'wilayah', 'id', [...turunan, ...leluhur]),
+    // Fase 3: seluruh pohon wilayah (nama & kode saja, tidak sensitif) agar HP bisa memilih kelompok tujuan
+    // usulan pindah kelompok. Data kegiatan/generus tetap dibatasi wilayah paket.
+    wilayah: db.kueri<Rekaman>('SELECT * FROM wilayah'),
     generus: pilih(db, 'generus', 'id', generusIds),
     riwayat_keanggotaan: pilih(db, 'riwayat_keanggotaan', 'generus_id', generusIds),
     riwayat_status: pilih(db, 'riwayat_status', 'generus_id', generusIds),
