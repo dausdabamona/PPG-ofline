@@ -110,3 +110,14 @@ desktop/backups/
 # Keep the directory structure
 !desktop/data/.gitkeep
 !desktop/backups/.gitkeep
+
+# === PPG v2 (Node) ===
+node_modules/
+!packages/**/src/**
+apps/*/dist/
+apps/*/release/
+packages/*/dist/
+coverage/
+*.tsbuildinfo
+apps/mobile/android/app/build/
+apps/mobile/android/.gradle/
