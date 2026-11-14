@@ -79,3 +79,51 @@ Skema naik ke **v2** (migrasi `ALTER TABLE kunci_umum_kelompok ADD COLUMN versi`
 - `generus_ids` token wali tidak divalidasi admin terhadap kelompok penerbit — tidak ada jalur kebocoran (HP mubaligh hanya memegang data kelompoknya), jadi dibiarkan.
 - Setelah pemulihan cadangan admin, data yang masuk setelah cadangan dibuat hanya kembali bila HP mengirim `buatSetor({ semua: true })` (atau berkas setoran lama diimpor ulang); UI perlu tombol "Setor ulang semua data".
 - Sisa catatan Fase 1 lain (PAKET tidak inkremental, kunci rahasia polos di DB HP, jam perangkat) tidak berubah.
+
+---
+
+## Fase 2 — EXE admin (`apps/desktop`, 2026-11-14)
+
+### Yang dibuat
+- **Electron 45** (main + preload, `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `webSecurity`), satu instans saja, izin perangkat ditolak, navigasi/jendela baru diblokir. Renderer dimuat dari protokol `app://` dengan CSP `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; …` (T29).
+- **IPC** (`electron/api.ts`, diekspos sebagai `window.ppgAdmin`): `db:muat`, `db:simpan` (tulis `.tmp` → rename atomik; sebelum menimpa, salinan harian `userData/cadangan/ppg-admin-YYYYMMDD.db`, disimpan 30 terbaru — `electron/penyimpanan.ts`), `berkas:bukaBanyak(filter, banyak)`, `berkas:simpan(namaSaran, bytes)`, plus `berkas:simpanKeFolder`, `aplikasi:folderData`, sinyal tutup (T30). Setiap IPC memeriksa asal frame.
+- **Renderer React 19 + Vite 8 + TS strict** memakai `@ppg/core` langsung; sql.js build peramban (`sql.js/dist/sql-wasm-browser.wasm?url` — pasangan `sql-wasm-browser.js` yang dipilih Vite lewat `exports.browser`; `sql-wasm.wasm` milik build Node). Semua akses Electron lewat `src/platform.ts` (`platformElectron`, `platformPeramban` untuk uji di browser; uji memakai platform palsu).
+- **13 layar §11**, sidebar kiri, tema teal–ivory, tombol ≥ 44 px, toast sukses/galat/info, status memuat/kosong/galat di setiap tampilan data:
+  1. Pengaturan awal (buat admin / pulihkan dari `.ppgkey` + `.db` opsional) & Masuk; 2. Beranda (generus aktif/mondok, perangkat aktif, usulan, setoran per kelompok — merah bila > 14 hari); 3. Wilayah (pohon, tambah/ubah/hapus lunak); 4. Generus & Jamaah (filter wilayah/kategori/status/nama, tambah/ubah, impor CSV + ringkasan baris gagal, **unduh templat CSV**, pindah kelompok, ubah status; tab jamaah); 5. Pengajian; 6. Materi (bidang/kategori/materi, isi teks, unggah/lepas PDF, “Buat Berkas Materi”); 7. Perangkat & Token (tempel Kode Perangkat → peran/wilayah/hak/masa berlaku → token teks + QR SVG (`qrcode`) + salin + simpan .txt; daftar + filter; bekukan/cairkan/cabut; ganti kunci kelompok; serah terima mubaligh dengan status Setor Akhir & opsi paksa); 8. Impor Setoran (banyak berkas, ringkasan per berkas & per tabel, rekaman ditolak, riwayat impor); 9. Usulan (uraian mudah dibaca, setujui/tolak + alasan); 10. Koreksi (pilih kelompok/jenis/rentang → catatan koreksi; daftar koreksi); 11. Kirim Paket (satu wilayah atau semua kelompok berpenerima → folder); 12. Rekap & Laporan (presensi per kelompok/generus, kemajuan per bidang, ekspor Excel `exceljs` 3 lembar, dimuat dinamis); 13. Pengaturan (ganti sandi, ekspor/impor cadangan kunci, simpan/pulihkan database).
+- DB disimpan otomatis (debounce 800 ms setelah setiap perubahan via `db.saatBerubah`) dan sekali lagi saat jendela ditutup (main menunda `close` sampai renderer selesai menyimpan, maks 5 detik). Kunci admin hanya di memori; **kunci otomatis setelah 30 menit** tanpa input; tombol “Kunci aplikasi”.
+- `electron-builder` (di `package.json` → `build`): appId `id.ppgsorong.admin`, productName “PPG Sorong Admin”, Windows `nsis` + `portable`, keluaran `apps/desktop/release`. Skrip: `dev`, `build` (renderer + `build:electron`), `dist:win`, `test`, `typecheck`.
+- `.github/workflows/build-exe.yml` diganti: windows-latest, Node 22, `npm ci` → `npm test` → `npm run typecheck` → `npm run dist:win -w apps/desktop` → unggah `release/*.exe` (rilis otomatis bila tag `v*`).
+
+### Hasil uji
+- `npm test` (semua workspace): core **15 berkas / 102 test lulus**; desktop **4 berkas / 9 test lulus** (total 111). `npm run typecheck` bersih (renderer + electron). `npm run build -w apps/desktop` sukses (renderer ±0,9 MB + exceljs ±0,9 MB terpisah + wasm 0,7 MB; `main.cjs` 9,7 KB, `preload.cjs` 1,1 KB).
+- `test/alur-utama.test.tsx` (jsdom, UI sungguhan + HP mubaligh tiruan dari core): pengaturan awal → tutup/buka → masuk (sandi salah ditolak) → wilayah daerah/desa/kelompok → templat CSV + impor CSV (2 masuk, 1 gagal) → token dari Kode Perangkat (QR tampil, salin) → HP aktivasi → Kirim Paket → HP presensi + usulan → setor → Impor Setoran (1 sah + 1 rusak) → setujui usulan → paket ke-2 (generus baru sampai di HP) → rekap + ekspor Excel (isi lembar diperiksa) → beranda; database tersimpan memuat semua perubahan.
+- `test/halaman-lain.test.tsx`: beku/cair/cabut, ganti kunci, serah terima paksa; unggah PDF + berkas MATERI; pengajian; koreksi; status mondok + pindah kelompok + jamaah; ganti sandi, ekspor cadangan kunci & DB lalu pulihkan di instalasi baru dengan sandi baru; kunci otomatis. `test/penyimpanan.test.ts`: simpan atomik, cadangan sekali per hari, perampingan 30.
+- **Chrome headless** (Chrome for Testing 153 + `playwright-core`, `uji-peramban/uji-asap.mjs`): `dist/` dilayani dengan CSP produksi yang sama → pengaturan awal (wasm + libsodium + PBKDF2 jalan di bawah CSP), wilayah, materi, muat ulang → masuk, rekap → unduh `.xlsx`, unduh templat CSV; **0 galat konsol**.
+
+### Keputusan otonom baru
+- **T29** protokol `app://` + CSP; **T30** IPC tambahan (simpan ke folder, folder data, sinyal tutup); **T31** semua paket desktop sebagai devDependencies + build main/preload terpisah (dicatat di tabel T rencana).
+- Tidak ada kueri baru di `@ppg/core`: semua layar cukup dengan API publik (`kueri.ts` T28 + repo); app tidak memuat SQL.
+- Impor cadangan kunci di Pengaturan meminta kata sandi admin saat ini dan memakainya sebagai `sandiBaru`, agar `imporCadanganKunci` tidak mengganti sandi admin diam-diam.
+- Pulihkan database hanya menerima database admin **organisasi yang sama** dan meminta sandi admin pada cadangan itu.
+- Hak token di formulir dibatasi per peran (pengurus: catat/lihat; mubaligh: + sahkan, terbit_generus) sesuai validasi core.
+- QR token: SVG, koreksi galat `L`; bila token terlalu panjang untuk QR, tampil pesan dan admin mengirim teks.
+- Uji jsdom: `test/siapkan.ts` memasang kembali `Uint8Array`/`ArrayBuffer`/`TextEncoder` asli Node karena jsdom menggantinya dengan realm lain sehingga libsodium menolak data (hanya masalah lingkungan uji).
+
+### Sisa masalah / catatan
+- Electron & electron-builder **belum dijalankan** di lingkungan ini (binary tidak bisa diunduh); EXE pertama akan dibangun oleh workflow GitHub Actions. Yang sudah diverifikasi: tsc, vite build, uji jsdom, dan renderer di Chrome headless dengan CSP produksi.
+- Belum ada ikon aplikasi (`apps/desktop/build/icon.ico`) — electron-builder memakai ikon Electron bawaan; installer tidak ditandatangani (Windows SmartScreen akan memperingatkan).
+- Peringatan ukuran chunk: bundel utama ±0,9 MB (React + core + kurikulum JSON); tidak berpengaruh untuk aplikasi lokal.
+- Impor setoran berjalan sinkron di renderer; ratusan berkas besar dapat membekukan UI sesaat (status memuat ditampilkan sebelum mulai).
+- Menu “Muat ulang” (Ctrl+R) mengunci aplikasi kembali (kunci hanya di memori); perubahan dalam jeda 800 ms sebelum muat ulang bisa hilang.
+
+### Cara build di Windows
+```bash
+# Node 22.12+ dan Git terpasang
+git clone https://github.com/dausdabamona/PPG-ofline.git && cd PPG-ofline
+git checkout claude/ppg-offline-v2
+npm ci
+npm test && npm run typecheck
+npm run dist:win -w apps/desktop      # hasil: apps/desktop/release/PPG Sorong Admin-Setup-0.1.0.exe dan ...-Portable-0.1.0.exe
+# pengembangan: npm run dev -w apps/desktop  (Vite :5173 + Electron)
+```
+Data admin tersimpan di `%APPDATA%\PPG Sorong Admin\ppg-admin.db` (cadangan harian di `cadangan\`).

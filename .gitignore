@@ -121,3 +121,6 @@ coverage/
 *.tsbuildinfo
 apps/mobile/android/app/build/
 apps/mobile/android/.gradle/
+apps/*/dist-electron/
+apps/*/test-results/
+uji-asap-*.png

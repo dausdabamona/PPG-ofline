@@ -60,6 +60,9 @@ Pemilik: Firdaus Dabamona ("Pak Fir"). Bahasa UI, komentar logika bisnis, pesan 
 | T26 | (Fase 1b) Konfirmasi BELAJAR **per kelompok** (`meta.konfirmasi_belajar_seq:<kelompok>`); `urut` BELAJAR tidak melewati catatan profil kelompok yang sedang dibekukan/kedaluwarsa (`min seq tertunda − 1`) | HP multi-kelompok dan kakak yang mondok tidak kehilangan catatan |
 | T27 | (Fase 1b) PAKET/MATERI diterima bila `versi` **atau** `dibuat_pada` lebih baru dari yang terpasang (`meta.paket_dibuat:<w>`, `materi_dibuat`); master dari admin menang bila `versi` ≥ lokal **atau** `diubah_pada` lebih baru; `buatSetor(db, { semua: true })` mengirim ulang semua data | Admin yang memulihkan database dari cadangan (versi mundur) tidak membuat semua HP menolak paket selamanya; berkas lama tetap ditolak |
 | T28 | (Fase 1b) Modul `kueri.ts` (kueri layar UI) dan `meta.terakhir_setor` / `terakhir_belajar` ditulis saat berkas dibuat | Agen UI tidak menulis SQL sendiri |
+| T29 | (Fase 2) Renderer EXE dimuat dari protokol khusus **`app://`** (standard + secure + fetch) dengan CSP ketat (`script-src 'self' 'wasm-unsafe-eval'`), bukan `file://` | `fetch` wasm sql.js tidak berjalan di `file://`; `app://` juga konteks aman untuk WebCrypto (PBKDF2) |
+| T30 | (Fase 2) IPC tambahan selain 4 kanal §11: `berkas:simpanKeFolder` (Kirim Paket "semua kelompok" → satu dialog folder), `aplikasi:folderData`, dan sinyal tutup `aplikasi:akanTutup`/`aplikasi:siapTutup` (simpan terakhir sebelum jendela ditutup) | Tanpa itu admin harus menekan dialog simpan per kelompok; penutupan jendela tidak boleh kehilangan perubahan dalam jeda debounce |
+| T31 | (Fase 2) Semua paket desktop di `devDependencies` (dibundel Vite), main/preload dibangun terpisah ke `dist-electron/*.cjs` (preload satu berkas tanpa chunk bersama — syarat preload `sandbox`) | electron-builder tidak perlu mengemas `node_modules`; workspace `@ppg/core` (symlink) tidak ikut dikemas |
 
 ---
 
