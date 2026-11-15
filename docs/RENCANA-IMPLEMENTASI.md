@@ -518,3 +518,93 @@ Hasil uji Pak Fir: QR pendaftaran tidak berfungsi (kode teks berfungsi); menu mu
 | V-T42 | Setor gabungan mencatat token **kurikulum** di `perangkat_bawah` bila rantainya melewati pengirim | EXE kurikulum terbitan Super Admin HP terlihat di daftar perangkat daerah |
 | V-T43 | APK: database Super Admin di IndexedDB `ppg-super-db`, kunci di memori hanya selama mode Super Admin terbuka; **kunci otomatis** saat kembali dari latar belakang ≥ 10 menit (`Platform.saatAktifKembali`), tombol **Kunci sekarang**, **Kembali ke profil biasa**. Cadangan Super Admin = `buatCadanganHp` (berkas `PPG_CADANGAN_SUPER_…ppgdb`, sandi cadangan) — kunci perangkat di dalamnya tetap terbungkus sandi Super Admin | Desain paling sederhana yang aman: data & kunci terpisah dari profil biasa tanpa skema baru; HP 2 GB hanya membuka satu database sql.js pada satu waktu |
 | V-T44 | EXE Daerah: tombol **Paket Super Admin HP (seluruh daerah)** di Kirim Paket (= paket wilayah daerah; amplop untuk token tingkat daerah: Super Admin HP & pengurus daerah, berisi kunci titipan semua kelompok) | Satu tombol yang jelas untuk petugas |
+
+---
+
+## 16. Juknis Pembinaan & Evaluasi Hasil Belajar Generus 2025 (Fase 10, 16 Nov 2026)
+
+Sumber: "Panduan Pembinaan & Evaluasi Hasil Belajar Generus 2025" PPG Daerah Sorong (teks + Lembar Kontrol Keaktifan,
+Lembar Evaluasi Penguasaan Materi dan Rekap Penguasaan Materi per jenjang). Dokumen & gambarnya **tidak** disalin ke repo
+(repo publik); yang dipakai hanya daftar materi + jumlah target sebagai seed kurikulum bawaan
+(`packages/core/src/data/juknis-2025.ts`). Pemilik tidak ditanya: keputusan di bawah diambil agen dan dicatat.
+
+### 16.1 Isi juknis yang diterapkan
+
+1. **Jenjang (7)**: `paud`, `caberawit_a` (SD 1–3), `caberawit_b` (SD 4–6 masih Iqro'), `caberawit_c` (SD 4–6 sudah
+   Al-Qur'an), `praremaja` (Generus 1, SMP), `remaja` (Generus 2, SMA), `pranikah` (Generus 3, pasca SMA s.d. menikah).
+   Kolom tetap `generus.kategori`. Jenjang ditetapkan admin (atau mubaligh lewat usulan `ubah_jenjang`); umur hanya saran.
+2. **Keaktifan**: target 20 kali/bulan (Pra Nikah 16). Satu hari dihitung paling banyak 1 kali. Sumber: (a) presensi
+   **hadir** pada pengajian/kelas → kode **A** otomatis (pengajian tingkat desa → DS, daerah → DR); (b) tabel kegiatan baru
+   `keaktifan` (lembar kontrol digital) berkode PAUD–Caberawit: A, B; Generus 1–3: A, MK, KL, T, MS, DS, MR, DR, AA, AS,
+   TH, QR, HD; ditambah **IZ** (izin — dicatat, **tidak** dihitung). Hanya catatan **disahkan** yang dihitung resmi.
+   Persen bulan = min(jumlah, target) ÷ target × 100. Keaktifan semester = rata-rata persen bulanan.
+3. **Evaluasi Penguasaan Materi per semester** (bulan bawaan: Mei & November). Daftar materi & pembagi per jenjang =
+   master baru `materi_evaluasi` (seed juknis; dikelola Kurikulum/daerah). Hasil per anak = kegiatan baru
+   `evaluasi_semester` (input mentah, persen dihitung core dari target terkini). Cara hitung: `hitungan`
+   (dikuasai ÷ target), `juz` (per juz halaman makna penuh ÷ 20, dijumlah ÷ jumlah juz target), `kitab` (per kitab
+   halaman ÷ halaman terakhir kitab, dijumlah ÷ jumlah kitab target), `subjektif` (1–75, **maksimal 75 ditegakkan
+   core**), `keaktifan` (dari data keaktifan, tidak diinput). TOTAL = rata-rata semua materi jenjang.
+4. **Rekap Penguasaan Materi** per kelompok per jenjang (No, Nama, kolom tiap materi, TOTAL) → se-desa → se-daerah (EXE,
+   dari setoran berjenjang yang ada), ekspor .xlsx dan cetak/PDF. **Laporan Hasil Belajar (raport)** per generus di HP
+   murid/orang tua dan cetak di EXE.
+5. **Laporan bulanan kelompok** = kegiatan baru `laporan_bulanan` (satu per kelompok per bulan): Musyawaroh 5 Unsur,
+   Musyawaroh Muda/i (kelompok/desa/daerah), daftar NUNGGONI (nama, unsur: 4S Daerah/Desa/Kelompok, LDII, SENKOM,
+   PERSINAS, MS; kelas; temuan/saran). Ikut SETOR ke desa → daerah, tampil di rekap desa/daerah.
+
+### 16.2 Skema v4
+
+| Tabel | Jenis | Kolom isi |
+|---|---|---|
+| `materi_evaluasi` | master (daerah/kurikulum) | `jenjang, urutan, kode, nama, cara, target, satuan, rincian_json` — id tetap `EVL-<jenjang>-<kode>` |
+| `keaktifan` | kegiatan | `generus_id, kelompok_id, tanggal, kode, sumber 'generus'\|'mubaligh'\|'admin', status_sah, disahkan_oleh, disahkan_pada, keterangan` |
+| `evaluasi_semester` | kegiatan | `generus_id, kelompok_id, periode 'YYYY-S1'\|'YYYY-S2', jenjang, materi_evaluasi_id, dikuasai, nilai, rincian_json, tanggal, penguji` — id tetap `EVS-<generus>-<periode>-<materi_evaluasi_id>` |
+| `laporan_bulanan` | kegiatan | `kelompok_id, bulan 'YYYY-MM', isi_json` — id tetap `LB-<kelompok>-<bulan>` |
+| `generus.kategori_saran` | kolom master baru (di akhir tabel) | 1 = jenjang hasil saran umur (migrasi caberawit), perlu dicek |
+| `catatan_sholat` | lokal HP (tidak tersinkron) | `generus_id, tanggal, sholat` (SB,ZH,AS,MG,IS) — catatan pribadi/orang tua |
+
+`rincian_json` materi: `{butir?: string[], sub?: string[], juz?: number[], kitab?: {nama, halaman|null}[]}`.
+`rincian_json` hasil: juz → `{"21": 4}` (halaman penuh per juz, ≤ 20); kitab → `{"0": 50}` (indeks kitab → halaman);
+hitungan bercentang → `{"butir": [0, 3, …]}` (dikuasai = jumlah centang).
+
+### 16.3 Keputusan teknis otonom (Fase 10)
+
+| Kode | Keputusan | Alasan |
+|---|---|---|
+| J-T1 | Kategori lama `caberawit` tetap **sah sebagai nilai lama** (`KATEGORI_SAH`), tetapi pilihan UI hanya 7 jenjang (`KATEGORI_GENERUS`). Pencocokan kategori lewat `kategoriCocok`: `caberawit` (lama) cocok dengan `caberawit_a/b/c` di kedua arah (target, kelas, materi) | Data, target, dan kelas lama tetap berfungsi di HP yang belum menerima paket baru; tidak ada data yang hilang |
+| J-T2 | **Migrasi caberawit hanya di database daerah** (pemilik master): umur ≤ 9 → `caberawit_a`, > 9 → `caberawit_b`, tanpa tanggal lahir → `caberawit_a`; `kategori_saran = 1`, `versi + 1`, `diubah_pada` baru → turun lewat PAKET. HP/EXE bawah tidak menulis ulang master (umur dihitung per jam perangkat bisa berbeda). Caberawit C tidak pernah disarankan dari umur (ditentukan kemampuan baca) | Satu sumber kebenaran (K5); hasil migrasi sama di semua perangkat |
+| J-T3 | Saran umur (impor CSV / tambah generus tanpa kategori): < 6 PAUD, 6–9 Caberawit A, 10–12 Caberawit B, 13–15 Pra Remaja, 16–18 Remaja, ≥ 19 Pra Nikah. Generus baru dari saran umur juga ditandai `kategori_saran = 1`; menetapkan kategori secara eksplisit menghapus tanda | Mengikuti batas lama T18; C tidak bisa diketahui dari umur |
+| J-T4 | Usulan baru **`ubah_jenjang`** `{generus_id, kategori}` dari mubaligh/EXE kelompok **disetujui otomatis** di daerah bila pengirim rekaman punya token ber-hak `sahkan` di kelompok generus itu (dan generus anggota kelompok itu) | Juknis: jenjang ditetapkan mubaligh (B vs C dari kemampuan baca); master tetap ditulis daerah (K5) |
+| J-T5 | Keaktifan **A dari presensi** dihitung saat dibaca (tidak membuat rekaman baru): presensi `hadir` → A (pengajian tingkat desa → DS, daerah → DR). Izin/sakit/alpa tidak dihitung | Tanpa data ganda; rekap presensi lama tetap sumber tunggal |
+| J-T6 | Per hari dihitung **1** walau ada beberapa kegiatan (juknis: "tetap dihitung 1 kali / 1 kolom"). Rekaman `keaktifan` dari HP murid berstatus `diajukan` (lewat BELAJAR, seperti kemajuan) dan baru dihitung setelah **disahkan** mubaligh; catatan mubaligh/EXE langsung disahkan. Murid tidak boleh mengajukan kode A (A dari absen). Tanggal tidak boleh di masa depan | K7 berlaku untuk keaktifan; mencegah murid "mengisi kolom" sendiri tanpa pengesahan |
+| J-T7 | Keaktifan **semester** = rata-rata persen bulanan untuk bulan semester (V-T10: S1 Jul–Des, S2 Jan–Jun) **sampai bulan evaluasi / bulan berjalan**, hanya bulan ketika generus anggota aktif (status aktif & anggota pada akhir bulan, atau hari ini untuk bulan berjalan). Rekap tahunan = rata-rata 12 bulan | Juknis menulis "ditotal dan dibagi 12 bulan" untuk evaluasi tahunan, padahal evaluasi per semester; bulan sebelum terdaftar/mondok tidak menghukum anak |
+| J-T8 | **Kejar target**: mulai tanggal 20 (`HARI_KEJAR_TARGET`) dan keaktifan bulan berjalan < target → kartu peringatan di HP murid/orang tua & mubaligh (sisa kali yang dibutuhkan vs sisa hari) | Juknis: "menjelang akhir bulan … KEJAR TARGET" |
+| J-T9 | **Evaluasi menyimpan input mentah**, persen dihitung core dari target materi terkini (`hitungPersenMateri`); di HP/EXE pencatat dan di penerima (`imporSetor`) core menolak: `dikuasai` > target, subjektif < 1 atau > 75, halaman juz > 20 atau juz di luar target, halaman kitab > halaman terakhir kitab, materi/jenjang tidak dikenal. Input lebih besar dari target saat dibaca (target diturunkan kemudian) dibatasi ke target | Nilai tidak bisa dipalsukan dengan mengubah pembagi; satu rumus untuk HP, EXE, raport |
+| J-T10 | Evaluasi & keaktifan yang **disahkan** butuh hak `sahkan` di kelompok itu (mubaligh, EXE kelompok, daerah) — atau token `admin` desa/daerah untuk kode MS/DS/MR/DR; generus harus anggota kelompok rekaman pada tanggal kegiatan (T25 diperluas) | Mubaligh tidak bisa menilai/mengaktifkan generus kelompok lain; desa/daerah bisa mencatat kegiatan desa/daerah |
+| J-T11 | **TOTAL** = rata-rata persen semua materi jenjang (tanpa bobot), termasuk keaktifan; materi yang belum dinilai = 0 % (seperti contoh juknis "target hadits yang lain masih kosong"); materi yang **target-nya belum ditetapkan** Kurikulum (`target` NULL) tidak ikut dihitung dan diberi tanda | Juknis tidak menetapkan rumus TOTAL; rata-rata tanpa bobot paling sederhana dan mudah diubah (`hitungTotal`) |
+| J-T12 | Daftar materi per jenjang mengikuti **Lembar Evaluasi (gambar)**; bila gambar lain berbeda, dipilih gabungan yang paling lengkap: Caberawit C = 22 butir (lembar 21 butir tanpa "Doa sesuai GBMTPG", rekap memuat doa GBMTPG tetapi tanpa "Nasehat BPI" → keduanya dipakai). Generus 1 = 21 butir, Generus 2 & 3 = 22 butir (+ Peramutan Jenazah). Jumlah target hitungan GBMTPG diambil dari contoh juknis; untuk Generus 2 & 3 juknis tidak memberi angka GBMTPG → `target` NULL (Kurikulum mengisi) | Sesuai arahan "pakai jumlah butir di Lembar Evaluasi"; tanpa mengarang angka |
+| J-T13 | Halaman kitab hadits yang tidak tertulis di juknis (`halaman` null) diisi Kurikulum; sebelum diisi, kitab itu bernilai 0 % tetapi tetap pembagi (sesuai contoh juknis) dan input halamannya ditolak | Tidak mengarang jumlah halaman |
+| J-T14 | Periode evaluasi = periode semester V-T10 (`YYYY-S1` evaluasi November, `YYYY-S2` evaluasi Mei). Bulan evaluasi bawaan disimpan di master `pengaturan` id `bulan_evaluasi` `{"S1": 11, "S2": 5}`, bisa diubah Kurikulum/daerah | Satu konsep periode untuk target capaian & evaluasi |
+| J-T15 | "Materi yang perlu dituntaskan" menambah **sisa target jenjang sebelumnya** (mis. "Belum tuntas dari Caberawit C"): materi `hitungan/juz/kitab` jenjang sebelumnya yang evaluasi terakhirnya < 100 % (atau belum pernah dinilai bila generus pernah berjenjang itu) | Juknis: target jenjang sebelumnya diselesaikan bertahap di jenjang berikutnya |
+| J-T16 | **Laporan bulanan** satu rekaman per (kelompok, bulan) dengan id tetap — penulis terakhir menang (HP pengurus/mubaligh atau EXE kelompok/desa). Isi divalidasi core (unsur NUNGGONI dari daftar tetap, panjang teks dibatasi) | Satu lembar per bulan, tidak ganda bila diisi dua perangkat |
+| J-T17 | Catatan sholat 5 waktu = tabel **lokal** di HP (tidak ikut BELAJAR/SETOR), tampil di Lembar Kontrol sebagai catatan pribadi/orang tua | Juknis: tidak masuk nilai; privasi ibadah anak |
+| J-T18 | Berkas: BELAJAR membawa `keaktifan` murid; BALASAN membawa `keaktifan`, `evaluasi_semester` generus penerima + `materi_evaluasi` + pengaturan `bulan_evaluasi`; MATERI & KURIKULUM membawa `materi_evaluasi` + `bulan_evaluasi`; PAKET membawa semuanya untuk wilayahnya. Format berkas & token tidak berubah (`versi_format: 1`, `v: 1`) | Aplikasi lama mengabaikan tabel tak dikenal; tanpa aktivasi ulang |
+
+### 16.4 Perlu dikonfirmasi PPG Daerah (keputusan sementara sudah dipakai)
+
+1. **Periode evaluasi** tertulis berbeda-beda (Mei & November 2026 / November–Desember 2025 / November 2024) → dipakai
+   semester **Mei & November**, bisa diubah Kurikulum.
+2. **Caberawit A**: "SD kelas 1–3" vs "PAUD s.d. SD kelas 3" → dipakai **SD 1–3**.
+3. **Contoh hitungan yang tidak konsisten**: keilmuan PAUD ("6 materi" tetapi dihitung 3 ÷ 4); contoh adab "SD kelas 2"
+   dibagi target jenjang PAUD (35); Doa Generus Sorong PAUD tertulis 24 tetapi dicontohkan ÷ 12 (lembar: 12 butir);
+   hafalan surat PAUD tertulis 6 tetapi lembar memuat 7 surat (nomor 5 kosong) → dipakai **jumlah butir di Lembar Evaluasi**
+   (PAUD surat 7, doa Sorong 12). Caberawit B surat tertulis 24, contoh ÷ 16 → dipakai 24 (lembar).
+4. **ASAD**: PAUD jurus 1 (lembar) vs jurus 1 & 2 (rekap); Caberawit B "jurus 1 & 3" vs "1–3"; Caberawit C "1 & 7" vs
+   "1–4" (rekap) → ikut **Lembar Evaluasi**, Kurikulum bisa mengubah nama.
+5. **Rumus TOTAL** tidak ditetapkan juknis → rata-rata tanpa bobot.
+6. **Generus 2 & 3**: lembar memuat **51 surat** (juknis teks: 45) → dipakai 51 (lembar). Jumlah target GBMTPG (doa/dalil,
+   keilmuan, kefahaman, praktik ibadah, akhlak, adab, kemandirian) untuk Generus 2 & 3 tidak tertulis → kosong, diisi Kurikulum.
+7. **Caberawit C**: lembar tanpa "Hafalan Do'a sesuai GBMTPG", rekap tanpa "Nasehat Bernomor BPI" → keduanya dipakai (22 butir).
+8. **Dalil Generus Sorong** nomor 26 dan 28 tertulis sama ("yg Kuat membantu yg Lemah") → dicatat apa adanya, mohon koreksi.
+9. Jumlah halaman kitab hadits selain K. Sholah (151), K. Nawafil (98), Materi Pegon (19), Materi Bacaan (37) tidak tertulis
+   → diisi Kurikulum.
+10. **Wudhu & Sholat**: PAUD–Caberawit B dihitung per butir (8 butir), Caberawit C–Generus 3 nilai subjektif (≤ 75) — sesuai teks.
