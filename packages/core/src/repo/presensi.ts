@@ -16,6 +16,8 @@ export interface Presensi extends RekamanDasar {
   tanggal: string
   generus_id: string
   status: StatusPresensi
+  /** v3: pertemuan tempat presensi dicatat (NULL untuk presensi lama). */
+  pertemuan_id: string | null
   perangkat_id: string
   diubah_pada: string
   dihapus: number
@@ -28,6 +30,7 @@ export interface DataPresensi {
   status: StatusPresensi
   pengajianId?: string | null
   jadwalTambahanId?: string | null
+  pertemuanId?: string | null
 }
 
 /** Kunci alami presensi: (tanggal, generus, pengajian, jadwal tambahan). */
@@ -41,7 +44,7 @@ export function catatPresensi(db: Db, d: DataPresensi): Presensi {
   if (!tanggalSah(d.tanggal)) throw new GalatPpg('TANGGAL_TIDAK_SAH', 'Tanggal presensi tidak sah.')
   const g = ambilGenerus(db, d.generusId)
   if (!g) throw new GalatPpg('GENERUS_TIDAK_ADA', 'Generus tidak ditemukan.')
-  pastikanPencatat(db, d.kelompokId, ['pengurus', 'mubaligh'])
+  pastikanPencatat(db, d.kelompokId, ['pengurus', 'mubaligh', 'admin'])
   const saya = idPerangkatLokal(db)
   const ada = db.satu<Presensi>(
     `SELECT * FROM presensi WHERE perangkat_id = ? AND tanggal = ? AND generus_id = ?
@@ -49,7 +52,9 @@ export function catatPresensi(db: Db, d: DataPresensi): Presensi {
     [saya, d.tanggal, d.generusId, d.pengajianId ?? '', d.jadwalTambahanId ?? ''],
   )
   if (ada) {
-    return ubahRekaman<Presensi>(db, 'presensi', ada.id, { status: d.status, kelompok_id: d.kelompokId, dihapus: 0 })
+    const p: Record<string, unknown> = { status: d.status, kelompok_id: d.kelompokId, dihapus: 0 }
+    if (d.pertemuanId !== undefined) p.pertemuan_id = d.pertemuanId
+    return ubahRekaman<Presensi>(db, 'presensi', ada.id, p)
   }
   return sisipkanRekaman<Presensi>(db, 'presensi', {
     kelompok_id: d.kelompokId,
@@ -58,6 +63,7 @@ export function catatPresensi(db: Db, d: DataPresensi): Presensi {
     tanggal: d.tanggal,
     generus_id: d.generusId,
     status: d.status,
+    pertemuan_id: d.pertemuanId ?? null,
   })
 }
 

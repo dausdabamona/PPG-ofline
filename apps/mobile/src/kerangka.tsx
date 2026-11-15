@@ -49,10 +49,13 @@ const TAB: Record<Role, Tab[]> = {
     { kunci: 'hadir', teks: 'Kehadiran', ikon: '✓', isi: () => <KehadiranWali /> },
     { kunci: 'berkas', teks: 'Berkas', ikon: '⇅', isi: () => <BerkasWali /> },
   ],
+  // v3: peran EXE (desa/kelompok/kurikulum) tidak bisa diaktifkan di HP (ditolak core)
+  admin: [],
+  kurikulum: [],
 }
 
 /** Tab tujuan setor per peran (untuk tombol pengingat). */
-const TAB_SETOR: Record<Role, string> = { pengurus: 'sinkron', mubaligh: 'lainnya', generus: 'setor', wali: 'berkas' }
+const TAB_SETOR: Record<Role, string> = { pengurus: 'sinkron', mubaligh: 'lainnya', generus: 'setor', wali: 'berkas', admin: 'sinkron', kurikulum: 'sinkron' }
 
 function IndikatorSetor(p: { pergi: (tab: string) => void }) {
   const { db, profil } = useApp()

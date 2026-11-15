@@ -3,7 +3,7 @@ import type { Db } from '../db'
 import { keB64url } from '../crypto'
 import { GalatPpg } from '../galat'
 import type { KategoriGenerus } from './generus'
-import { ambilRekaman, pastikanAdmin, sisipkanRekaman, ubahRekaman, type RekamanDasar } from './umum'
+import { ambilRekaman, pastikanPengelolaKurikulum, sisipkanRekaman, ubahRekaman, type RekamanDasar } from './umum'
 
 export type TipeMateri = 'hafalan' | 'checklist' | 'level'
 export const TIPE_MATERI: readonly TipeMateri[] = ['hafalan', 'checklist', 'level']
@@ -46,7 +46,7 @@ function pastikanTipe(t: string): void {
 
 /** Tambah bidang materi (admin). */
 export function tambahBidang(db: Db, d: { nama: string; urutan: number; id?: string }): BidangMateri {
-  pastikanAdmin(db)
+  pastikanPengelolaKurikulum(db)
   return sisipkanRekaman<BidangMateri>(db, 'bidang_materi', { nama: d.nama, urutan: d.urutan }, { id: d.id })
 }
 
@@ -55,7 +55,7 @@ export function tambahKategori(
   db: Db,
   d: { bidangId: string; kode: string; nama: string; urutan: number; tipe: TipeMateri; id?: string },
 ): KategoriMateri {
-  pastikanAdmin(db)
+  pastikanPengelolaKurikulum(db)
   pastikanTipe(d.tipe)
   if (!ambilRekaman(db, 'bidang_materi', d.bidangId)) throw new GalatPpg('BIDANG_TIDAK_ADA', 'Bidang materi tidak ditemukan.')
   return sisipkanRekaman<KategoriMateri>(
@@ -84,7 +84,7 @@ export function tambahMateri(
     id?: string
   },
 ): Materi {
-  pastikanAdmin(db)
+  pastikanPengelolaKurikulum(db)
   pastikanTipe(d.tipe)
   if (!ambilRekaman(db, 'kategori_materi', d.kategoriId)) throw new GalatPpg('KATEGORI_TIDAK_ADA', 'Kategori materi tidak ditemukan.')
   return sisipkanRekaman<Materi>(
@@ -110,7 +110,7 @@ export function ubahMateri(
   id: string,
   p: { nama?: string; nomor?: number; tipe?: TipeMateri; kategoriGenerus?: KategoriGenerus[] | null; isiTeks?: string | null; dihapus?: boolean },
 ): Materi {
-  pastikanAdmin(db)
+  pastikanPengelolaKurikulum(db)
   const u: Record<string, unknown> = {}
   if (p.nama !== undefined) u.nama = p.nama
   if (p.nomor !== undefined) u.nomor = p.nomor
@@ -126,7 +126,7 @@ export function ubahMateri(
 
 /** Pasang/lepas lampiran PDF materi (admin). Batas 5 MB per berkas. */
 export function aturLampiranMateri(db: Db, id: string, lampiran: { nama: string; bytes: Uint8Array } | null): Materi {
-  pastikanAdmin(db)
+  pastikanPengelolaKurikulum(db)
   if (lampiran && lampiran.bytes.length > 5 * 1024 * 1024) {
     throw new GalatPpg('LAMPIRAN_TERLALU_BESAR', 'Lampiran PDF maksimal 5 MB agar mudah dikirim lewat WA.')
   }

@@ -36,7 +36,7 @@ export function ajukanUsulan(db: Db, d: { jenis: JenisUsulan; kelompokId: string
   for (const k of wajib[d.jenis]) {
     if (d.data[k] === undefined || d.data[k] === null || d.data[k] === '') throw new GalatPpg('DATA_KURANG', `Isian ${k} wajib diisi.`)
   }
-  pastikanPencatat(db, d.kelompokId, ['pengurus', 'mubaligh'])
+  pastikanPencatat(db, d.kelompokId, ['pengurus', 'mubaligh', 'admin'])
   return sisipkanRekaman<Usulan>(db, 'usulan', {
     jenis: d.jenis,
     data_json: JSON.stringify(d.data),

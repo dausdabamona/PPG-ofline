@@ -17,7 +17,7 @@ import { ulid } from './ids'
 import { ambilGenerus } from './repo/generus'
 import { daftarkanToken, daftarPencabutan } from './repo/perangkat'
 import { ambilProfil, barisProfil, daftarProfil, pastikanProfilBolehMencatat, profilAktif, type Profil } from './repo/profil'
-import { adalahAdmin, ambilMeta, aturMeta } from './repo/umum'
+import { adalahAdmin, adalahExe, ambilMeta, aturMeta } from './repo/umum'
 import {
   bacaKodePerangkat,
   bukaRahasiaToken,
@@ -25,6 +25,7 @@ import {
   HAK_BAWAAN,
   kunciSetorSah,
   periksaToken,
+  ROLE_EXE,
   statusPencabutan,
   tandaTanganiToken,
   uraiToken,
@@ -33,6 +34,7 @@ import {
   type RahasiaToken,
 } from './token'
 import { sekarangIso, tambahHariIso } from './waktu'
+import { wilayahMencakupDb } from './rantai'
 
 /** Identitas kriptografis HP ini. */
 export interface IdentitasPerangkat {
@@ -70,10 +72,25 @@ export async function inisialisasiPerangkat(db: Db, label: string): Promise<{ id
   return { identitas, kodePerangkat: kodePerangkatDari(identitas) }
 }
 
-/** Identitas HP ini; melempar PERANGKAT_BELUM_SIAP. */
+/** Penanda kunci rahasia identitas yang terenkripsi (EXE v3); kunci terbuka disimpan di memori per Db. */
+export const AWALAN_TERENKRIPSI = 'enc:'
+const identitasTerbuka = new WeakMap<Db, IdentitasPerangkat>()
+
+/** (internal) Pasang identitas EXE yang sudah dibuka dengan kata sandi untuk Db ini (hanya di memori). */
+export function pasangIdentitasTerbuka(db: Db, i: IdentitasPerangkat | null): void {
+  if (i) identitasTerbuka.set(db, i)
+  else identitasTerbuka.delete(db)
+}
+
+/** Identitas HP/EXE ini; melempar PERANGKAT_BELUM_SIAP, atau EXE_TERKUNCI bila kunci EXE belum dibuka dengan kata sandi. */
 export function ambilIdentitas(db: Db): IdentitasPerangkat {
   const b = db.satu<BarisIdentitas>('SELECT * FROM identitas_perangkat LIMIT 1')
   if (!b) throw new GalatPpg('PERANGKAT_BELUM_SIAP', 'Perangkat belum diinisialisasi.')
+  if (b.sign_rahasia.startsWith(AWALAN_TERENKRIPSI)) {
+    const i = identitasTerbuka.get(db)
+    if (!i || i.id !== b.id) throw new GalatPpg('EXE_TERKUNCI', 'Aplikasi terkunci. Masukkan kata sandi terlebih dahulu.')
+    return i
+  }
   return {
     id: b.id,
     label: b.label ?? '',
@@ -128,12 +145,19 @@ export async function aktifkanProfil(db: Db, teksToken: string, opsi: { pin?: st
   const identitas = ambilIdentitas(db)
   const t = uraiToken(teksToken)
   const p = t.payload
+  const exe = adalahExe(db)
+  if (!exe && ROLE_EXE.includes(p.role)) {
+    throw new GalatPpg('TOKEN_UNTUK_EXE', 'Kode aktivasi ini untuk aplikasi EXE (desa/kelompok/kurikulum), bukan untuk HP.')
+  }
+  if (exe && !ROLE_EXE.includes(p.role)) {
+    throw new GalatPpg('TOKEN_UNTUK_HP', 'Kode aktivasi ini untuk HP, bukan untuk aplikasi EXE.')
+  }
   const orgAda = ambilMeta(db, 'org_id')
   if (orgAda && orgAda !== p.org_id) {
     throw new GalatPpg('ORG_BERBEDA', 'Token ini dari organisasi/admin lain dari profil yang sudah ada di HP ini.')
   }
   const adminSignPub = ambilMeta(db, 'admin_sign_pub') ?? p.admin_sign_pub
-  const hasil = periksaToken(t.teks, { adminSignPub, pencabutan: daftarPencabutan(db) })
+  const hasil = periksaToken(t.teks, { adminSignPub, pencabutan: daftarPencabutan(db), wilayahMencakup: wilayahMencakupDb(db) })
   if (!hasil.sah && hasil.kode !== 'DIBEKUKAN') throw new GalatPpg(hasil.kode, hasil.alasan)
   if (
     p.perangkat_id !== identitas.id ||

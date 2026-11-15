@@ -30,6 +30,9 @@ export {
   aturMeta,
   ambilMetaAngka,
   adalahAdmin,
+  adalahExe,
+  peranInstalasi,
+  type PeranInstalasi,
   idPerangkatLokal,
   ambilRekaman,
   hapusRekaman,
@@ -46,11 +49,14 @@ export * from './repo/kemajuan'
 export * from './repo/penilaian'
 export * from './repo/jadwal-tambahan'
 export * from './repo/usulan'
+export * from './repo/target'
+export * from './repo/pertemuan'
 export {
   ambilPerangkat,
   daftarPerangkat,
   daftarPencabutan,
   tokenDikenal,
+  seqSampaiDaerah,
   type PerangkatTerdaftar,
   type BarisPencabutan,
 } from './repo/perangkat'
@@ -63,8 +69,12 @@ export * from './siklus'
 export * from './laporan'
 export * from './kurikulum'
 export * from './kueri'
+export * from './kueri-berjenjang'
+export * from './instalasi'
+export { opsiPeriksaDb, periksaTokenDb, wilayahMencakupDb, idRantaiPenerbit, wilayahRantaiPenerbit } from './rantai'
 export * from './sinkron/umum'
-export { buatSetor, imporSetor, jumlahBelumDisetor, type IsiSetor, type RingkasanImporSetor } from './sinkron/setor'
+export { buatSetor, imporSetor, jumlahBelumDisetor, jumlahBelumSampaiDaerah, tujuanSetor, type IsiSetor, type RingkasanImporSetor } from './sinkron/setor'
+export { buatKurikulum, imporKurikulum, jumlahSuntinganKurikulum, TABEL_KURIKULUM, type IsiKurikulum, type RingkasanImporKurikulum } from './sinkron/kurikulum'
 export { buatPaket, terapkanPaket, versiPaketTerpasang, dataWilayah, berkasLebihBaru, type IsiPaket, type RingkasanTerapkan } from './sinkron/paket'
 export {
   buatBelajar,

@@ -1,4 +1,5 @@
-// MATERI: admin → semua (tanpa enkripsi, gzip + tanda tangan admin).
+// MATERI: admin → semua (tanpa enkripsi, gzip + tanda tangan admin). v3: ikut membawa target capaian & periode aktif.
+// EXE desa/kelompok cukup meneruskan berkas MATERI daerah apa adanya (tanda tangan daerah diperiksa tiap penerima).
 import type { KunciAdmin } from '../admin'
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { dariB64url } from '../crypto'
@@ -17,6 +18,8 @@ export function buatMateri(dbAdmin: Db, kunciAdmin: KunciAdmin): BerkasKeluar & 
     bidang_materi: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM bidang_materi')),
     kategori_materi: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM kategori_materi')),
     materi: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM materi')),
+    target_capaian: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM target_capaian')),
+    pengaturan: rekamanKirim(dbAdmin.kueri<Rekaman>(`SELECT * FROM pengaturan WHERE id = 'periode_aktif'`)),
   }
   const versi = ambilMetaAngka(dbAdmin, 'versi_materi_terbit') + 1
   const header: HeaderBerkas = {
@@ -46,7 +49,13 @@ export function terapkanMateri(db: Db, bytes: Uint8Array, namaBerkas?: string): 
     const r = isi.rekaman ?? {}
     const g = gabungSemua(
       db,
-      { bidang_materi: r.bidang_materi ?? [], kategori_materi: r.kategori_materi ?? [], materi: r.materi ?? [] },
+      {
+        bidang_materi: r.bidang_materi ?? [],
+        kategori_materi: r.kategori_materi ?? [],
+        materi: r.materi ?? [],
+        target_capaian: r.target_capaian ?? [],
+        pengaturan: (r.pengaturan ?? []).filter((x) => (x as { id?: unknown })?.id === 'periode_aktif'),
+      },
       { sumber: 'admin', seqLokalBaru: 0 },
     )
     aturMeta(db, 'versi_materi', Math.max(versi, terpasang))

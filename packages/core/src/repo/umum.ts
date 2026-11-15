@@ -38,6 +38,24 @@ export function adalahAdmin(db: Db): boolean {
   return ambilMeta(db, 'peran_db') === 'admin'
 }
 
+/** Apakah database ini EXE bawah (desa/kelompok/kurikulum) — v3. */
+export function adalahExe(db: Db): boolean {
+  return ambilMeta(db, 'peran_db') === 'exe'
+}
+
+/** Peran instalasi (v3): 'daerah' (admin lama), 'desa', 'kelompok', 'kurikulum', 'hp', atau null (EXE belum diaktifkan / DB kosong). */
+export type PeranInstalasi = 'daerah' | 'desa' | 'kelompok' | 'kurikulum' | 'hp'
+export function peranInstalasi(db: Db): PeranInstalasi | null {
+  const peran = ambilMeta(db, 'peran_db')
+  if (peran === 'admin') return 'daerah'
+  if (peran === 'hp') return 'hp'
+  if (peran === 'exe') {
+    const p = ambilMeta(db, 'peran_instalasi')
+    return p === 'desa' || p === 'kelompok' || p === 'kurikulum' ? p : null
+  }
+  return null
+}
+
 /** perangkat_id pencatat lokal: 'ADMIN' di EXE, id identitas di HP. */
 export function idPerangkatLokal(db: Db): string {
   if (adalahAdmin(db)) return ID_ADMIN
@@ -51,6 +69,13 @@ export function pastikanAdmin(db: Db): void {
   if (!adalahAdmin(db)) {
     throw new GalatPpg('HANYA_ADMIN', 'Data master hanya bisa diubah oleh admin. Dari HP, ajukan sebagai usulan.')
   }
+}
+
+/** Pengelola kurikulum (V5): EXE daerah atau EXE kurikulum. */
+export function pastikanPengelolaKurikulum(db: Db): void {
+  if (adalahAdmin(db)) return
+  if (ambilMeta(db, 'peran_db') === 'exe' && ambilMeta(db, 'peran_instalasi') === 'kurikulum') return
+  throw new GalatPpg('HANYA_KURIKULUM', 'Kurikulum hanya dikelola di EXE daerah atau EXE kurikulum.')
 }
 
 /** Cap waktu yang dijamin lebih besar dari `sebelum` (agar last-writer-wins selalu maju). */

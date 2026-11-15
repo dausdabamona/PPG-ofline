@@ -12,22 +12,42 @@ import {
 import { GalatPpg } from './galat'
 import { sekarangIso } from './waktu'
 
-export type Role = 'pengurus' | 'mubaligh' | 'generus' | 'wali'
+/**
+ * Peran pemegang token. v3: `admin` = EXE desa/kelompok (tingkat menentukan), `kurikulum` = EXE kurikulum (tingkat daerah).
+ */
+export type Role = 'pengurus' | 'mubaligh' | 'generus' | 'wali' | 'admin' | 'kurikulum'
 export type TingkatToken = 'daerah' | 'desa' | 'kelompok'
-export type Hak = 'catat' | 'lihat' | 'sahkan' | 'terbit_generus' | 'setor_belajar'
+export type Hak = 'catat' | 'lihat' | 'sahkan' | 'terbit_generus' | 'setor_belajar' | 'terbit_bawah'
 
-export const ROLE: readonly Role[] = ['pengurus', 'mubaligh', 'generus', 'wali']
-export const HAK: readonly Hak[] = ['catat', 'lihat', 'sahkan', 'terbit_generus', 'setor_belajar']
+export const ROLE: readonly Role[] = ['pengurus', 'mubaligh', 'generus', 'wali', 'admin', 'kurikulum']
+export const HAK: readonly Hak[] = ['catat', 'lihat', 'sahkan', 'terbit_generus', 'setor_belajar', 'terbit_bawah']
+/** Role yang memakai aplikasi EXE (bukan HP). */
+export const ROLE_EXE: readonly Role[] = ['admin', 'kurikulum']
 
-/** Hak bawaan per role. */
+/** Hak bawaan per role (admin = EXE desa; untuk EXE kelompok lihat `hakBawaan`). */
 export const HAK_BAWAAN: Record<Role, Hak[]> = {
   pengurus: ['catat', 'lihat'],
   mubaligh: ['catat', 'lihat', 'sahkan', 'terbit_generus'],
   generus: ['catat', 'lihat', 'setor_belajar'],
   wali: ['lihat'],
+  admin: ['catat', 'lihat', 'terbit_bawah'],
+  kurikulum: ['lihat'],
+}
+
+/** Hak bawaan menurut role & tingkat (EXE kelompok: catat, lihat, sahkan — tanpa terbit_bawah). */
+export function hakBawaan(role: Role, tingkat: TingkatToken): Hak[] {
+  if (role === 'admin' && tingkat === 'kelompok') return ['catat', 'lihat', 'sahkan']
+  return [...HAK_BAWAAN[role]]
 }
 
 const HAK_DELEGASI: readonly Hak[] = ['catat', 'lihat', 'setor_belajar']
+
+/** Hak yang boleh diberikan EXE desa (hak `terbit_bawah`) kepada token di bawahnya (v3). */
+export const HAK_DARI_DESA: Partial<Record<Role, readonly Hak[]>> = {
+  pengurus: ['catat', 'lihat'],
+  mubaligh: ['catat', 'lihat', 'sahkan', 'terbit_generus'],
+  admin: ['catat', 'lihat', 'sahkan'],
+}
 
 export interface PayloadToken {
   v: 1
@@ -47,7 +67,12 @@ export interface PayloadToken {
   terbit: string
   berlaku_sampai: string
   rahasia?: string
+  /** Token penerbit utuh: mubaligh (untuk generus/wali) atau EXE desa ber-hak `terbit_bawah` (v3). */
   penerbit?: string
+  /** v3: kunci kotak tingkat atas langsung (EXE kelompok/desa) tujuan SETOR. Tidak ada = admin daerah. */
+  atas_box_pub?: string
+  /** v3: perangkat_id tingkat atas langsung. */
+  atas_perangkat_id?: string
 }
 
 /** Satu versi kunci kelompok setor (X25519). `rahasia` hanya dipegang mubaligh. */
@@ -194,7 +219,9 @@ function bentukPayloadSah(p: PayloadToken): boolean {
     p.hak.every((h) => HAK.includes(h)) &&
     teks(p.terbit) &&
     teks(p.berlaku_sampai) &&
-    (p.generus_ids === undefined || (Array.isArray(p.generus_ids) && p.generus_ids.every(teks)))
+    (p.generus_ids === undefined || (Array.isArray(p.generus_ids) && p.generus_ids.every(teks))) &&
+    (p.atas_box_pub === undefined || teks(p.atas_box_pub)) &&
+    (p.atas_perangkat_id === undefined || teks(p.atas_perangkat_id))
   )
 }
 
@@ -236,6 +263,11 @@ export interface OpsiPeriksaToken {
    * token yang TIDAK terdaftar ditolak (mencegah mubaligh tercabut memalsukan tanggal terbit).
    */
   tokenDikenal?: ReadonlySet<string>
+  /**
+   * v3: apakah wilayah `bawahId` berada di dalam (atau sama dengan) `atasId` menurut pohon wilayah yang dipercaya.
+   * `undefined` = tidak diketahui (mis. HP yang belum punya pohon wilayah) → pemeriksaan dilewati.
+   */
+  wilayahMencakup?: (atasId: string, bawahId: string) => boolean | undefined
 }
 
 export type KodeTolakToken =
@@ -256,9 +288,9 @@ function tolak(kode: KodeTolakToken, alasan: string, payload?: PayloadToken): Ha
 }
 
 /**
- * Periksa token lengkap: bentuk, tanda tangan, rantai penerbit (generus/wali), pencabutan,
- * kedaluwarsa, pembekuan. Tidak pernah melempar.
- * Hasil `sah:false` dengan kode KEDALUWARSA/DIBEKUKAN tetap membawa `payload` (data lokal tetap bisa dibaca).
+ * Periksa token lengkap: bentuk, tanda tangan, rantai penerbit berjenjang (daerah → desa → mubaligh → generus/wali),
+ * pencabutan di setiap mata rantai, kedaluwarsa, pembekuan. Tidak pernah melempar.
+ * Hasil `sah:false` dengan kode KEDALUWARSA/DIBEKUKAN/DICABUT tetap membawa `payload` (data lokal tetap bisa dibaca).
  */
 export function periksaToken(teks: string, opsi: OpsiPeriksaToken): HasilPeriksaToken {
   let t: TokenTerurai
@@ -272,19 +304,8 @@ export function periksaToken(teks: string, opsi: OpsiPeriksaToken): HasilPeriksa
   if (p.admin_sign_pub !== opsi.adminSignPub) {
     return tolak('ADMIN_BERBEDA', 'Token ini diterbitkan oleh admin/organisasi lain.')
   }
-  const delegasi = p.role === 'generus' || p.role === 'wali'
-  if (!delegasi) {
-    if (p.penerbit) return tolak('TOKEN_TIDAK_SAH', 'Token pengurus/mubaligh tidak boleh berpenerbit.')
-    if (!periksaTandaTangan(keUtf8(t.bagianTertanda), t.sig, dariB64url(p.admin_sign_pub))) {
-      return tolak('TANDA_TANGAN_TIDAK_SAH', 'Tanda tangan token tidak sah (token palsu atau telah diubah).')
-    }
-    if (p.role === 'mubaligh' && p.tingkat !== 'kelompok') {
-      return tolak('TOKEN_TIDAK_SAH', 'Token mubaligh harus untuk satu kelompok.')
-    }
-  } else {
-    const r = periksaRantai(t, opsi)
-    if (r) return r
-  }
+  const r = periksaRantai(t, opsi, 0)
+  if (r) return r
   const st = statusPencabutan(opsi.pencabutan, p.token_id)
   if (st.dicabutPada && st.dicabutPada <= sekarang) return tolak('DICABUT', 'Token ini sudah dicabut admin.', p)
   if (!opsi.abaikanKedaluwarsa && sekarang > p.berlaku_sampai) {
@@ -294,46 +315,121 @@ export function periksaToken(teks: string, opsi: OpsiPeriksaToken): HasilPeriksa
   return { sah: true, payload: p }
 }
 
-function periksaRantai(t: TokenTerurai, opsi: OpsiPeriksaToken): HasilPeriksaToken | null {
+const MAKS_RANTAI = 3
+
+/** Aturan bentuk token akar (ditandatangani admin daerah). */
+function periksaAkar(p: PayloadToken): HasilPeriksaToken | null {
+  if (p.role === 'mubaligh' && p.tingkat !== 'kelompok') return tolak('TOKEN_TIDAK_SAH', 'Token mubaligh harus untuk satu kelompok.')
+  if (p.role === 'admin' && p.tingkat !== 'desa' && p.tingkat !== 'kelompok') {
+    return tolak('TOKEN_TIDAK_SAH', 'Token EXE admin hanya untuk tingkat desa atau kelompok.')
+  }
+  if (p.role === 'kurikulum' && (p.tingkat !== 'daerah' || p.hak.some((h) => h !== 'lihat'))) {
+    return tolak('TOKEN_TIDAK_SAH', 'Token kurikulum harus tingkat daerah dengan hak lihat.')
+  }
+  if (p.hak.includes('terbit_bawah') && !(p.role === 'admin' && p.tingkat === 'desa')) {
+    return tolak('TOKEN_TIDAK_SAH', 'Hak terbit_bawah hanya untuk EXE desa.')
+  }
+  return null
+}
+
+/**
+ * Periksa tanda tangan & rantai penerbit secara rekursif sampai kunci admin daerah. Untuk tiap mata rantai:
+ * pasangan penerbit→anak sah, wilayah anak ⊆ wilayah penerbit, terbit di dalam masa berlaku penerbit,
+ * penerbit tidak dicabut sebelum anak terbit (dan bila dicabut, anak wajib terdaftar — T12).
+ */
+function periksaRantai(t: TokenTerurai, opsi: OpsiPeriksaToken, kedalaman: number): HasilPeriksaToken | null {
   const p = t.payload
-  if (!p.penerbit) return tolak('RANTAI_TIDAK_SAH', 'Token generus/wali wajib memuat token mubaligh penerbit.')
+  const delegasi = p.role === 'generus' || p.role === 'wali'
+  if (!p.penerbit) {
+    if (delegasi) return tolak('RANTAI_TIDAK_SAH', 'Token generus/wali wajib memuat token mubaligh penerbit.')
+    if (!periksaTandaTangan(keUtf8(t.bagianTertanda), t.sig, dariB64url(opsi.adminSignPub))) {
+      return tolak('TANDA_TANGAN_TIDAK_SAH', 'Tanda tangan token tidak sah (token palsu atau telah diubah).')
+    }
+    return periksaAkar(p)
+  }
+  if (kedalaman >= MAKS_RANTAI) return tolak('RANTAI_TIDAK_SAH', 'Rantai penerbit token terlalu panjang.')
+  if (p.role === 'kurikulum') return tolak('TOKEN_TIDAK_SAH', 'Token kurikulum hanya diterbitkan admin daerah.')
   let pen: TokenTerurai
   try {
     pen = uraiToken(p.penerbit)
   } catch {
-    return tolak('RANTAI_TIDAK_SAH', 'Token penerbit rusak.')
+    return delegasi ? tolak('RANTAI_TIDAK_SAH', 'Token penerbit rusak.') : tolak('TOKEN_TIDAK_SAH', 'Token penerbit rusak.')
   }
   const q = pen.payload
-  if (q.role !== 'mubaligh' || q.penerbit) return tolak('RANTAI_TIDAK_SAH', 'Penerbit token bukan mubaligh.')
   if (q.admin_sign_pub !== opsi.adminSignPub || q.org_id !== p.org_id || q.admin_box_pub !== p.admin_box_pub) {
     return tolak('RANTAI_TIDAK_SAH', 'Penerbit berasal dari organisasi lain.')
   }
-  if (!periksaTandaTangan(keUtf8(pen.bagianTertanda), pen.sig, dariB64url(opsi.adminSignPub))) {
-    return tolak('RANTAI_TIDAK_SAH', 'Token mubaligh penerbit tidak sah.')
+  if (delegasi) {
+    if (q.role !== 'mubaligh') return tolak('RANTAI_TIDAK_SAH', 'Penerbit token bukan mubaligh.')
+  } else if (q.role !== 'admin' || !q.hak.includes('terbit_bawah')) {
+    return tolak('RANTAI_TIDAK_SAH', 'Penerbit token tidak berhak menerbitkan token di bawahnya.')
   }
-  if (!q.hak.includes('terbit_generus')) return tolak('RANTAI_TIDAK_SAH', 'Mubaligh penerbit tidak berhak menerbitkan token generus.')
-  if (q.wilayah_id !== p.wilayah_id || p.tingkat !== 'kelompok') {
-    return tolak('RANTAI_TIDAK_SAH', 'Token generus/wali harus untuk kelompok mubaligh penerbit.')
+  const rq = periksaRantai(pen, opsi, kedalaman + 1)
+  if (rq) return tolak('RANTAI_TIDAK_SAH', delegasi ? 'Token mubaligh penerbit tidak sah.' : `Token penerbit tidak sah: ${rq.sah ? '' : rq.alasan}`)
+  if (delegasi) {
+    if (!q.hak.includes('terbit_generus')) return tolak('RANTAI_TIDAK_SAH', 'Mubaligh penerbit tidak berhak menerbitkan token generus.')
+    if (q.wilayah_id !== p.wilayah_id || p.tingkat !== 'kelompok') {
+      return tolak('RANTAI_TIDAK_SAH', 'Token generus/wali harus untuk kelompok mubaligh penerbit.')
+    }
+  } else {
+    const r = periksaDariDesa(p, q, opsi)
+    if (r) return r
   }
   if (p.terbit > q.berlaku_sampai || p.terbit < q.terbit) {
-    return tolak('RANTAI_TIDAK_SAH', 'Token diterbitkan di luar masa berlaku token mubaligh.')
+    return tolak('RANTAI_TIDAK_SAH', 'Token diterbitkan di luar masa berlaku token penerbit.')
   }
   const stPen = statusPencabutan(opsi.pencabutan, q.token_id)
   if (stPen.dicabutPada) {
-    if (stPen.dicabutPada <= p.terbit) return tolak('RANTAI_TIDAK_SAH', 'Token diterbitkan setelah mubaligh penerbit dicabut.')
+    if (stPen.dicabutPada <= p.terbit) return tolak('RANTAI_TIDAK_SAH', 'Token diterbitkan setelah penerbitnya dicabut.')
     if (opsi.tokenDikenal && !opsi.tokenDikenal.has(p.token_id)) {
-      return tolak('RANTAI_TIDAK_SAH', 'Penerbit sudah dicabut dan token ini tidak pernah dilaporkan. Minta token baru ke mubaligh.')
+      return tolak('RANTAI_TIDAK_SAH', 'Penerbit sudah dicabut dan token ini tidak pernah dilaporkan. Minta token baru.')
     }
   }
   if (!periksaTandaTangan(keUtf8(t.bagianTertanda), t.sig, dariB64url(q.device_sign_pub))) {
     return tolak('TANDA_TANGAN_TIDAK_SAH', 'Tanda tangan token tidak sah (token palsu atau telah diubah).')
   }
+  if (!delegasi) return null
   if (!p.hak.every((h) => HAK_DELEGASI.includes(h))) return tolak('RANTAI_TIDAK_SAH', 'Token generus/wali memuat hak yang tidak diizinkan.')
   const ids = p.generus_ids ?? []
   if (p.role === 'generus' && ids.length !== 1) return tolak('TOKEN_TIDAK_SAH', 'Token generus harus untuk tepat satu generus.')
   if (p.role === 'wali' && ids.length < 1) return tolak('TOKEN_TIDAK_SAH', 'Token wali harus memuat minimal satu anak.')
   if (p.role === 'wali' && p.hak.includes('setor_belajar')) return tolak('RANTAI_TIDAK_SAH', 'Wali tidak menyetor kemajuan belajar.')
   return null
+}
+
+/** Aturan token yang diterbitkan EXE desa: role, hak, tingkat, wilayah ⊆ desa penerbit. */
+function periksaDariDesa(p: PayloadToken, q: PayloadToken, opsi: OpsiPeriksaToken): HasilPeriksaToken | null {
+  const boleh = HAK_DARI_DESA[p.role]
+  if (!boleh) return tolak('RANTAI_TIDAK_SAH', 'EXE desa hanya menerbitkan token pengurus, mubaligh, atau EXE kelompok.')
+  if (!p.hak.every((h) => boleh.includes(h))) return tolak('RANTAI_TIDAK_SAH', 'Token memuat hak yang tidak boleh diberikan EXE desa.')
+  if ((p.role === 'mubaligh' || p.role === 'admin') && p.tingkat !== 'kelompok') {
+    return tolak('TOKEN_TIDAK_SAH', 'Token mubaligh/EXE kelompok harus untuk satu kelompok.')
+  }
+  if (p.wilayah_id === q.wilayah_id) {
+    if (p.tingkat !== q.tingkat) return tolak('RANTAI_TIDAK_SAH', 'Tingkat token tidak sesuai wilayah penerbit.')
+  } else {
+    if (p.tingkat !== 'kelompok') return tolak('RANTAI_TIDAK_SAH', 'Tingkat token tidak sesuai wilayah penerbit.')
+    if (opsi.wilayahMencakup?.(q.wilayah_id, p.wilayah_id) === false) {
+      return tolak('RANTAI_TIDAK_SAH', 'Wilayah token berada di luar wilayah EXE desa penerbitnya.')
+    }
+  }
+  return null
+}
+
+/** Urutan payload penerbit token (terdekat dulu) TANPA memeriksa tanda tangan. Token rusak → daftar terpotong. */
+export function rantaiPenerbit(teks: string): PayloadToken[] {
+  const hasil: PayloadToken[] = []
+  let kini: string | undefined = teks
+  for (let i = 0; i <= MAKS_RANTAI && kini; i++) {
+    try {
+      const p: PayloadToken = uraiToken(kini).payload
+      if (i > 0) hasil.push(p)
+      kini = p.penerbit
+    } catch {
+      break
+    }
+  }
+  return hasil
 }
 
 /** Buka bagian `rahasia` token dengan pasangan kunci kotak perangkat. */

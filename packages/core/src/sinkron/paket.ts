@@ -1,24 +1,38 @@
-// PAKET: admin → HP pengurus/mubaligh. Isi dienkripsi kunci berkas acak yang disegel untuk tiap perangkat penerima (T10).
+// PAKET: tingkat atas → tingkat bawah. Isi dienkripsi kunci berkas acak yang disegel untuk tiap perangkat penerima (T10).
+// v3: daerah → EXE desa (+ kunci kelompok titipan), EXE desa/kelompok → EXE kelompok/HP (ditandatangani EXE penerbit).
 import { daftarKunciSetor, kunciUmumKelompokVersi, type KunciAdmin } from '../admin'
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, slug, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { bukaSegel, dariB64url, dariUtf8, dekripsiRahasia, enkripsiRahasia, keB64url, keUtf8, kunciAcak32, segelKe } from '../crypto'
 import type { Db } from '../db'
 import { gabungSemua, rekamanKirim, type HasilGabung, type RekamanPerTabel } from '../gabung'
 import { GalatPpg } from '../galat'
+import {
+  adalahKunciExe,
+  ambilKunciTitipan,
+  kunciExeTerbuka,
+  profilExe,
+  simpanKunciTitipan,
+  type KunciExe,
+  type KunciPemegang,
+  type KunciTitipan,
+} from '../instalasi'
 import { ambilIdentitas, gabungKunciSetor } from '../perangkat'
+import { opsiPeriksaDb } from '../rantai'
 import {
   daftarkanToken,
   daftarPencabutan,
   daftarPerangkat,
   gabungPencabutan,
   seqDiterima,
+  seqSampaiDaerah,
   type BarisPencabutan,
+  type PerangkatTerdaftar,
 } from '../repo/perangkat'
-import { daftarProfil, simpanRahasiaProfil, type Profil } from '../repo/profil'
-import { adalahAdmin, ambilMeta, ambilMetaAngka, aturMeta, tandaTanya, type Rekaman } from '../repo/umum'
+import { daftarProfil, pastikanProfilBolehMencatat, simpanRahasiaProfil, type Profil } from '../repo/profil'
+import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, tandaTanya, type Rekaman } from '../repo/umum'
 import { ambilWilayah, kelompokDalamWilayah, leluhurWilayah, turunanWilayah } from '../repo/wilayah'
-import type { NamaTabelSinkron } from '../skema'
-import { uraiToken, type KunciSetor } from '../token'
+import { TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
+import { periksaToken, uraiToken, type KunciSetor } from '../token'
 import { sekarangIso } from '../waktu'
 import { bacaBerkasJenis, catatImpor, kunciAdminTerpasang, sidikBerkas } from './umum'
 
@@ -35,6 +49,12 @@ export interface IsiPaket {
    * untuk pengurus/mubaligh tingkat kelompok. Kunci baru tiba di sini setelah serah terima (Fase 1b).
    */
   kunci_umum?: Record<string, string>
+  /** v3: token EXE pengirim (paket dari EXE desa/kelompok; diverifikasi lewat rantai sampai daerah). */
+  token_pengirim?: string
+  /** v3: perangkat_id → seq perangkat itu yang sudah dipastikan sampai di daerah (konfirmasi bertahap). */
+  konfirmasi_daerah?: Record<string, number>
+  /** v3: perangkat_id EXE → b64url(segelKe(box_pub, JSON {kelompok_id: KunciTitipan})) — kunci kelompok titipan daerah. */
+  kunci_titipan?: Record<string, string>
 }
 
 function pilih(db: Db, tabel: NamaTabelSinkron, kolom: string, nilai: string[], tambahan = ''): Rekaman[] {
@@ -71,6 +91,11 @@ export function dataWilayah(db: Db, wilayahId: string): RekamanPerTabel {
     pengajian: pilih(db, 'pengajian', 'wilayah_id', [...turunan, ...leluhur]),
     penugasan_mubaligh: pilih(db, 'penugasan_mubaligh', 'kelompok_id', kel),
     koreksi: pilih(db, 'koreksi', 'untuk_perangkat_id', perangkatIds),
+    // v3: master global kecil — jadwal setor, target capaian, periode aktif
+    jadwal_setor: db.kueri<Rekaman>('SELECT * FROM jadwal_setor'),
+    target_capaian: db.kueri<Rekaman>('SELECT * FROM target_capaian'),
+    pengaturan: db.kueri<Rekaman>('SELECT * FROM pengaturan'),
+    pertemuan: pilih(db, 'pertemuan', 'kelompok_id', kel),
     presensi: pilih(db, 'presensi', 'kelompok_id', kel),
     kemajuan_belajar: unik([...pilih(db, 'kemajuan_belajar', 'kelompok_id', kel), ...pilih(db, 'kemajuan_belajar', 'generus_id', generusIds)]),
     penilaian_akhlaq: unik([...pilih(db, 'penilaian_akhlaq', 'kelompok_id', kel), ...pilih(db, 'penilaian_akhlaq', 'generus_id', generusIds)]),
@@ -82,62 +107,111 @@ export function dataWilayah(db: Db, wilayahId: string): RekamanPerTabel {
   return out
 }
 
-/**
- * Admin membuat PAKET untuk satu wilayah: master + kegiatan wilayah, koreksi, pencabutan, daftar token,
- * konfirmasi seq per perangkat, kunci kelompok setor untuk mubaligh. Hanya perangkat aktif (belum dicabut)
- * yang wilayahnya sama/di atas wilayah paket yang bisa membukanya.
- */
-export function buatPaket(dbAdmin: Db, wilayahId: string, kunciAdmin: KunciAdmin): BerkasKeluar & { versi: number; penerima: number } {
-  if (!adalahAdmin(dbAdmin)) throw new GalatPpg('BUKAN_DB_ADMIN', 'Paket hanya dibuat di aplikasi admin.')
-  const w = ambilWilayah(dbAdmin, wilayahId)
-  if (!w || w.dihapus) throw new GalatPpg('WILAYAH_TIDAK_SAH', 'Wilayah tidak ditemukan.')
-  const cakupan = new Set([wilayahId, ...leluhurWilayah(dbAdmin, wilayahId)])
-  const penerima = daftarPerangkat(dbAdmin, { role: ['pengurus', 'mubaligh'], aktifSaja: true }).filter((p) => cakupan.has(p.wilayah_id))
-  if (!penerima.length) {
-    throw new GalatPpg('TIDAK_ADA_PENERIMA', 'Belum ada pengurus/mubaligh aktif untuk wilayah ini. Terbitkan token dulu.')
-  }
-  const turunan = turunanWilayah(dbAdmin, wilayahId)
-  const tokenWilayah = daftarPerangkat(dbAdmin, { wilayahIds: turunan })
-  const konfirmasi: Record<string, number> = {}
-  for (const p of [...tokenWilayah, ...penerima]) konfirmasi[p.perangkat_id] = seqDiterima(dbAdmin, p.perangkat_id)
+const ROLE_PENERIMA_PAKET: PerangkatTerdaftar['role'][] = ['pengurus', 'mubaligh', 'admin']
 
+function segel(p: Pick<PerangkatTerdaftar, 'box_pub'>, isi: unknown): string {
+  return keB64url(segelKe(dariB64url(p.box_pub), keUtf8(JSON.stringify(isi))))
+}
+
+/** Sumber kunci kelompok pengirim paket: daerah (kunci admin) atau EXE (kunci titipan). */
+function sumberKunci(db: Db, kunci: KunciPemegang) {
+  return {
+    setor: (kelompokId: string): KunciSetor[] =>
+      adalahKunciExe(kunci) ? (ambilKunciTitipan(db, kunci, kelompokId)?.setor ?? []) : daftarKunciSetor(db, kunci, kelompokId, true),
+    umum: (kelompokId: string): { versi: number; kunci: string } | undefined =>
+      adalahKunciExe(kunci) ? ambilKunciTitipan(db, kunci, kelompokId)?.umum : kunciUmumKelompokVersi(db, kunci, kelompokId),
+  }
+}
+
+/**
+ * Buat PAKET untuk satu wilayah: master + kegiatan wilayah, koreksi, pencabutan, daftar token, konfirmasi seq per
+ * perangkat (+ konfirmasi sampai daerah), kunci kelompok setor untuk mubaligh, kunci titipan untuk EXE. Hanya perangkat
+ * aktif (belum dicabut) yang wilayahnya sama/di atas wilayah paket yang bisa membukanya.
+ * Daerah: `kunci` = KunciAdmin. EXE desa/kelompok (v3): `kunci` = KunciExe, wilayah paket harus di dalam wilayah EXE itu.
+ */
+export function buatPaket(db: Db, wilayahId: string, kunci: KunciPemegang): BerkasKeluar & { versi: number; penerima: number } {
+  const daerah = adalahAdmin(db)
+  if (!daerah && !adalahExe(db)) throw new GalatPpg('BUKAN_DB_ADMIN', 'Paket hanya dibuat di aplikasi EXE.')
+  if (daerah === adalahKunciExe(kunci)) throw new GalatPpg('KUNCI_SALAH', 'Kunci tidak cocok dengan instalasi ini.')
+  const w = ambilWilayah(db, wilayahId)
+  if (!w || w.dihapus) throw new GalatPpg('WILAYAH_TIDAK_SAH', 'Wilayah tidak ditemukan.')
+  let saya: Profil | null = null
+  let cakupan = new Set([wilayahId, ...leluhurWilayah(db, wilayahId)])
+  if (!daerah) {
+    saya = profilExe(db)
+    pastikanProfilBolehMencatat(saya)
+    if (saya.role !== 'admin') throw new GalatPpg('TIDAK_BERWENANG', 'EXE ini tidak membuat paket.')
+    const milik = new Set(turunanWilayah(db, saya.wilayah_id))
+    if (!milik.has(wilayahId)) throw new GalatPpg('DI_LUAR_WILAYAH', 'Wilayah ini di luar wilayah EXE Anda.')
+    cakupan = new Set([...cakupan].filter((x) => milik.has(x)))
+  }
+  const idSaya = daerah ? 'ADMIN' : (kunci as KunciExe).perangkatId
+  const penerima = daftarPerangkat(db, { role: ROLE_PENERIMA_PAKET, aktifSaja: true }).filter(
+    (p) => cakupan.has(p.wilayah_id) && p.perangkat_id !== idSaya,
+  )
+  if (!penerima.length) {
+    throw new GalatPpg('TIDAK_ADA_PENERIMA', 'Belum ada pengurus/mubaligh/EXE aktif untuk wilayah ini. Terbitkan token dulu.')
+  }
+  const turunan = turunanWilayah(db, wilayahId)
+  const tokenWilayah = daftarPerangkat(db, { wilayahIds: turunan }).filter((p) => p.perangkat_id !== idSaya)
+  const konfirmasi: Record<string, number> = {}
+  const konfirmasiDaerah: Record<string, number> = {}
+  const konfDaerahSaya = ambilMetaAngka(db, 'konfirmasi_daerah_seq')
+  for (const p of [...tokenWilayah, ...penerima]) {
+    konfirmasi[p.perangkat_id] = seqDiterima(db, p.perangkat_id)
+    konfirmasiDaerah[p.perangkat_id] = daerah ? konfirmasi[p.perangkat_id]! : seqSampaiDaerah(db, p.perangkat_id, konfDaerahSaya)
+  }
+  const sumber = sumberKunci(db, kunci)
   const kunciSetor: Record<string, string> = {}
   for (const p of penerima.filter((x) => x.role === 'mubaligh')) {
-    const isiKunci = { [p.wilayah_id]: daftarKunciSetor(dbAdmin, kunciAdmin, p.wilayah_id, true) }
-    kunciSetor[p.perangkat_id] = keB64url(segelKe(dariB64url(p.box_pub), keUtf8(JSON.stringify(isiKunci))))
+    const ks = sumber.setor(p.wilayah_id)
+    if (ks.length) kunciSetor[p.perangkat_id] = segel(p, { [p.wilayah_id]: ks })
   }
   const kunciUmum: Record<string, string> = {}
-  for (const p of penerima.filter((x) => x.tingkat === 'kelompok')) {
-    const ku = kunciUmumKelompokVersi(dbAdmin, kunciAdmin, p.wilayah_id)
-    const segel = keB64url(segelKe(dariB64url(p.box_pub), keUtf8(JSON.stringify({ [p.wilayah_id]: ku }))))
-    kunciUmum[p.perangkat_id] = segel
+  for (const p of penerima.filter((x) => x.tingkat === 'kelompok' && x.role !== 'admin')) {
+    const ku = sumber.umum(p.wilayah_id)
+    if (ku) kunciUmum[p.perangkat_id] = segel(p, { [p.wilayah_id]: ku })
+  }
+  const kunciTitipan: Record<string, string> = {}
+  for (const p of penerima.filter((x) => x.role === 'admin')) {
+    const peta: Record<string, KunciTitipan> = {}
+    for (const k of kelompokDalamWilayah(db, p.wilayah_id)) {
+      const setor = sumber.setor(k)
+      if (!setor.length) continue
+      const umum = sumber.umum(k)
+      peta[k] = umum ? { setor, umum } : { setor }
+    }
+    if (Object.keys(peta).length) kunciTitipan[p.perangkat_id] = segel(p, peta)
   }
   const isi: IsiPaket = {
     kunci_umum: kunciUmum,
     wilayah_id: wilayahId,
-    rekaman: dataWilayah(dbAdmin, wilayahId),
-    pencabutan: daftarPencabutan(dbAdmin, tokenWilayah.map((p) => p.id)),
+    rekaman: dataWilayah(db, wilayahId),
+    pencabutan: daftarPencabutan(db, tokenWilayah.map((p) => p.id)),
     perangkat: tokenWilayah.map((p) => ({ token: p.token, diterbitkan_oleh: p.diterbitkan_oleh, label: p.label })),
     konfirmasi,
     kunci_setor: kunciSetor,
+    konfirmasi_daerah: konfirmasiDaerah,
   }
+  if (Object.keys(kunciTitipan).length) isi.kunci_titipan = kunciTitipan
+  if (saya) isi.token_pengirim = saya.token
   const kunciBerkas = kunciAcak32()
   const kunciPenerima: Record<string, string> = {}
   for (const p of penerima) kunciPenerima[p.perangkat_id] = keB64url(segelKe(dariB64url(p.box_pub), kunciBerkas))
 
-  const versi = ambilMetaAngka(dbAdmin, `versi_paket:${wilayahId}`) + 1
+  const versi = ambilMetaAngka(db, `versi_paket:${wilayahId}`) + 1
   const header: HeaderBerkas = {
     jenis: 'PAKET',
     versi_format: 1,
-    org_id: kunciAdmin.orgId,
-    pengirim_perangkat_id: 'ADMIN',
+    org_id: daerah ? (kunci as KunciAdmin).orgId : kunciAdminTerpasang(db).orgId,
+    pengirim_perangkat_id: idSaya,
     dibuat_pada: sekarangIso(),
     wilayah_id: wilayahId,
     versi,
     kunci_penerima: kunciPenerima,
   }
-  const bytes = kemasBerkas(header, enkripsiRahasia(kunciBerkas, kompresJson(isi)), kunciAdmin.tandaTangan.rahasia)
-  aturMeta(dbAdmin, `versi_paket:${wilayahId}`, versi)
+  const bytes = kemasBerkas(header, enkripsiRahasia(kunciBerkas, kompresJson(isi)), kunci.tandaTangan.rahasia)
+  aturMeta(db, `versi_paket:${wilayahId}`, versi)
   return { nama: `PPG_PAKET_${slug(w.nama)}_v${versi}.ppg`, bytes, header, versi, penerima: Object.keys(kunciPenerima).length }
 }
 
@@ -163,37 +237,75 @@ export function profilBerubah(db: Db, sebelum: Map<string, string>): RingkasanTe
     .map((p) => ({ id: p.id, nama: p.nama, dibekukan: p.dibekukan, dicabut: !!p.dicabut_pada }))
 }
 
+/** Tabel yang tidak boleh dikirim EXE dalam PAKET (materi hanya lewat berkas MATERI bertanda tangan daerah). */
+const TABEL_HANYA_DAERAH: readonly NamaTabelSinkron[] = ['bidang_materi', 'kategori_materi', 'materi']
+
 /**
- * HP menerapkan PAKET: tolak versi ≤ terpasang, buka dengan kunci perangkat, gabung sebagai sumber admin,
- * perbarui konfirmasi_seq, daftar token, pencabutan, kunci kelompok setor.
+ * HP/EXE menerapkan PAKET: tolak berkas lama (versi & cap waktu ≤ terpasang, per penerbit), buka dengan kunci
+ * perangkat, verifikasi penerbit (admin daerah, atau EXE desa/kelompok lewat rantai token — v3), gabung sebagai sumber
+ * berwenang, perbarui konfirmasi_seq (+ konfirmasi sampai daerah), daftar token, pencabutan, kunci.
  */
 export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): RingkasanTerapkan {
   const admin = kunciAdminTerpasang(db)
   const b = bacaBerkasJenis(db, bytes, 'PAKET')
-  if (!periksaBerkas(b, dariB64url(admin.signPub))) {
+  const dariDaerah = b.header.pengirim_perangkat_id === 'ADMIN'
+  if (dariDaerah && !periksaBerkas(b, dariB64url(admin.signPub))) {
     throw new GalatPpg('TANDA_TANGAN_TIDAK_SAH', 'Tanda tangan paket tidak sah (bukan dari admin Anda atau berkas diubah).')
   }
   const wilayahId = b.header.wilayah_id ?? ''
   const versi = Number(b.header.versi ?? 0)
-  const terpasang = ambilMetaAngka(db, `versi_paket:${wilayahId}`)
-  const dibuatTerpasang = ambilMeta(db, `paket_dibuat:${wilayahId}`) ?? ''
+  const kunciVersi = dariDaerah ? `versi_paket:${wilayahId}` : `versi_paket:${b.header.pengirim_perangkat_id}:${wilayahId}`
+  const kunciDibuat = dariDaerah ? `paket_dibuat:${wilayahId}` : `paket_dibuat:${b.header.pengirim_perangkat_id}:${wilayahId}`
+  const terpasang = ambilMetaAngka(db, kunciVersi)
+  const dibuatTerpasang = ambilMeta(db, kunciDibuat) ?? ''
   if (!berkasLebihBaru(versi, b.header.dibuat_pada, terpasang, dibuatTerpasang)) {
     throw new GalatPpg('PAKET_LAMA', `Paket ini (v${versi}) tidak lebih baru dari yang sudah terpasang (v${terpasang}).`)
   }
   const identitas = ambilIdentitas(db)
-  const segel = b.header.kunci_penerima?.[identitas.id]
-  if (!segel) throw new GalatPpg('BUKAN_PENERIMA', 'Paket ini bukan untuk HP ini (atau token HP ini sudah dicabut).')
-  const kunciBerkas = bukaSegel(dariB64url(segel), identitas.kotak)
+  const segelBerkas = b.header.kunci_penerima?.[identitas.id]
+  if (!segelBerkas) {
+    const apa = adalahExe(db) ? 'EXE' : 'HP'
+    throw new GalatPpg('BUKAN_PENERIMA', `Paket ini bukan untuk ${apa} ini (atau token ${apa} ini sudah dicabut).`)
+  }
+  const kunciBerkas = bukaSegel(dariB64url(segelBerkas), identitas.kotak)
   const isi = dekompresJson<IsiPaket>(dekripsiRahasia(kunciBerkas, b.isi))
   if (isi.wilayah_id !== wilayahId) throw new GalatPpg('BERKAS_TIDAK_SAH', 'Isi paket tidak cocok dengan kepalanya.')
+  const opsi = opsiPeriksaDb(db)
+  let wilayahPengirim: string | null = null
+  if (!dariDaerah) {
+    // v3: paket dari EXE desa/kelompok — penerbit diverifikasi lewat rantai token sampai kunci daerah
+    if (typeof isi.token_pengirim !== 'string') throw new GalatPpg('PENGIRIM_TIDAK_SAH', 'Paket tidak memuat token pengirim.')
+    const h = periksaToken(isi.token_pengirim, { ...opsi, abaikanKedaluwarsa: true })
+    if (!h.sah) throw new GalatPpg('PENGIRIM_TIDAK_SAH', `Pengirim paket tidak sah: ${h.alasan}`)
+    const p = h.payload
+    if (p.role !== 'admin' || p.perangkat_id !== b.header.pengirim_perangkat_id || !periksaBerkas(b, dariB64url(p.device_sign_pub))) {
+      throw new GalatPpg('TANDA_TANGAN_TIDAK_SAH', 'Tanda tangan paket tidak sah.')
+    }
+    if (opsi.wilayahMencakup!(p.wilayah_id, wilayahId) === false) throw new GalatPpg('PENGIRIM_TIDAK_SAH', 'Paket untuk wilayah di luar EXE pengirim.')
+    wilayahPengirim = p.wilayah_id
+  }
+  const diLuar = (id: unknown) => wilayahPengirim !== null && opsi.wilayahMencakup!(wilayahPengirim, String(id ?? '')) === false
+  const periksaRek =
+    wilayahPengirim === null
+      ? undefined
+      : (tabel: NamaTabelSinkron) => (rek: Rekaman) => {
+          if (TABEL_HANYA_DAERAH.includes(tabel)) return 'Materi hanya diterima dari berkas MATERI daerah.'
+          if ((tabel === 'generus' || tabel === 'jamaah' || tabel === 'penugasan_mubaligh') && diLuar(rek.kelompok_id)) return 'Data di luar wilayah pengirim.'
+          const info = TABEL_SINKRON[tabel]
+          const kol = 'kolomKelompok' in info ? info.kolomKelompok : undefined
+          if (kol && tabel !== 'kemajuan_belajar' && tabel !== 'penilaian_akhlaq' && diLuar(rek[kol])) return 'Data di luar wilayah pengirim.'
+          return null
+        }
 
   const sebelum = potretProfil(db)
+  const kunciExe = adalahExe(db) ? kunciExeTerbuka(db) : undefined
   return db.transaksi(() => {
-    const g = gabungSemua(db, isi.rekaman ?? {}, { sumber: 'admin', seqLokalBaru: 0 })
+    const g = gabungSemua(db, isi.rekaman ?? {}, (tabel) => ({ sumber: 'admin', seqLokalBaru: 0, periksa: periksaRek?.(tabel) }))
     for (const t of isi.perangkat ?? []) {
       try {
         const p = uraiToken(t.token).payload
         if (p.org_id !== admin.orgId) continue
+        if (diLuar(p.wilayah_id)) continue
         daftarkanToken(db, p, t.token, { label: t.label, diterbitkanOleh: t.diterbitkan_oleh })
       } catch {
         // token rusak diabaikan
@@ -202,6 +314,8 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
     const pencabutanBaru = gabungPencabutan(db, isi.pencabutan ?? [])
     const konf = Number(isi.konfirmasi?.[identitas.id] ?? 0)
     if (konf > ambilMetaAngka(db, 'konfirmasi_seq')) aturMeta(db, 'konfirmasi_seq', konf)
+    const konfDaerah = Number(isi.konfirmasi_daerah?.[identitas.id] ?? (dariDaerah ? konf : 0))
+    if (konfDaerah > ambilMetaAngka(db, 'konfirmasi_daerah_seq')) aturMeta(db, 'konfirmasi_daerah_seq', konfDaerah)
     const segelKunci = isi.kunci_setor?.[identitas.id]
     if (segelKunci) {
       const peta = JSON.parse(dariUtf8(bukaSegel(dariB64url(segelKunci), identitas.kotak))) as Record<string, KunciSetor[]>
@@ -215,8 +329,14 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
       const peta = JSON.parse(dariUtf8(bukaSegel(dariB64url(segelUmum), identitas.kotak))) as Record<string, { versi: number; kunci: string }>
       for (const p of daftarProfil(db, ['pengurus', 'mubaligh'])) perbaruiKunciUmum(db, p, peta[p.wilayah_id])
     }
-    aturMeta(db, `versi_paket:${wilayahId}`, Math.max(versi, terpasang))
-    if (b.header.dibuat_pada > dibuatTerpasang) aturMeta(db, `paket_dibuat:${wilayahId}`, b.header.dibuat_pada)
+    const segelTitipan = isi.kunci_titipan?.[identitas.id]
+    if (segelTitipan && kunciExe) {
+      const peta = JSON.parse(dariUtf8(bukaSegel(dariB64url(segelTitipan), identitas.kotak))) as Record<string, KunciTitipan>
+      const milik = new Set(daftarProfil(db, 'admin').flatMap((p) => kelompokDalamWilayah(db, p.wilayah_id)))
+      simpanKunciTitipan(db, kunciExe, Object.fromEntries(Object.entries(peta).filter(([k]) => milik.has(k) && !diLuar(k))))
+    }
+    aturMeta(db, kunciVersi, Math.max(versi, terpasang))
+    if (b.header.dibuat_pada > dibuatTerpasang) aturMeta(db, kunciDibuat, b.header.dibuat_pada)
     aturMeta(db, 'terakhir_paket', sekarangIso())
     const ringkasan: RingkasanTerapkan = {
       jenis: 'PAKET',
@@ -249,8 +369,8 @@ export function perbaruiKunciUmum(db: Db, p: Profil, baru: { versi: number; kunc
   return true
 }
 
-/** Versi paket yang terpasang di HP untuk wilayah tertentu (0 = belum ada). */
-export function versiPaketTerpasang(db: Db, wilayahId: string): number {
-  return ambilMetaAngka(db, `versi_paket:${wilayahId}`)
+/** Versi paket yang terpasang di HP untuk wilayah tertentu (0 = belum ada). `pengirimId` = perangkat EXE penerbit (v3). */
+export function versiPaketTerpasang(db: Db, wilayahId: string, pengirimId?: string): number {
+  return ambilMetaAngka(db, pengirimId && pengirimId !== 'ADMIN' ? `versi_paket:${pengirimId}:${wilayahId}` : `versi_paket:${wilayahId}`)
 }
 

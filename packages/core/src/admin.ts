@@ -27,10 +27,12 @@ import { adalahAdmin, ambilMeta, aturMeta, ID_ADMIN, sisipkanRekaman, ubahRekama
 import { ambilUsulan } from './repo/usulan'
 import { ambilWilayah, cariWilayahKode, kelompokDalamWilayah } from './repo/wilayah'
 import { pindahKelompok, ubahStatus } from './siklus'
+import { idRantaiPenerbit } from './rantai'
+import { daftarProfil } from './repo/profil'
 import {
   bacaKodePerangkat,
   HAK,
-  HAK_BAWAAN,
+  hakBawaan,
   tandaTanganiKunciSetor,
   tandaTanganiToken,
   type Hak,
@@ -84,6 +86,7 @@ export async function inisialisasiAdmin(db: Db, opsi: { sandi: string; namaOrgan
   const kunciSandi = await turunkanKunciSandi(opsi.sandi, garam)
   db.transaksi(() => {
     aturMeta(db, 'peran_db', 'admin')
+    aturMeta(db, 'peran_instalasi', 'daerah')
     aturMeta(db, 'org_id', kunci.orgId)
     aturMeta(db, 'nama_organisasi', kunci.namaOrganisasi)
     aturMeta(db, 'admin_sign_pub', keB64url(kunci.tandaTangan.publik))
@@ -211,6 +214,7 @@ export async function imporCadanganKunci(db: Db, bytes: Uint8Array, sandiCadanga
   const ksBaru = await turunkanKunciSandi(sandi, garam)
   db.transaksi(() => {
     aturMeta(db, 'peran_db', 'admin')
+    aturMeta(db, 'peran_instalasi', 'daerah')
     aturMeta(db, 'org_id', isi.org_id)
     aturMeta(db, 'nama_organisasi', isi.nama_organisasi)
     aturMeta(db, 'admin_sign_pub', isi.admin_sign_pub)
@@ -316,7 +320,8 @@ export function gantiKunciUmumKelompok(db: Db, kunci: KunciAdmin, kelompokId: st
 export interface OpsiTerbitToken {
   /** Teks Kode Perangkat dari HP penerima. */
   kodePerangkat: string
-  role: 'pengurus' | 'mubaligh'
+  /** v3: `admin` = EXE desa/kelompok, `kurikulum` = EXE kurikulum (wilayah = daerah). */
+  role: 'pengurus' | 'mubaligh' | 'admin' | 'kurikulum'
   nama: string
   wilayahId: string
   /** Opsional; bila diberikan harus sama dengan tingkat wilayah. */
@@ -333,19 +338,28 @@ export interface OpsiTerbitToken {
  */
 export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): string {
   if (!adalahAdmin(db)) throw new GalatPpg('BUKAN_DB_ADMIN', 'Hanya admin yang bisa menerbitkan token ini.')
-  if (o.role !== 'pengurus' && o.role !== 'mubaligh') {
-    throw new GalatPpg('ROLE_TIDAK_SAH', 'Admin menerbitkan token pengurus/mubaligh; token generus/wali diterbitkan mubaligh.')
+  if (o.role !== 'pengurus' && o.role !== 'mubaligh' && o.role !== 'admin' && o.role !== 'kurikulum') {
+    throw new GalatPpg('ROLE_TIDAK_SAH', 'Admin menerbitkan token pengurus/mubaligh/EXE; token generus/wali diterbitkan mubaligh.')
   }
   const kode = bacaKodePerangkat(o.kodePerangkat)
   const w = ambilWilayah(db, o.wilayahId)
   if (!w || w.dihapus) throw new GalatPpg('WILAYAH_TIDAK_SAH', 'Wilayah tidak ditemukan.')
   if (o.tingkat && o.tingkat !== w.tingkat) throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Tingkat tidak sesuai dengan wilayah yang dipilih.')
   if (o.role === 'mubaligh' && w.tingkat !== 'kelompok') throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Mubaligh ditugaskan untuk satu kelompok.')
+  if (o.role === 'admin' && w.tingkat === 'daerah') throw new GalatPpg('TINGKAT_TIDAK_SAH', 'EXE admin untuk tingkat desa atau kelompok (daerah memakai EXE ini sendiri).')
+  if (o.role === 'kurikulum' && w.tingkat !== 'daerah') throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Token kurikulum untuk wilayah daerah.')
   if (!o.nama?.trim()) throw new GalatPpg('NAMA_KOSONG', 'Nama pemegang token wajib diisi.')
-  const hak = [...new Set(o.hak ?? HAK_BAWAAN[o.role])]
+  const hak = [...new Set(o.hak ?? hakBawaan(o.role, w.tingkat))]
   if (!hak.every((h) => HAK.includes(h))) throw new GalatPpg('HAK_TIDAK_SAH', 'Hak tidak dikenal.')
   if (o.role === 'pengurus' && (hak.includes('terbit_generus') || hak.includes('setor_belajar'))) {
     throw new GalatPpg('HAK_TIDAK_SAH', 'Hak terbit_generus/setor_belajar tidak untuk pengurus.')
+  }
+  if (hak.includes('terbit_bawah') && !(o.role === 'admin' && w.tingkat === 'desa')) {
+    throw new GalatPpg('HAK_TIDAK_SAH', 'Hak terbit_bawah hanya untuk EXE desa.')
+  }
+  if (o.role === 'kurikulum' && hak.some((h) => h !== 'lihat')) throw new GalatPpg('HAK_TIDAK_SAH', 'Token kurikulum hanya berhak lihat.')
+  if (o.role === 'admin' && hak.some((h) => h === 'terbit_generus' || h === 'setor_belajar')) {
+    throw new GalatPpg('HAK_TIDAK_SAH', 'Hak terbit_generus/setor_belajar tidak untuk EXE.')
   }
   if (o.role === 'mubaligh') {
     const lain = daftarPerangkat(db, { perangkatId: kode.perangkat_id, role: 'mubaligh', aktifSaja: true }).filter(
@@ -358,7 +372,7 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
 
   return db.transaksi(() => {
     const rahasia: RahasiaToken = {}
-    if (w.tingkat === 'kelompok') {
+    if (w.tingkat === 'kelompok' && o.role !== 'admin') {
       const ku = kunciUmumKelompokVersi(db, kunci, w.id)
       rahasia.kunci_umum_kelompok = ku.kunci
       rahasia.kunci_umum_versi = ku.versi
@@ -403,6 +417,13 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
 function ambilTokenWajib(db: Db, tokenId: string): PerangkatTerdaftar {
   const p = ambilPerangkat(db, tokenId)
   if (!p) throw new GalatPpg('TIDAK_DITEMUKAN', 'Token/perangkat tidak ditemukan.')
+  if (!adalahAdmin(db)) {
+    // v3: EXE desa hanya boleh mencabut/membekukan token yang rantai penerbitnya melewati token EXE ini
+    const saya = new Set(daftarProfil(db, ['admin']).map((x) => x.token_id))
+    if (!saya.size || !idRantaiPenerbit(p.token).some((id) => saya.has(id))) {
+      throw new GalatPpg('TIDAK_BERWENANG', 'Token ini tidak diterbitkan dari EXE ini; pencabutan dilakukan daerah.')
+    }
+  }
   return p
 }
 
@@ -567,5 +588,5 @@ export function imporGenerusCsv(db: Db, teksCsv: string): HasilImporCsv {
 /** Daftar kelompok di wilayah yang punya token mubaligh aktif (untuk UI "Kirim Paket semua kelompok"). */
 export function kelompokBerpenerima(db: Db, wilayahId: string): string[] {
   const kel = kelompokDalamWilayah(db, wilayahId)
-  return kel.filter((k) => daftarPerangkat(db, { wilayahIds: [k], role: ['mubaligh', 'pengurus'], aktifSaja: true }).length > 0)
+  return kel.filter((k) => daftarPerangkat(db, { wilayahIds: [k], role: ['mubaligh', 'pengurus', 'admin'], aktifSaja: true }).length > 0)
 }

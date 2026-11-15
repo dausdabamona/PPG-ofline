@@ -29,7 +29,7 @@ export function catatPenilaianAkhlaq(
   if (!ASPEK_AKHLAQ.includes(d.aspek)) throw new GalatPpg('ASPEK_TIDAK_SAH', 'Aspek akhlaq tidak dikenal.')
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(d.periode)) throw new GalatPpg('PERIODE_TIDAK_SAH', 'Periode harus berformat YYYY-MM.')
   if (!(Number.isInteger(d.nilai) && d.nilai >= 1 && d.nilai <= 5)) throw new GalatPpg('NILAI_TIDAK_SAH', 'Nilai akhlaq harus 1–5.')
-  pastikanPencatat(db, d.kelompokId, ['mubaligh', 'pengurus'])
+  pastikanPencatat(db, d.kelompokId, ['mubaligh', 'pengurus', 'admin'])
   const ada = db.satu<PenilaianAkhlaq>(
     'SELECT * FROM penilaian_akhlaq WHERE perangkat_id = ? AND generus_id = ? AND periode = ? AND aspek = ?',
     [idPerangkatLokal(db), d.generusId, d.periode, d.aspek],

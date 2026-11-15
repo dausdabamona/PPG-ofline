@@ -249,3 +249,44 @@ API core baru: `qr-seri`, `cadangan-hp`, field `InfoSinkronHp.hariSejakBelajar/p
   perubahan terakhir, perubahan itu bisa hilang.
 - Ikon/splash bawaan, APK debug & EXE tanpa tanda tangan (SmartScreen/Play Protect memperingatkan), PAKET tidak inkremental,
   jam perangkat menentukan waktu — sama seperti fase sebelumnya.
+
+---
+
+## Fase 5 — Core v3: pelaporan berjenjang, kurikulum, pertemuan (2026-11-15)
+
+Implementasi bagian inti (`packages/core`) dari §14 rencana (keputusan V1–V5 Pak Fir). UI v3 dikerjakan agen lain.
+
+### Yang dibuat
+- **Instalasi EXE berjenjang** (`instalasi.ts`): `inisialisasiExe` (kunci perangkat EXE dienkripsi kata sandi lokal), `bukaKunciExe`, `aktifkanExe` (peran dari token: desa/kelompok/kurikulum), `gantiSandiExe`, `infoInstalasi`, `terbitkanTokenBawah` (EXE desa → pengurus/mubaligh/EXE kelompok di wilayahnya), kunci kelompok titipan. EXE daerah = admin lama.
+- **Rantai kepercayaan berjenjang** (`token.ts`, `rantai.ts`): role `admin`/`kurikulum`, hak `terbit_bawah`, verifikasi rekursif sampai kunci daerah, wilayah anak ⊆ penerbit, pencabutan & masa berlaku di setiap mata rantai, `periksaTokenDb`.
+- **Alur naik**: SETOR ke tingkat atas langsung (`atas_box_pub`), impor di EXE kelompok/desa, **SETOR gabungan** ke daerah (rekaman asli + token, konfirmasi, pencabutan, Setor Akhir di bawahnya) dengan wewenang berantai; idempoten; konfirmasi bertahap (`jejak_setor`, `konfirmasi_daerah`, `belumSampaiDaerah`).
+- **Alur turun**: PAKET daerah → EXE desa (+ kunci titipan), EXE desa/kelompok → EXE kelompok/HP (bertanda tangan EXE, amplop per penerima aktif, versi per penerbit); MATERI daerah diteruskan apa adanya; BALASAN dari EXE (pencabutan mubaligh sampai HP generus).
+- **Jadwal setor** (`repo/target.ts`, `kueri-berjenjang.ts`): `aturJadwalSetor`, `statusSetor` (per desa/kelompok/HP: tenggat, setor terakhir, terlambat), `pengingatSetor` (tombol "Setor ke Desa").
+- **Kurikulum**: `tetapkanTarget`, `periodeAktif`/`aturPeriodeAktif`, berkas `KURIKULUM` (`buatKurikulum` → `imporKurikulum`), target ikut MATERI/PAKET/BALASAN.
+- **Kelas & pertemuan** (`repo/pertemuan.ts`): `pengajian.kategori_generus`, tabel `pertemuan`, `bukaPertemuan`, `absenPertemuan` (presensi per pertemuan + tandai tuntas → kemajuan sumber mubaligh disahkan).
+- **Kueri**: `materiPerluDituntaskan`, `saranMateriPertemuan`, `lembarAbsenPertemuan`, `progresKelas`, `statusSetor`, `pengingatSetor`, `ringkasanBerandaExe` (daerah/desa/kelompok/kurikulum), `tujuanSetor`.
+- **Skema v3** + migrasi otomatis v2 → v3 (admin lama = daerah).
+- Dokumen: README core (API v3 + contoh alur berjenjang §12), rencana §14.3 (V-T1–V-T19), laporan ini.
+
+### Hasil uji
+- `npm test`: core **20 berkas / 143 test** (sebelumnya 18 / 111), desktop 5 / 11, mobile 4 / 6 — **160 test lulus**, 0 gagal. `npm run typecheck` bersih (3 workspace); `npm run build` sukses.
+- Cakupan core: statements 94,7 %, branches 87,0 %, functions 98,6 %, lines 97,5 %.
+- `test/skenario-berjenjang.test.ts` (14 langkah, satu DB per aktor): daerah init → aktivasi EXE desa A & B + EXE kurikulum → kurikulum menetapkan target 2026-S1 → daerah impor & paket ke desa → desa A mengaktifkan HP mubaligh A1 & EXE kelompok A2 → mubaligh menerbitkan token generus + wali → absen pertemuan dengan materi + tuntas → HP generus: materi perlu dituntaskan 3 → 2 → A1 & A2 setor ke desa A → setor gabungan ke daerah (daerah melihat A1 & A2; konfirmasi turun sampai HP) → desa B terlambat (bulanan tgl 5) → daerah mencabut mubaligh A1, pencabutan sampai HP generus lewat BALASAN desa → desa A tidak bisa menerbitkan token untuk desa B (juga token rakitan ditolak) → token buatan EXE desa yang dicabut ditolak (termasuk jam dimundurkan) → migrasi DB v2 dari **fixtur buatan kode v2** (database admin, HP mubaligh, HP generus, berkas SETOR lama).
+- `test/berjenjang.test.ts` (18 test): aturan rantai (wilayah, hak, peran, tingkat, tanda tangan, pencabutan bertingkat, rantai terlalu panjang), instalasi EXE (sandi, aktivasi, peran berbeda), batas penerbitan EXE desa, wewenang SETOR gabungan (perangkat asing, sesudah dicabut, hak sahkan), 3 tingkat HP → EXE kelompok → desa → daerah, serah terima mubaligh terbitan desa, PAKET EXE, kurikulum & periode, tenggat/status setor, pertemuan & kueri kelas.
+
+### Perilaku lama yang berubah (dicatat)
+- `Role`/`Hak` bertambah `admin`, `kurikulum`, `terbit_bawah` → `apps/mobile/src/kerangka.tsx` mendapat entri kosong untuk peran EXE (perbaikan minimal agar terkompilasi).
+- Token pengurus/mubaligh **boleh** berpenerbit (EXE desa); penerbit rusak tetap `TOKEN_TIDAK_SAH`. Teks alasan rantai disamakan ("…penerbitnya dicabut", "…masa berlaku token penerbit").
+- `imporSetor(db, bytes, kunci)` & `buatPaket(db, wilayah, kunci)` menerima `KunciAdmin | KunciExe`; SETOR v3 membawa `penerima_perangkat_id` dan ditolak bila sampai di tingkat yang salah. Penerima PAKET daerah kini juga EXE (role `admin`).
+- Fungsi materi (`tambahBidang/Kategori/Materi`, `ubahMateri`, `aturLampiranMateri`) memakai `pastikanPengelolaKurikulum` (daerah **atau** EXE kurikulum); galat di HP kini `HANYA_KURIKULUM` (dulu `HANYA_ADMIN`).
+- MATERI & BALASAN membawa `target_capaian` + `pengaturan`; `InfoSinkronHp` bertambah `belumSampaiDaerah`; `RingkasanImporSetor` bertambah `gabungan`, `perangkatBawah`, `pencabutanDiterima`.
+- `test/pemeriksaan.test.ts`: INSERT mentah presensi ditambah satu nilai (`pertemuan_id`) karena skema v3. Semua uji keamanan T10–T40 lain tidak diubah dan lulus.
+
+### Sisa masalah (jujur)
+- **HP yang belum punya pohon wilayah** menerima token rakitan EXE desa untuk kelompok desa lain saat aktivasi (pemeriksaan wilayah dilewati); setorannya ditolak EXE desa & daerah, jadi tidak ada data yang masuk — tetapi HP itu bisa "tampak aktif".
+- **Rekaman tidak ditandatangani per rekaman**: daerah mempercayai EXE desa untuk rekaman di wilayahnya (EXE desa bisa merakit rekaman atas nama perangkat di bawahnya). Kunci kelompok titipan juga membuat EXE desa bisa membuka BELAJAR kelompoknya (sesuai kewenangan desa).
+- Tujuan SETOR HP tertanam di token saat terbit: bila EXE kelompok baru diaktifkan, HP lama tetap menyetor ke EXE desa (tetap diterima) sampai tokennya diperbarui.
+- Berkas `KURIKULUM` kumulatif tanpa konfirmasi balik (suntingan lama ikut terkirim ulang; impor tetap idempoten).
+- Tenggat & keterlambatan dihitung dengan jam lokal perangkat (jam HP/laptop yang salah memengaruhi status).
+- PAKET desa tetap tidak inkremental; MATERI tetap satu berkas besar (termasuk PDF).
+- Belum ada UI v3 (beranda per tingkat, pengaturan "Aktifkan dengan kode", Absen mubaligh, layar Materi yang perlu dituntaskan, QR native) — dikerjakan agen UI.

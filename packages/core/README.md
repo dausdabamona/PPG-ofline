@@ -1,7 +1,7 @@
 # @ppg/core
 
-Seluruh logika bisnis PPG Sorong v2 (offline-first) tanpa UI: kriptografi, token & rantai kepercayaan, berkas `.ppg`,
-database sql.js, penggabungan data, alur sinkron via WA, siklus hidup generus/mubaligh, laporan.
+Seluruh logika bisnis PPG Sorong v2/v3 (offline-first) tanpa UI: kriptografi, token & rantai kepercayaan berjenjang, berkas `.ppg`,
+database sql.js, penggabungan data, alur sinkron via WA (kelompok → desa → daerah), kurikulum & pertemuan, siklus hidup generus/mubaligh, laporan.
 Kontrak teknis: `docs/RENCANA-IMPLEMENTASI.md`.
 
 Paket dipakai **langsung dari source TypeScript** (`"main"`/`"exports"` → `src/index.ts`); Vite di `apps/*` tidak perlu build terpisah.
@@ -47,9 +47,18 @@ const db = await bukaDb(bytesTersimpan /* atau undefined */, { locateFile: () =>
 | sinkron | `buatSetor(db, {setorAkhir?, semua?})`, `imporSetor`, `jumlahBelumDisetor`, `buatPaket`, `terapkanPaket`, `versiPaketTerpasang`, `buatBelajar`, `imporBelajar`, `jumlahBelumDisetorBelajar(db, kelompokId?)`, `konfirmasiBelajar`, `daftarDiajukan`, `sahkan`, `simakLangsung`, `buatBalasan`, `terapkanBalasan`, `daftarPenerimaBalasan`, `buatJadwal`, `terapkanJadwal`, `buatMateri`, `terapkanMateri`, `bukaBerkasApaSaja`, `imporBanyak`, `daftarRiwayatImpor`, `berkasLebihBaru` |
 | kueri (layar UI) | `ringkasanBerandaAdmin`, `ringkasanKelompok`, `infoSinkronHp`, `pohonWilayah`, `cariGenerus`, `generusProfil`, `daftarPerangkatRinci`, `statusPerangkat`, `daftarDiajukanRinci`, `materiGenerus`, `jadwalPekan`, `namaHari`, `lembarPresensi`, `laporanWaKelompok` — lihat §11 di bawah |
 | laporan | `laporanPekanan`, `teksWaLaporanPekanan`, `tautanWa`, `normalNoHp`, `rekapPresensi`, `rekapKemajuan` |
+| **instalasi (v3)** | `inisialisasiExe(db, {sandi, label})`, `bukaKunciExe`, `kunciExeTerbuka`, `kunciExeWajib`, `kunciExe` (kunci dari memori), `gantiSandiExe`, `aktifkanExe(db, kunci, token)`, `profilExe`, `infoInstalasi`, `terbitkanTokenBawah` (EXE desa), `kelompokSaya`, `simpanKunciTitipan`/`ambilKunciTitipan`, tipe `KunciExe`, `KunciPemegang` (= `KunciAdmin \| KunciExe`), `adalahKunciExe`; repo: `peranInstalasi`, `adalahExe` |
+| **rantai (v3)** | `periksaTokenDb(db, token, {denganDikenal?})`, `opsiPeriksaDb`, `wilayahMencakupDb`, `idRantaiPenerbit`, `wilayahRantaiPenerbit`; token: `rantaiPenerbit`, `hakBawaan`, `HAK_DARI_DESA`, `ROLE_EXE`, opsi `wilayahMencakup` |
+| **kurikulum & jadwal (v3)** | `tetapkanTarget`, `daftarTarget`, `idTarget`, `periodeAktif`, `aturPeriodeAktif`, `periodeDariTanggal`, `periodeSah`, `aturJadwalSetor`, `hapusJadwalSetor`, `jadwalSetorUntuk`, `daftarJadwalSetor`, `pastikanPengelolaKurikulum`; sinkron: `buatKurikulum`, `imporKurikulum`, `jumlahSuntinganKurikulum` |
+| **pertemuan (v3)** | `bukaPertemuan`, `aturMateriPertemuan`, `ambilPertemuan`, `daftarPertemuan`, `absenPertemuan`, `tandaiTuntas`; pengajian: `kategoriGenerus` (kelas), `kategoriKelas` |
+| **kueri v3** | `materiPerluDituntaskan`, `saranMateriPertemuan`, `lembarAbsenPertemuan`, `progresKelas`, `pertemuanBerikutnya`, `statusSetor`, `hitungTenggat`, `pengingatSetor`, `ringkasanBerandaExe`; sinkron: `tujuanSetor`, `jumlahBelumSampaiDaerah`; `infoSinkronHp().belumSampaiDaerah` |
 | kurikulum | `seedKurikulum`, `targetMateriBerikutnya`, `PEMETAAN_MATERI`, `idMateri` |
 | repo master (admin) | wilayah: `tambahWilayah`, `ubahWilayah`, `hapusWilayah`, `daftarWilayah`, `turunanWilayah`, `leluhurWilayah`, `kelompokDalamWilayah`; generus/jamaah: `tambahGenerus`, `ubahGenerus`, `daftarGenerus`, `ambilGenerus`, `tambahJamaah`, `ubahJamaah`, `daftarJamaah`, `kategoriDariUmur`; pengajian: `tambahPengajian`, `ubahPengajian`, `hapusPengajian`, `daftarPengajian`, `pengajianUntukKelompok`; materi: `tambahBidang`, `tambahKategori`, `tambahMateri`, `ubahMateri`, `aturLampiranMateri`, `daftarBidang`, `daftarKategoriMateri`, `daftarMateri`, `ambilMateri`; koreksi: `buatKoreksi`, `daftarKoreksi` |
 | repo kegiatan (HP/admin) | `catatPresensi`, `catatPresensiMassal`, `daftarPresensi`; `catatKemajuan`, `daftarKemajuan`; `catatPenilaianAkhlaq`, `daftarPenilaianAkhlaq`, `ASPEK_AKHLAQ`; `tambahJadwalTambahan`, `ubahJadwalTambahan`, `batalkanJadwalTambahan`, `daftarJadwalTambahan`; `ajukanUsulan`, `daftarUsulan`; `daftarPerangkat`, `daftarPencabutan` |
+
+v3: `imporSetor(db, bytes, kunci)` dan `buatPaket(db, wilayahId, kunci)` menerima `KunciAdmin` (EXE daerah) **atau** `KunciExe`
+(EXE desa/kelompok); `imporBanyak(db, daftar, kunci?)` di EXE daerah juga mengimpor berkas `KURIKULUM`. Role token bertambah
+`admin` (EXE desa/kelompok) dan `kurikulum`; hak bertambah `terbit_bawah`.
 
 Di HP, fungsi pencatatan kegiatan otomatis memeriksa ada profil berwenang (role, hak, wilayah, belum kedaluwarsa/dibekukan/dicabut). Data master hanya bisa diubah di database admin (`HANYA_ADMIN`); dari HP gunakan `ajukanUsulan`.
 
@@ -185,6 +194,76 @@ serahTerimaMubaligh(db, kunci, { kelompokId: k1.id, perangkatLamaId }) // cabut 
 
 Lainnya sudah tersedia: `daftarUsulan`, `daftarKoreksi`, `daftarRiwayatImpor`, `daftarPenerimaBalasan`, `daftarProfil`, `daftarPengajian`, `daftarMateri`, `rekapPresensi`, `rekapKemajuan`, `kelompokBerpenerima`.
 
+### 12. Alur berjenjang v3 (kelompok → desa → daerah)
+
+Satu aplikasi EXE untuk semua tingkat; perannya ditentukan kode aktivasi. EXE daerah = admin lama (`KunciAdmin`).
+EXE desa/kelompok/kurikulum memakai `KunciExe` (kunci perangkat dienkripsi kata sandi lokal; buka dengan `bukaKunciExe`
+setiap kali aplikasi dibuka — tanpa itu fungsi yang menandatangani melempar `EXE_TERKUNCI`).
+
+```ts
+// --- EXE desa (pengaturan awal "Aktifkan dengan kode") ---
+const dbDesa = await bukaDb()
+const { kodePerangkat, kunci: kDesa } = await inisialisasiExe(dbDesa, { sandi: 'sandi-desa-1', label: 'EXE Desa Klasaman' })
+// daerah:
+aturJadwalSetor(dbDaerah, { tingkatAsal: 'kelompok', pola: 'pekanan', hari: 0, jam: '21:00' }) // kelompok→desa tiap Ahad
+aturJadwalSetor(dbDaerah, { tingkatAsal: 'desa', pola: 'bulanan', tanggal: 5, jam: '12:00' })  // desa→daerah tiap tgl 5
+const tokDesa = terbitkanToken(dbDaerah, kunciDaerah, { kodePerangkat, role: 'admin', nama: 'Admin Desa', wilayahId: desa.id })
+const tokKur = terbitkanToken(dbDaerah, kunciDaerah, { kodePerangkat: kodeKur, role: 'kurikulum', nama: 'Tim Kurikulum', wilayahId: daerah.id })
+// EXE desa:
+await aktifkanExe(dbDesa, kDesa, tokDesa)                          // peranInstalasi(dbDesa) === 'desa'
+// sesi berikutnya: const kDesa = await bukaKunciExe(dbDesa, 'sandi-desa-1')
+
+// --- kurikulum (EXE kurikulum) → daerah ---
+terapkanMateri(dbKur, berkasMateriDaerah)                          // materi dasar dari daerah
+aturPeriodeAktif(dbKur, '2026-S1')                                 // S1 = Jul–Des, S2 = Jan–Jun (tahun ajaran)
+tetapkanTarget(dbKur, { periode: '2026-S1', kategoriGenerus: 'caberawit', materiIds })
+imporKurikulum(dbDaerah, buatKurikulum(dbKur).bytes, kunciDaerah) // atau imporBanyak(dbDaerah, [...], kunciDaerah)
+const materi = buatMateri(dbDaerah, kunciDaerah)                   // MATERI kini membawa target & periode aktif
+
+// --- turun: daerah → desa → HP/EXE kelompok ---
+terapkanPaket(dbDesa, buatPaket(dbDaerah, desa.id, kunciDaerah).bytes) // + kunci kelompok titipan untuk desa
+terapkanMateri(dbDesa, materi.bytes)                               // MATERI daerah diteruskan apa adanya ke bawah
+const tokM = terbitkanTokenBawah(dbDesa, kDesa, { kodePerangkat: kodeHp, role: 'mubaligh', nama: 'Ust. Ahmad', wilayahId: k1.id })
+const tokK2 = terbitkanTokenBawah(dbDesa, kDesa, { kodePerangkat: kodeExeK2, role: 'admin', nama: 'Admin K2', wilayahId: k2.id })
+terapkanPaket(hpMubaligh, buatPaket(dbDesa, k1.id, kDesa).bytes)    // ditandatangani EXE desa, diverifikasi lewat rantai
+// DI_LUAR_WILAYAH bila wilayahId di luar desa; EXE kelompok tidak berhak menerbitkan token.
+
+// --- pertemuan & absen (HP mubaligh / EXE kelompok) ---
+tambahPengajian(dbDaerah, { wilayahId: k1.id, nama: 'Kelas Caberawit', hari: 1, jam: '19:00', kategoriGenerus: ['caberawit'] })
+const saran = saranMateriPertemuan(hp, k1.id, undefined, { pengajianId })  // materi target yang paling banyak belum tuntas
+const p = bukaPertemuan(hp, { kelompokId: k1.id, tanggal: '2026-11-16', pengajianId, materiIds: [saran[0]!.materi_id] })
+lembarAbsenPertemuan(hp, p.id)                                     // generus aktif sesuai kelas + status tuntas per materi
+absenPertemuan(hp, p.id, [{ generusId: ali, status: 'hadir', tuntas: [saran[0]!.materi_id] }, { generusId: budi, status: 'alpa' }])
+progresKelas(hp, k1.id, 'caberawit')                               // capaian tiap generus
+// HP generus/wali (setelah MATERI + BALASAN):
+materiPerluDituntaskan(hpGenerus, ali)                             // { total, tuntas, persen, perluDituntaskan[], pertemuanBerikutnya }
+
+// --- naik: HP → EXE kelompok/desa → daerah (SETOR gabungan) ---
+const s = buatSetor(hp)                    // tujuan = atas_box_pub token (header.penerima_perangkat_id); token lama → daerah
+imporSetor(dbDesa, s.bytes, kDesa)         // atau bukaBerkasApaSaja(dbDesa, bytes) / imporBanyak(dbDesa, [...])
+imporSetor(dbDaerah, buatSetor(dbDesa).bytes, kunciDaerah) // rekaman asli + token, konfirmasi & pencabutan di bawahnya
+// konfirmasi bertahap: paket daerah → desa → HP membawa `konfirmasi` (diterima tingkat atas) dan `konfirmasi_daerah`
+infoSinkronHp(hp)                          // { belumDisetor, belumSampaiDaerah, ... }
+
+// --- status setor & beranda ---
+statusSetor(dbDaerah, daerah.id)           // per desa: tenggatBerikutnya, terakhirSetor, terlambat
+statusSetor(dbDesa, desa.id)               // per kelompok
+pengingatSetor(hp)                         // { tujuan: { nama: 'Desa Klasaman' }, tenggatBerikutnya, terlambat, tampilkanTombol }
+ringkasanBerandaExe(db)                    // sesuai peran: daerah / desa / kelompok / kurikulum
+
+// --- pencabutan berantai ---
+cabutPerangkat(dbDaerah, tokenId)          // daerah bisa mencabut semua perangkat (juga terbitan desa)
+terapkanPaket(dbDesa, buatPaket(dbDaerah, desa.id, kunciDaerah).bytes)
+terapkanBalasan(hpGenerus, buatBalasan(dbDesa, hpGenerusId).bytes) // EXE desa/kelompok boleh mengirim BALASAN
+cabutPerangkat(dbDesa, tokenId)            // EXE desa: hanya token yang rantai penerbitnya melewati EXE itu
+```
+
+Aturan rantai (`periksaToken`): token akar ditandatangani daerah (pengurus, mubaligh, `admin` desa/kelompok, `kurikulum`);
+EXE desa ber-hak `terbit_bawah` menandatangani pengurus/mubaligh/EXE kelompok di wilayahnya (`wilayahMencakup`); mubaligh
+menandatangani generus/wali. Di tiap mata rantai: tanda tangan, masa berlaku, wilayah ⊆ penerbit, penerbit tidak dicabut
+sebelum anak terbit (bila sudah dicabut, anak wajib terdaftar — `denganDikenal`). HP yang belum punya pohon wilayah
+melewati pemeriksaan wilayah; EXE desa & daerah selalu memeriksanya.
+
 ### Catatan Fase 3
 
 - PAKET membawa seluruh pohon wilayah (nama & kode) agar HP bisa memilih kelompok tujuan usulan pindah (`daftarWilayah(db, { tingkat: 'kelompok' })`). Data generus/kegiatan tetap per wilayah paket (T32).
@@ -227,6 +306,8 @@ npm run coverage -w @ppg/core
 npm run typecheck
 ```
 
-`test/skenario-lengkap.test.ts` menjalankan skenario §13 dengan satu database per aktor. `test/ujung-ke-ujung.test.ts` (Fase 4)
+`test/skenario-lengkap.test.ts` menjalankan skenario §13 dengan satu database per aktor. `test/skenario-berjenjang.test.ts` (v3)
+menjalankan skenario §14 (daerah → EXE desa/kelompok/kurikulum → HP mubaligh/generus/wali → setor gabungan → status terlambat →
+pencabutan berantai → migrasi database v2 dari fixtur `test/fixtur/v2-*.gz` yang dibuat kode v2). `test/berjenjang.test.ts` menguji unit v3. `test/ujung-ke-ujung.test.ts` (Fase 4)
 menjalankan satu siklus admin → pengurus/mubaligh → generus → wali → admin dengan berkas yang ditulis ke disk lalu dibaca ulang
 (meniru WA), database tiap aplikasi disimpan/dibuka ulang, token lewat QR berseri, dan cadangan HP terenkripsi. `test/pemeriksaan.test.ts` berisi reproduksi cacat Fase 1b; `test/kueri.test.ts` menguji kueri UI dan memastikan `src/` tidak mengimpor modul bawaan Node.

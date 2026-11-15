@@ -33,7 +33,8 @@ export const TABEL_SINKRON = {
   },
   riwayat_keanggotaan: { jenis: 'master', kolom: ['generus_id', 'kelompok_id', 'mulai', 'selesai'] },
   riwayat_status: { jenis: 'master', kolom: ['generus_id', 'status', 'mulai', 'selesai', 'keterangan'] },
-  pengajian: { jenis: 'master', kolom: ['wilayah_id', 'nama', 'jenis', 'hari', 'jam', 'tempat'] },
+  // v3: kategori_generus (csv, NULL = semua) → pengajian rutin = kelas
+  pengajian: { jenis: 'master', kolom: ['wilayah_id', 'nama', 'jenis', 'hari', 'jam', 'tempat', 'kategori_generus'] },
   bidang_materi: { jenis: 'master', kolom: ['nama', 'urutan'] },
   kategori_materi: { jenis: 'master', kolom: ['bidang_id', 'kode', 'nama', 'urutan', 'tipe'] },
   materi: {
@@ -42,9 +43,19 @@ export const TABEL_SINKRON = {
   },
   penugasan_mubaligh: { jenis: 'master', kolom: ['perangkat_mubaligh_id', 'kelompok_id', 'mulai', 'selesai'] },
   koreksi: { jenis: 'master', kolom: ['tabel', 'rekaman_id', 'untuk_perangkat_id', 'catatan', 'tanggal'] },
+  // v3 — master milik daerah (target_capaian & pengaturan juga boleh dikelola EXE kurikulum)
+  jadwal_setor: { jenis: 'master', kolom: ['tingkat_asal', 'pola', 'hari', 'tanggal_bulan', 'jam'] },
+  target_capaian: { jenis: 'master', kolom: ['periode', 'kategori_generus', 'materi_id', 'urutan'] },
+  pengaturan: { jenis: 'master', kolom: ['isi'] },
+  // v3 — pertemuan (kegiatan milik pencatat): materi yang diajarkan pada satu pertemuan kelas
+  pertemuan: {
+    jenis: 'kegiatan',
+    kolom: ['kelompok_id', 'pengajian_id', 'jadwal_tambahan_id', 'tanggal', 'materi_ids_json', 'catatan'],
+    kolomKelompok: 'kelompok_id',
+  },
   presensi: {
     jenis: 'kegiatan',
-    kolom: ['kelompok_id', 'pengajian_id', 'jadwal_tambahan_id', 'tanggal', 'generus_id', 'status'],
+    kolom: ['kelompok_id', 'pengajian_id', 'jadwal_tambahan_id', 'tanggal', 'generus_id', 'status', 'pertemuan_id'],
     kolomKelompok: 'kelompok_id',
   },
   kemajuan_belajar: {
@@ -92,11 +103,25 @@ const TIPE_KOLOM: Record<string, string> = {
   nilai: 'INTEGER',
   level: 'INTEGER',
   dibatalkan: 'INTEGER NOT NULL DEFAULT 0',
+  tanggal_bulan: 'INTEGER',
 }
 
+/** Bentuk kolom untuk ALTER TABLE (tanpa NOT NULL tanpa default). */
+function tipeKolom(k: string): string {
+  return TIPE_KOLOM[k] ?? 'TEXT'
+}
+
+/**
+ * Kolom yang ditambahkan v3 ke tabel lama: diletakkan SETELAH kolom sinkron, agar urutan kolom database baru
+ * sama dengan database v2 yang dimigrasikan (ALTER TABLE menambah kolom di akhir).
+ */
+const KOLOM_AKHIR: Record<string, readonly string[]> = { pengajian: ['kategori_generus'], presensi: ['pertemuan_id'] }
+
 function ddlTabelSinkron(nama: string, info: InfoTabel): string {
-  const kolom = info.kolom.map((k) => `  ${k} ${TIPE_KOLOM[k] ?? 'TEXT'}`).join(',\n')
-  return `CREATE TABLE IF NOT EXISTS ${nama} (\n  id TEXT PRIMARY KEY,\n${kolom},${SINKRON_SQL}\n);`
+  const akhir = KOLOM_AKHIR[nama] ?? []
+  const kolom = info.kolom.filter((k) => !akhir.includes(k)).map((k) => `  ${k} ${tipeKolom(k)}`).join(',\n')
+  const tambahan = akhir.map((k) => `,\n  ${k} ${tipeKolom(k)}`).join('')
+  return `CREATE TABLE IF NOT EXISTS ${nama} (\n  id TEXT PRIMARY KEY,\n${kolom},${SINKRON_SQL}${tambahan}\n);`
 }
 
 const DDL_LOKAL = `
@@ -119,7 +144,7 @@ CREATE TABLE IF NOT EXISTS perangkat (
   sign_pub TEXT NOT NULL, box_pub TEXT NOT NULL, generus_ids_json TEXT NOT NULL DEFAULT '[]',
   seq_diterima INTEGER NOT NULL DEFAULT 0, dicabut_pada TEXT, dibekukan INTEGER NOT NULL DEFAULT 0,
   diterbitkan_oleh TEXT, berlaku_sampai TEXT, setor_akhir_urut INTEGER, terakhir_setor TEXT,
-  dibuat_pada TEXT NOT NULL
+  dibuat_pada TEXT NOT NULL, terakhir_lapor TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_perangkat_hp ON perangkat(perangkat_id);
 CREATE TABLE IF NOT EXISTS pencabutan (
@@ -155,8 +180,21 @@ CREATE INDEX IF NOT EXISTS idx_kemajuan_kelompok ON kemajuan_belajar(kelompok_id
 CREATE INDEX IF NOT EXISTS idx_penilaian_generus ON penilaian_akhlaq(generus_id);
 `
 
+const DDL_LOKAL_V3 = `
+-- v3: jejak setoran yang diimpor EXE (untuk konfirmasi bertahap "sudah sampai daerah")
+CREATE TABLE IF NOT EXISTS jejak_setor (
+  perangkat_id TEXT NOT NULL, urut INTEGER NOT NULL, seq_lokal INTEGER NOT NULL, PRIMARY KEY (perangkat_id, urut)
+);
+-- v3: kunci kelompok setor & kunci umum yang dititipkan daerah ke EXE desa/kelompok (dienkripsi kunci induk EXE)
+CREATE TABLE IF NOT EXISTS kunci_titipan (kelompok_id TEXT PRIMARY KEY, isi_terenkripsi TEXT NOT NULL);
+`
+
 /** Versi skema saat ini. */
-export const VERSI_SKEMA = 2
+export const VERSI_SKEMA = 3
+
+function adaKolom(db: Db, tabel: string, kolom: string): boolean {
+  return db.kueri<{ name: string }>(`PRAGMA table_info(${tabel})`).some((k) => k.name === kolom)
+}
 
 /** Daftar migrasi berurutan; indeks 0 = menuju versi 1. */
 const MIGRASI: ((db: Db) => void)[] = [
@@ -172,6 +210,22 @@ const MIGRASI: ((db: Db) => void)[] = [
   // v2 (Fase 1b): kunci umum kelompok berversi — diganti saat serah terima / ganti kunci kelompok.
   (db) => {
     db.jalankanSkrip('ALTER TABLE kunci_umum_kelompok ADD COLUMN versi INTEGER NOT NULL DEFAULT 1;')
+  },
+  // v3: pelaporan berjenjang, kurikulum, pertemuan. Database v2 lama (admin) = EXE daerah.
+  (db) => {
+    for (const [n, i] of Object.entries(TABEL_SINKRON)) {
+      db.jalankanSkrip(ddlTabelSinkron(n, i))
+      db.jalankanSkrip(`CREATE INDEX IF NOT EXISTS idx_${n}_seq ON ${n}(seq_lokal);`)
+      for (const k of i.kolom) if (!adaKolom(db, n, k)) db.jalankanSkrip(`ALTER TABLE ${n} ADD COLUMN ${k} ${tipeKolom(k)};`)
+    }
+    if (!adaKolom(db, 'perangkat', 'terakhir_lapor')) db.jalankanSkrip('ALTER TABLE perangkat ADD COLUMN terakhir_lapor TEXT;')
+    db.jalankanSkrip(DDL_LOKAL_V3)
+    db.jalankanSkrip(`
+      CREATE INDEX IF NOT EXISTS idx_pertemuan_kelompok ON pertemuan(kelompok_id, tanggal);
+      CREATE INDEX IF NOT EXISTS idx_target_periode ON target_capaian(periode, kategori_generus);
+      CREATE INDEX IF NOT EXISTS idx_presensi_pertemuan ON presensi(pertemuan_id);`)
+    const peran = db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'peran_db'`)
+    if (peran === 'admin') db.jalankan(`INSERT OR IGNORE INTO meta (kunci, nilai) VALUES ('peran_instalasi', 'daerah')`)
   },
 ]
 

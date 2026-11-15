@@ -155,11 +155,11 @@ describe('Fase 1b — keamanan kunci & pengirim', () => {
       `INSERT INTO kemajuan_belajar VALUES ('KB-LINTAS', ?, ?, 'MAT-ALM-HFS-001', 'selesai', 100, NULL, '2026-11-01', 'mubaligh', 'disahkan', 'Ust. Hasan', '2026-11-02T00:00:00Z', NULL, NULL, ${sync})`,
       [gK2.id, d.k1.id],
     )
-    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-LINTAS', ?, NULL, NULL, '2026-11-01', ?, 'hadir', ${sync})`, [d.k1.id, gK2.id])
+    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-LINTAS', ?, NULL, NULL, '2026-11-01', ?, 'hadir', ${sync}, NULL)`, [d.k1.id, gK2.id])
     // presensi sebelum generus menjadi anggota (mulai 2026-10-01)
-    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-AWAL', ?, NULL, NULL, '2026-09-01', ?, 'hadir', ${sync})`, [d.k1.id, d.g[0]!.id])
-    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-SAH', ?, NULL, NULL, '2026-11-01', ?, 'hadir', ${sync})`, [d.k1.id, d.g[0]!.id])
-    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-HANTU', ?, NULL, NULL, '2026-11-01', 'G-TIDAK-ADA', 'hadir', ${sync})`, [d.k1.id])
+    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-AWAL', ?, NULL, NULL, '2026-09-01', ?, 'hadir', ${sync}, NULL)`, [d.k1.id, d.g[0]!.id])
+    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-SAH', ?, NULL, NULL, '2026-11-01', ?, 'hadir', ${sync}, NULL)`, [d.k1.id, d.g[0]!.id])
+    mub.db.jalankan(`INSERT INTO presensi VALUES ('PR-HANTU', ?, NULL, NULL, '2026-11-01', 'G-TIDAK-ADA', 'hadir', ${sync}, NULL)`, [d.k1.id])
     mub.db.jalankan(`UPDATE meta SET nilai = '60' WHERE kunci = 'seq'`)
     const r = imporSetor(d.admin.db, buatSetor(mub.db).bytes, d.admin.kunci)
     const alasan = Object.fromEntries(r.ditolak.map((x) => [x.id, x.alasan]))

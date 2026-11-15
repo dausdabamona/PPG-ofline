@@ -27,6 +27,8 @@ export interface PerangkatTerdaftar {
   setor_akhir_urut: number | null
   terakhir_setor: string | null
   dibuat_pada: string
+  /** v3: waktu setoran perangkat ini diterima tingkat bawah yang melaporkannya (SETOR gabungan). */
+  terakhir_lapor: string | null
 }
 
 interface BarisPerangkat extends Omit<PerangkatTerdaftar, 'generus_ids' | 'dibekukan'> {
@@ -49,8 +51,9 @@ export function daftarkanToken(
   const lama = ambilPerangkat(db, payload.token_id)
   db.jalankan(
     `INSERT OR REPLACE INTO perangkat (id, perangkat_id, label, role, tingkat, wilayah_id, nama, token_id, token, sign_pub, box_pub,
-       generus_ids_json, seq_diterima, dicabut_pada, dibekukan, diterbitkan_oleh, berlaku_sampai, setor_akhir_urut, terakhir_setor, dibuat_pada)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       generus_ids_json, seq_diterima, dicabut_pada, dibekukan, diterbitkan_oleh, berlaku_sampai, setor_akhir_urut, terakhir_setor, dibuat_pada,
+       terakhir_lapor)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.token_id,
       payload.perangkat_id,
@@ -72,6 +75,7 @@ export function daftarkanToken(
       lama?.setor_akhir_urut ?? null,
       lama?.terakhir_setor ?? null,
       lama?.dibuat_pada ?? sekarangIso(),
+      lama?.terakhir_lapor ?? null,
     ],
   )
   segarkanStatusToken(db, [payload.token_id])
@@ -186,4 +190,28 @@ export function catatSeqDiterima(db: Db, perangkatId: string, urut: number): voi
 /** Seq tertinggi yang diterima dari perangkat (0 bila belum ada). */
 export function seqDiterima(db: Db, perangkatId: string): number {
   return db.nilai<number>('SELECT MAX(seq_diterima) FROM perangkat WHERE perangkat_id = ?', [perangkatId]) ?? 0
+}
+
+/**
+ * v3: catat laporan tingkat bawah (SETOR gabungan) bahwa perangkat itu sudah menyetor sampai `seq` pada `terakhir`.
+ * Data perangkat itu sampai seq tersebut ikut terkirim dalam setoran gabungan (kumulatif), jadi dianggap diterima.
+ */
+export function catatLaporBawah(db: Db, perangkatId: string, seq: number, terakhir: string | null): void {
+  db.jalankan(
+    `UPDATE perangkat SET seq_diterima = MAX(seq_diterima, ?),
+       terakhir_lapor = CASE WHEN ? IS NOT NULL AND (terakhir_lapor IS NULL OR terakhir_lapor < ?) THEN ? ELSE terakhir_lapor END
+     WHERE perangkat_id = ?`,
+    [seq, terakhir, terakhir, terakhir, perangkatId],
+  )
+}
+
+/** v3: catat jejak "setoran perangkat sampai `urut` tersimpan di sini dengan seq lokal ≤ `seqLokal`". */
+export function catatJejak(db: Db, perangkatId: string, urut: number, seqLokal: number): void {
+  if (!(urut > 0)) return
+  db.jalankan('INSERT OR IGNORE INTO jejak_setor (perangkat_id, urut, seq_lokal) VALUES (?, ?, ?)', [perangkatId, urut, seqLokal])
+}
+
+/** v3: seq tertinggi perangkat yang sudah sampai daerah, bila seq lokal ini yang sudah dikonfirmasi daerah = `konfirmasiDaerah`. */
+export function seqSampaiDaerah(db: Db, perangkatId: string, konfirmasiDaerah: number): number {
+  return db.nilai<number | null>('SELECT MAX(urut) FROM jejak_setor WHERE perangkat_id = ? AND seq_lokal <= ?', [perangkatId, konfirmasiDaerah]) ?? 0
 }

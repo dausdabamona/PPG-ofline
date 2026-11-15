@@ -12,7 +12,7 @@ import { daftarPerangkat, type PerangkatTerdaftar } from './repo/perangkat'
 import { ambilProfil, daftarProfil } from './repo/profil'
 import { ambilMeta } from './repo/umum'
 import { ambilWilayah, daftarWilayah, kelompokDalamWilayah, turunanWilayah, type Tingkat, type Wilayah } from './repo/wilayah'
-import { jumlahBelumDisetor } from './sinkron/setor'
+import { jumlahBelumDisetor, jumlahBelumSampaiDaerah } from './sinkron/setor'
 import { jumlahBelumDisetorBelajar } from './sinkron/belajar'
 import { awalPekan, akhirPekan, hariDalamPekan, sekarangIso, selisihHari, tambahHari, tanggalDariIso, tanggalHariIni } from './waktu'
 
@@ -140,7 +140,7 @@ export function ringkasanBerandaAdmin(db: Db, o: { hariTerlambat?: number } = {}
   const batas = o.hariTerlambat ?? 14
   const hitung = (st: string) => db.nilai<number>('SELECT COUNT(*) FROM generus WHERE dihapus = 0 AND status = ?', [st]) ?? 0
   const kini = sekarangIso()
-  const perangkatAktif = { pengurus: 0, mubaligh: 0, generus: 0, wali: 0, total: 0 }
+  const perangkatAktif = { pengurus: 0, mubaligh: 0, generus: 0, wali: 0, admin: 0, kurikulum: 0, total: 0 }
   for (const p of daftarPerangkat(db)) {
     if (statusPerangkat(p, kini) !== 'aktif') continue
     perangkatAktif[p.role]++
@@ -199,6 +199,8 @@ export interface InfoSinkronHp {
   hariSejakBelajar: number | null
   /** true bila ada catatan belajar belum disetor dan Setor Belajar terakhir > `hariPengingat` hari (atau belum pernah). */
   perluPengingatBelajar: boolean
+  /** v3: data yang sudah diterima tingkat atas tetapi belum dipastikan sampai di daerah (konfirmasi bertahap). */
+  belumSampaiDaerah: number
 }
 
 /** Indikator "Ada N data belum disetor" + pengingat setor (§12). */
@@ -225,6 +227,7 @@ export function infoSinkronHp(db: Db, o: { hariPengingat?: number } = {}): InfoS
     perluPengingat: tertunda > 0 && (h === null || h > batas),
     hariSejakBelajar: hb,
     perluPengingatBelajar: belumDisetorBelajar > 0 && (hb === null || hb > batas),
+    belumSampaiDaerah: pengurus ? jumlahBelumSampaiDaerah(db) : 0,
   }
 }
 

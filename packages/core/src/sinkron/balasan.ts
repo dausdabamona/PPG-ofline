@@ -7,8 +7,10 @@ import { GalatPpg } from '../galat'
 import { ambilIdentitas, gabungKunciSetor } from '../perangkat'
 import { daftarPencabutan, daftarPerangkat, gabungPencabutan, seqDiterima, type BarisPencabutan } from '../repo/perangkat'
 import { daftarProfil, pastikanProfilBolehMencatat, simpanRahasiaProfil } from '../repo/profil'
-import { ambilMetaAngka, aturMeta, tandaTanya, type Rekaman } from '../repo/umum'
-import { leluhurWilayah } from '../repo/wilayah'
+import { adalahExe, ambilMetaAngka, aturMeta, tandaTanya, type Rekaman } from '../repo/umum'
+import { kelompokDalamWilayah, leluhurWilayah } from '../repo/wilayah'
+import { ambilKunciTitipan, kunciExeWajib } from '../instalasi'
+import { wilayahMencakupDb } from '../rantai'
 import type { NamaTabelSinkron } from '../skema'
 import { kunciSetorSah, type KunciSetor } from '../token'
 import { sekarangIso, tanggalRingkas } from '../waktu'
@@ -36,48 +38,64 @@ function pilih(db: Db, tabel: NamaTabelSinkron, kolom: string, nilai: string[]):
  * Mubaligh membuat BALASAN untuk satu HP generus/wali: kemajuan, presensi, penilaian akhlaq, koreksi,
  * pengajian & jadwal kelompok, data & status generus, pencabutan token HP itu, konfirmasi_belajar_seq,
  * dan kunci kelompok setor publik terbaru.
+ * v3: EXE desa/kelompok juga boleh membuat BALASAN (mis. menyebarkan pencabutan mubaligh sampai ke HP generus);
+ * kunci kelompok diambil dari kunci titipan daerah.
  */
-export function buatBalasan(dbMubaligh: Db, perangkatPenerimaId: string): BerkasKeluar {
-  const admin = kunciAdminTerpasang(dbMubaligh)
-  const identitas = ambilIdentitas(dbMubaligh)
-  const profilM = daftarProfil(dbMubaligh, 'mubaligh')
-  const token = daftarPerangkat(dbMubaligh, { perangkatId: perangkatPenerimaId, role: ['generus', 'wali'] }).filter((t) =>
-    profilM.some((m) => m.wilayah_id === t.wilayah_id),
+export function buatBalasan(dbPengirim: Db, perangkatPenerimaId: string): BerkasKeluar {
+  const admin = kunciAdminTerpasang(dbPengirim)
+  const identitas = ambilIdentitas(dbPengirim)
+  const profilM = daftarProfil(dbPengirim, 'mubaligh')
+  const profilExe = adalahExe(dbPengirim) ? daftarProfil(dbPengirim, 'admin') : []
+  const mencakup = wilayahMencakupDb(dbPengirim)
+  const token = daftarPerangkat(dbPengirim, { perangkatId: perangkatPenerimaId, role: ['generus', 'wali'] }).filter(
+    (t) => profilM.some((m) => m.wilayah_id === t.wilayah_id) || profilExe.some((m) => mencakup(m.wilayah_id, t.wilayah_id) === true),
   )
   if (!token.length) throw new GalatPpg('PENERIMA_TIDAK_DIKENAL', 'HP penerima tidak terdaftar sebagai generus/wali kelompok Anda.')
   const kelompokId = token[0]!.wilayah_id
-  const m = profilM.find((x) => x.wilayah_id === kelompokId)!
+  const m = profilM.find((x) => x.wilayah_id === kelompokId) ?? profilExe.find((x) => mencakup(x.wilayah_id, kelompokId) === true)!
   pastikanProfilBolehMencatat(m)
-  const generusIds = [...new Set(token.flatMap((t) => t.generus_ids))]
+  const generusIds = [...new Set(token.filter((t) => t.wilayah_id === kelompokId).flatMap((t) => t.generus_ids))]
   const r: Record<string, Rekaman[]> = {
-    wilayah: pilih(dbMubaligh, 'wilayah', 'id', [kelompokId, ...leluhurWilayah(dbMubaligh, kelompokId)]),
-    generus: pilih(dbMubaligh, 'generus', 'id', generusIds),
-    riwayat_keanggotaan: pilih(dbMubaligh, 'riwayat_keanggotaan', 'generus_id', generusIds),
-    riwayat_status: pilih(dbMubaligh, 'riwayat_status', 'generus_id', generusIds),
-    pengajian: pilih(dbMubaligh, 'pengajian', 'wilayah_id', [kelompokId, ...leluhurWilayah(dbMubaligh, kelompokId)]),
-    koreksi: pilih(dbMubaligh, 'koreksi', 'untuk_perangkat_id', [perangkatPenerimaId]),
-    kemajuan_belajar: pilih(dbMubaligh, 'kemajuan_belajar', 'generus_id', generusIds),
-    presensi: pilih(dbMubaligh, 'presensi', 'generus_id', generusIds),
-    penilaian_akhlaq: pilih(dbMubaligh, 'penilaian_akhlaq', 'generus_id', generusIds),
-    jadwal_tambahan: pilih(dbMubaligh, 'jadwal_tambahan', 'kelompok_id', [kelompokId]),
+    wilayah: pilih(dbPengirim, 'wilayah', 'id', [kelompokId, ...leluhurWilayah(dbPengirim, kelompokId)]),
+    generus: pilih(dbPengirim, 'generus', 'id', generusIds),
+    riwayat_keanggotaan: pilih(dbPengirim, 'riwayat_keanggotaan', 'generus_id', generusIds),
+    riwayat_status: pilih(dbPengirim, 'riwayat_status', 'generus_id', generusIds),
+    pengajian: pilih(dbPengirim, 'pengajian', 'wilayah_id', [kelompokId, ...leluhurWilayah(dbPengirim, kelompokId)]),
+    koreksi: pilih(dbPengirim, 'koreksi', 'untuk_perangkat_id', [perangkatPenerimaId]),
+    kemajuan_belajar: pilih(dbPengirim, 'kemajuan_belajar', 'generus_id', generusIds),
+    presensi: pilih(dbPengirim, 'presensi', 'generus_id', generusIds),
+    penilaian_akhlaq: pilih(dbPengirim, 'penilaian_akhlaq', 'generus_id', generusIds),
+    jadwal_tambahan: pilih(dbPengirim, 'jadwal_tambahan', 'kelompok_id', [kelompokId]),
+    // v3: target capaian & periode aktif (layar "Materi yang perlu dituntaskan")
+    target_capaian: dbPengirim.kueri<Rekaman>('SELECT * FROM target_capaian'),
+    pengaturan: dbPengirim.kueri<Rekaman>('SELECT * FROM pengaturan'),
   }
   const rekaman: RekamanPerTabel = {}
   for (const [t, rows] of Object.entries(r)) if (rows.length) rekaman[t as NamaTabelSinkron] = rekamanKirim(rows)
-  const kunci = gabungKunciSetor(m.rahasia.kunci_kelompok_setor)
+  let kunciSetor: KunciSetor[] = m.rahasia.kunci_kelompok_setor ?? []
+  let kunciUmum: { versi: number; kunci: string } | undefined = m.rahasia.kunci_umum_kelompok
+    ? { versi: m.rahasia.kunci_umum_versi ?? 1, kunci: m.rahasia.kunci_umum_kelompok }
+    : undefined
+  if (m.role === 'admin') {
+    const titipan = ambilKunciTitipan(dbPengirim, kunciExeWajib(dbPengirim), kelompokId)
+    kunciSetor = titipan?.setor ?? []
+    kunciUmum = titipan?.umum
+  }
+  const kunci = gabungKunciSetor(kunciSetor)
   const terbaru = kunci[kunci.length - 1]
   const isi: IsiBalasan = {
     kelompok_id: kelompokId,
     token_pengirim: m.token,
     rekaman,
     // pencabutan token penerima + semua token mubaligh kelompok (agar HP generus menolak berkas mubaligh lama)
-    pencabutan: daftarPencabutan(dbMubaligh, [
+    pencabutan: daftarPencabutan(dbPengirim, [
       ...token.map((t) => t.id),
-      ...daftarPerangkat(dbMubaligh, { role: 'mubaligh', wilayahIds: [kelompokId] }).map((t) => t.id),
+      ...daftarPerangkat(dbPengirim, { role: 'mubaligh', wilayahIds: [kelompokId] }).map((t) => t.id),
     ]),
-    konfirmasi_belajar_seq: seqDiterima(dbMubaligh, perangkatPenerimaId),
+    konfirmasi_belajar_seq: seqDiterima(dbPengirim, perangkatPenerimaId),
   }
   if (terbaru) isi.kunci_setor = { versi: terbaru.versi, publik: terbaru.publik, tt: terbaru.tt }
-  if (m.rahasia.kunci_umum_kelompok) isi.kunci_umum = { versi: m.rahasia.kunci_umum_versi ?? 1, kunci: m.rahasia.kunci_umum_kelompok }
+  if (kunciUmum) isi.kunci_umum = kunciUmum
   const header: HeaderBerkas = {
     jenis: 'BALASAN',
     versi_format: 1,
@@ -101,7 +119,7 @@ export function terapkanBalasan(db: Db, bytes: Uint8Array, namaBerkas?: string):
   const isi = dekompresJson<IsiBalasan>(bukaSegel(b.isi, identitas.kotak))
   const kelompokId = b.header.wilayah_id ?? ''
   if (isi.kelompok_id !== kelompokId) throw new GalatPpg('BERKAS_TIDAK_SAH', 'Isi balasan tidak cocok dengan kepalanya.')
-  periksaPengirimMubaligh(db, b, isi.token_pengirim, kelompokId)
+  periksaPengirimMubaligh(db, b, isi.token_pengirim, kelompokId, { bolehExe: true })
   const admin = kunciAdminTerpasang(db)
   const profilKel = daftarProfil(db, ['generus', 'wali']).filter((x) => x.wilayah_id === kelompokId)
   const generusIds = new Set(profilKel.flatMap((p) => p.generus_ids))
@@ -172,6 +190,10 @@ function periksaBalasan(saya: string, kelompokId: string, generusIds: Set<string
           return rek.untuk_perangkat_id === saya ? null : 'Koreksi untuk HP lain.'
         case 'jadwal_tambahan':
           return rek.kelompok_id === kelompokId ? null : 'Jadwal kelompok lain.'
+        case 'target_capaian':
+          return null
+        case 'pengaturan':
+          return rek.id === 'periode_aktif' ? null : 'Pengaturan ini tidak dikirim lewat balasan.'
         default:
           return 'Data ini tidak dikirim lewat balasan mubaligh.'
       }
@@ -181,6 +203,8 @@ function periksaBalasan(saya: string, kelompokId: string, generusIds: Set<string
 /** Daftar HP generus/wali kelompok mubaligh (untuk memilih penerima balasan). */
 export function daftarPenerimaBalasan(db: Db): { perangkatId: string; label: string | null; nama: string[]; role: string[] }[] {
   const kel = new Set(daftarProfil(db, 'mubaligh').map((m) => m.wilayah_id))
+  // v3: EXE desa/kelompok — semua kelompok di wilayahnya
+  if (adalahExe(db)) for (const p of daftarProfil(db, 'admin')) for (const k of kelompokDalamWilayah(db, p.wilayah_id)) kel.add(k)
   const peta = new Map<string, { perangkatId: string; label: string | null; nama: string[]; role: string[] }>()
   for (const t of daftarPerangkat(db, { role: ['generus', 'wali'] })) {
     if (!kel.has(t.wilayah_id) || t.dicabut_pada) continue

@@ -3,8 +3,9 @@ import { gunzipSync, gzipSync } from 'fflate'
 import { dariUtf8, keUtf8, periksaTandaTangan, tandaTangani } from './crypto'
 import { GalatPpg } from './galat'
 
-export type JenisBerkas = 'SETOR' | 'PAKET' | 'BELAJAR' | 'BALASAN' | 'JADWAL' | 'MATERI'
-export const JENIS_BERKAS: readonly JenisBerkas[] = ['SETOR', 'PAKET', 'BELAJAR', 'BALASAN', 'JADWAL', 'MATERI']
+/** v3: `KURIKULUM` = EXE kurikulum → daerah (materi + target capaian + periode aktif). */
+export type JenisBerkas = 'SETOR' | 'PAKET' | 'BELAJAR' | 'BALASAN' | 'JADWAL' | 'MATERI' | 'KURIKULUM'
+export const JENIS_BERKAS: readonly JenisBerkas[] = ['SETOR', 'PAKET', 'BELAJAR', 'BALASAN', 'JADWAL', 'MATERI', 'KURIKULUM']
 
 export interface HeaderBerkas {
   jenis: JenisBerkas
