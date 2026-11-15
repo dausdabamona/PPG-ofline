@@ -451,3 +451,58 @@ memakai API core v3. Core tidak diubah.
 - Kecerahan layar tidak dinaikkan otomatis (perlu plugin tambahan); layar penuh hanya mengajak pengguna menaikkan kecerahan.
 - Pertemuan dibuat saat "Lanjut" walau absen belum disimpan (pertemuan tanpa presensi ikut tersetor; tidak memengaruhi rekap).
 - `docs/PANDUAN-PENGGUNA.md` belum diperbarui untuk menu HP v3 (Absen, Target, Setor ke Desa) dan EXE v3.
+
+---
+
+## Fase 8 — Pemeriksaan akhir v3 (2026-11-15)
+
+Pemeriksa independen atas commit `bf80490` (CI sudah membangun APK & EXE). Pendekatan: tulis test gagal dulu, lalu perbaiki. Keputusan
+teknis baru dicatat di rencana sebagai V-T32–V-T35. Dependensi dan versi tidak diubah.
+
+### Temuan & perbaikan
+
+| # | Tingkat | Temuan | Perbaikan |
+|---|---|---|---|
+| 1 | **Tinggi** | HP baru (dan EXE kelompok baru) menerima token rakitan EXE desa A untuk kelompok desa B: pemeriksaan wilayah dilewati bila pohon wilayah tidak ada, dan pohon wilayah HP berasal dari paket desa sehingga bisa "diracuni". HP itu tampak aktif (setorannya memang ditolak desa/daerah) | **Bukti wilayah** bertanda tangan daerah di token desa (V-T32). HP/EXE kelompok wajib memeriksanya tanpa pohon lokal; test: tanpa bukti, bukti salinan kelompok lain, bukti palsu, pohon yang diracuni → `RANTAI_TIDAK_SAH` |
+| 2 | Sedang | Desa harus meneruskan berkas MATERI daerah secara manual; bila HP membuka paket + materi bersamaan dan materi sudah terpasang, muncul galat "tidak lebih baru" | Materi ikut otomatis di paket desa/kelompok (V-T33); berkas materi yang sama tercatat **Sudah pernah diimpor** |
+| 3 | Sedang | EXE desa/kelompok belum bisa membuat Balasan untuk HP murid/orang tua (core sudah mendukung) | Menu **Kirim Balasan** (V-T34) |
+| 4 | Rendah | HP keluarga: ganti profil dengan peran yang sama (Ali → Ani) tidak memasang ulang isi tab, sehingga keadaan formulir profil sebelumnya bisa terbawa | `key` isi tab memuat id profil (V-T35) |
+| 5 | Info | Diperiksa dan **lulus tanpa perubahan**: pemalsuan/replay SETOR gabungan (berkas diubah ditolak, berkas sama idempoten, setoran untuk daerah ditolak di desa lain), desa menyetor data desa lain, desa menerbitkan token wilayah lain, propagasi pencabutan, paket desa → HP, migrasi v2 → v3, tenggat **Asia/Jayapura** (bulanan tgl 5 23:59 WIT, lewat semenit → bulan berikutnya, pergantian tahun Des → Jan, 31 Jan dengan tgl 28 → 28 Feb; pekanan Ahad 23:59 WIT vs Senin 00:30 WIT), periode S1 = Jul–Des, S2 = Jan–Jun (termasuk 30 Jun 16:00Z = 1 Jul WIT → S1) | — |
+
+### Test baru
+- `packages/core/test/fase8.test.ts` (9 test): A1 bukti wilayah (token jujur diterima HP & EXE kelompok baru; 3 jenis token rakitan
+  ditolak; pohon diracuni; kelompok baru butuh paket daerah), A2 SETOR gabungan (ubah byte, replay, salah tujuan, pengirim), A3 jadwal &
+  periode dengan `TZ=Asia/Jayapura`.
+- `packages/core/test/alur-nyata-v3.test.ts` (10 langkah, **setiap berkas ditulis ke disk lalu dibaca ulang**, kode/token ditempel dengan
+  spasi & baris baru): daerah → kurikulum (target S1, berkas Kurikulum → daerah) → EXE desa (aktivasi, buka paket+materi, laptop ditutup
+  & dibuka dengan sandi) → HP mubaligh & **HP keluarga** (profil pengurus dari desa; paket desa membawa materi) → token wali (2 anak) +
+  generus Ali + generus Ani di HP yang sama (4 profil) → Ali mencatat & Setor Belajar → mubaligh sahkan → Absen dengan saran materi &
+  tuntas → Balasan: Ali 2/3, Ani 0/3, laporan kedua anak, data Budi tidak bocor → HP mubaligh + HP keluarga setor ke desa (0 ditolak) →
+  setor gabungan ke daerah (presensi 3, kemajuan Ali disahkan 2, desa tepat waktu) → kurikulum menambah target → daerah → desa → HP:
+  4 target turun otomatis.
+- `apps/desktop/test/fase8.test.tsx`: EXE desa (UI jsdom) → **Kirim Balasan** → **Buat Balasan** → HP orang tua menerapkan berkasnya.
+- Test lama disesuaikan: skenario 12 (HP kini **menolak** token rakitan), paket desa membawa materi, EXE kelompok membuka paket+materi
+  (materi "Sudah pernah diimpor").
+
+### Hasil uji
+- `npm test`: core **23 berkas / 163 test**, desktop **7 / 16**, mobile **5 / 11** — **190 test lulus**, 0 gagal (Fase 7: 170).
+- `npm run typecheck` bersih (3 workspace); `npm run build` sukses; `npx cap sync android` sukses (4 plugin).
+- **Chrome headless** (`playwright-core` + `/usr/bin/google-chrome`, CSP produksi): `apps/desktop/uji-peramban/uji-asap-v3.mjs`
+  (kelompok kini cukup membuka paket desa; desa membuka **Kirim Balasan**) dan `apps/mobile/uji-peramban/uji-asap.mjs` (360×740) —
+  keduanya **0 galat konsol, 0 tombol < 44 px**.
+
+### Dokumen
+- `docs/PANDUAN-PENGGUNA.md` ditulis ulang untuk v3 (12 bagian, langkah bernomor, nama tombol dicocokkan dengan kode) +
+  `docs/panduan-pengguna.html` (HTML sederhana untuk Google Docs).
+
+### Sisa masalah (jujur)
+- **Token terbitan EXE desa sebelum commit ini** (tanpa bukti wilayah) kini ditolak di HP/EXE kelompok saat memeriksa rantai (aktivasi,
+  paket dari EXE kelompok, BELAJAR di HP mubaligh terbitan desa lama). Hanya berdampak pada uji v3; solusi: desa menerbitkan ulang token
+  (Kode Perangkat sama) setelah membuka paket terbaru dari daerah. Dicantumkan di panduan §12.2.
+- Baris **wilayah** di paket desa ke HP tetap tidak diverifikasi per baris (HP baru belum punya pohon): paket desa yang dimanipulasi bisa
+  menampilkan data kelompok lain di HP itu. Kepercayaan token & setoran tidak terpengaruh (bukti wilayah + pemeriksaan di desa/daerah).
+- Paket desa **selalu** membawa berkas materi (termasuk PDF) — ukuran paket bertambah; belum ada opsi "hanya bila materi baru".
+  Balasan (dari mubaligh maupun EXE) belum membawa berkas materi; murid masih menerima materi dari mubaligh secara manual.
+- Rekaman tetap tidak ditandatangani per rekaman; tujuan SETOR HP tetap tertanam di token; tenggat memakai jam perangkat.
+- Alur HP keluarga di **UI** HP belum punya test jsdom khusus (logika diuji di core; uji asap Chrome mencakup profil generus di HP yang
+  sama). Electron dan Gradle tidak dijalankan di sini; pemindai QR native belum dicoba dengan kamera HP sungguhan.
