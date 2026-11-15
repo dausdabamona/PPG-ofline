@@ -23,7 +23,7 @@ export function HalamanTarget() {
   const { db, peran, platform, aksi, toast } = useApp()
   const aktif = useData(() => periodeAktif(db), [db])
   const [periode, setPeriode] = useState(() => periodeAktif(db))
-  const [kategori, setKategori] = useState<KategoriGenerus>('caberawit')
+  const [kategori, setKategori] = useState<KategoriGenerus>('caberawit_a')
   const daftarPeriode = useMemo(() => daftarPeriodeSekitar(aktif.data ?? periode), [aktif.data, periode])
 
   const kirimKurikulum = async () => {

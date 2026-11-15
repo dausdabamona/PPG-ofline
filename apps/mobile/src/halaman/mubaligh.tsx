@@ -22,10 +22,13 @@ import {
   type BerkasKeluar,
   type GenerusRinci,
   type KemajuanRinci,
+  keaktifanMenunggu,
+  kejarTargetKelompok,
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { PemindaiQr, QrBerseri } from '../komponen/qr'
 import { cariMateri, FormKemajuan, keDataKemajuan, KEMAJUAN_KOSONG, PemilihMateri, useMateriGenerus, type IsianKemajuan } from '../komponen/materi'
+import { EvaluasiMubaligh, KeaktifanMubaligh, LaporanBulananHp } from './juknis'
 import { AreaTeks, BilahPersen, Isian, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, MenuDaftar, Modal, Pilihan, Segmen, Tombol } from '../komponen/ui'
 import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_TOKEN, LABEL_ROLE, labelPeriode, persenTeks, tanggalTeks } from '../utils/label'
 import { DaftarUsulan, FormGenerusBaru, FormUsulanGenerus, KartuBukaBerkas, KartuSetorData } from './bersama'
@@ -239,14 +242,19 @@ export function GenerusMubaligh(p: { kembali?: () => void }) {
 
 // ---------------- Lainnya ----------------
 
-type Sub = 'menu' | 'setoran' | 'simak' | 'generus' | 'token' | 'laporan' | 'balasan' | 'setor' | 'berkas'
+type Sub = 'menu' | 'setoran' | 'simak' | 'generus' | 'token' | 'laporan' | 'balasan' | 'setor' | 'berkas' | 'keaktifan' | 'evaluasi' | 'bulanan'
 
 export function LainnyaMubaligh() {
   const { db, profil } = useApp()
   const [sub, setSub] = useState<Sub>('menu')
   const tujuan = useTujuanSetor()
   const menunggu = useData(() => daftarDiajukanRinci(db, profil.wilayah_id).length, [profil.id]).data ?? 0
+  const ajuanAktif = useData(() => keaktifanMenunggu(db, profil.wilayah_id).length, [profil.id]).data ?? 0
+  const kejar = useData(() => kejarTargetKelompok(db, profil.wilayah_id).length, [profil.id]).data ?? 0
   const kembali = () => setSub('menu')
+  if (sub === 'keaktifan') return <KeaktifanMubaligh kembali={kembali} />
+  if (sub === 'evaluasi') return <EvaluasiMubaligh kembali={kembali} />
+  if (sub === 'bulanan') return <LaporanBulananHp kembali={kembali} />
   if (sub === 'setoran') return <SetoranGenerus kembali={kembali} />
   if (sub === 'simak') return <SimakLangsung kembali={kembali} />
   if (sub === 'generus') return <GenerusMubaligh kembali={kembali} />
@@ -273,6 +281,14 @@ export function LainnyaMubaligh() {
       <MenuDaftar
         item={[
           { teks: 'Setoran Generus', ket: menunggu ? `${menunggu} menunggu disahkan` : 'Buka setoran belajar, lalu sahkan', ikon: '⇩', buka: () => setSub('setoran') },
+          {
+            teks: 'Keaktifan',
+            ket: [ajuanAktif ? `${ajuanAktif} ajuan murid` : '', kejar ? `${kejar} anak kejar target` : ''].filter(Boolean).join(' · ') || 'Lembar kontrol, catat kegiatan, kejar target',
+            ikon: '✔',
+            buka: () => setSub('keaktifan'),
+          },
+          { teks: 'Evaluasi Semester', ket: 'Nilai penguasaan materi & raport', ikon: '★', buka: () => setSub('evaluasi') },
+          { teks: 'Laporan Bulanan', ket: 'Musyawaroh 5 Unsur, Muda/i, NUNGGONI', ikon: '✉', buka: () => setSub('bulanan') },
           { teks: 'Simak Langsung', ket: 'Untuk generus tanpa HP', ikon: '♪', buka: () => setSub('simak') },
           { teks: 'Generus', ket: 'Data & usulan perubahan', ikon: '☺', buka: () => setSub('generus') },
           { teks: 'Terbitkan Token', ket: 'Untuk HP generus / orang tua', ikon: '⚿', buka: () => setSub('token') },

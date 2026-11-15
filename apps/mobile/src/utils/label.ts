@@ -3,10 +3,13 @@ import { adalahGalatPpg, formatTanggal, type HasilImporBanyak } from '@ppg/core'
 
 export const LABEL_KATEGORI: Record<string, string> = {
   paud: 'PAUD',
-  caberawit: 'Caberawit',
-  praremaja: 'Praremaja',
-  remaja: 'Remaja',
-  pranikah: 'Pranikah',
+  caberawit_a: 'Caberawit A',
+  caberawit_b: 'Caberawit B',
+  caberawit_c: 'Caberawit C',
+  praremaja: 'Pra Remaja (G1)',
+  remaja: 'Remaja (G2)',
+  pranikah: 'Pra Nikah (G3)',
+  caberawit: 'Caberawit (perlu ditetapkan)',
 }
 export const LABEL_STATUS_GENERUS: Record<string, string> = {
   aktif: 'Aktif',

@@ -556,7 +556,7 @@ function GenerusSuper(p: { kembali: () => void }) {
 function FormGenerusBaru(p: { tutup: () => void; simpan: (d: Record<string, unknown>) => Promise<void> }) {
   const [nama, setNama] = useState('')
   const [jk, setJk] = useState<'L' | 'P' | null>(null)
-  const [kategori, setKategori] = useState('caberawit')
+  const [kategori, setKategori] = useState('caberawit_a')
   const [wali, setWali] = useState('')
   const [hp, setHp] = useState('')
   return (

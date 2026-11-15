@@ -7,6 +7,7 @@ import { cariMateri, DaftarMateri, FormKemajuan, keDataKemajuan, KEMAJUAN_KOSONG
 import { JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, Modal, Tombol } from '../komponen/ui'
 import { tanggalTeks, waktuTeks } from '../utils/label'
 import { MateriPerluDituntaskan } from '../komponen/tuntas'
+import { KartuKejarTarget, KartuKeaktifan, TombolRapor } from '../komponen/juknis'
 import { KartuBukaBerkas } from './bersama'
 
 function useGenerusSaya(): string | undefined {
@@ -46,6 +47,8 @@ export function TargetGenerus(p: PropHalaman) {
   return (
     <>
       <JudulHalaman judul="Materi yang perlu dituntaskan" keterangan={profil.nama} />
+      {gid ? <KartuKejarTarget generusId={gid} /> : null}
+      {gid ? <KartuKeaktifan generusId={gid} bolehIsi={statusProfil(profil).bolehMencatat && profil.hak.includes('setor_belajar')} /> : null}
       {gid ? (
         <MateriPerluDituntaskan generusId={gid} teksKosong="Data belum ada. Buka berkas balasan atau materi dari mubaligh di menu Setor." />
       ) : null}
@@ -53,6 +56,7 @@ export function TargetGenerus(p: PropHalaman) {
         <Tombol penuh varian="kedua" onClick={() => p.pergi('catat')}>
           Catat yang sudah kupelajari
         </Tombol>
+        {gid ? <TombolRapor generusId={gid} nama={profil.nama} /> : null}
       </div>
     </>
   )
@@ -183,7 +187,7 @@ export function SetorGenerus() {
   const info = useData(() => infoSinkronHp(db), [])
   return (
     <>
-      <JudulHalaman judul="Setor" keterangan="Kirim catatan belajar ke mubaligh, dan buka balasannya." />
+      <JudulHalaman judul="Setor" keterangan="Kirim catatan belajar & lembar kontrol ke mubaligh, dan buka balasannya." />
       <Kartu judul="Setor Belajar">
         <KeadaanData hasil={n}>
           {(x) => (

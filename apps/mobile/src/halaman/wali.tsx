@@ -6,6 +6,7 @@ import { DaftarMateri, RincianMateri, useMateriGenerus } from '../komponen/mater
 import { Angka, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, Segmen, Tombol } from '../komponen/ui'
 import { label, LABEL_PRESENSI, tanggalTeks } from '../utils/label'
 import { MateriPerluDituntaskan } from '../komponen/tuntas'
+import { KartuKejarTarget, KartuKeaktifan, TombolRapor } from '../komponen/juknis'
 import { KartuBukaBerkas } from './bersama'
 
 /** Pilih anak (bila wali punya lebih dari satu anak). */
@@ -29,7 +30,14 @@ export function TargetWali() {
       <JudulHalaman judul="Materi yang perlu dituntaskan" />
       {!anak.length ? <Kosong teks={BELUM_ADA} /> : null}
       {pemilih}
+      {gid ? <KartuKejarTarget key={`k${gid}`} generusId={gid} nama={anak.find((a) => a.id === gid)?.nama} /> : null}
+      {gid ? <KartuKeaktifan key={`a${gid}`} generusId={gid} bolehIsi={false} /> : null}
       {gid ? <MateriPerluDituntaskan key={gid} generusId={gid} teksKosong={BELUM_ADA} anak /> : null}
+      {gid ? (
+        <div className="tumpuk">
+          <TombolRapor generusId={gid} nama={anak.find((a) => a.id === gid)?.nama ?? ''} />
+        </div>
+      ) : null}
     </>
   )
 }

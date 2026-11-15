@@ -1,6 +1,7 @@
 // Layar peran Pengurus: Beranda (pengingat setor) · Absen · Data · Rekap · Sinkron (Setor ke Desa/Kelompok, Buka Berkas).
 import { useState } from 'react'
 import { ambilWilayah, cariGenerus, rekapKemajuan, rekapPresensi, tambahHari, tanggalHariIni, type GenerusRinci } from '@ppg/core'
+import { LaporanBulananHp } from './juknis'
 import { useApp, useData } from '../konteks'
 import type { PropHalaman } from '../kerangka'
 import { Angka, Isian, JudulHalaman, KeadaanData, Kartu, Lencana, Modal, Tombol } from '../komponen/ui'
@@ -18,6 +19,8 @@ export function BerandaPengurus(p: PropHalaman) {
       mondok: semua.filter((g) => g.status === 'mondok').length,
     }
   }, [profil.id])
+  const [bulanan, setBulanan] = useState(false)
+  if (bulanan) return <LaporanBulananHp kembali={() => setBulanan(false)} />
   return (
     <>
       <JudulHalaman judul={`Assalamu'alaikum, ${profil.nama}`} keterangan="Pengurus" />
@@ -40,6 +43,11 @@ export function BerandaPengurus(p: PropHalaman) {
         <Tombol penuh varian="kedua" onClick={() => p.pergi('sinkron')}>
           Setor / Buka Berkas
         </Tombol>
+        {profil.tingkat === 'kelompok' ? (
+          <Tombol penuh varian="kedua" onClick={() => setBulanan(true)}>
+            Laporan Bulanan (Musyawaroh & NUNGGONI)
+          </Tombol>
+        ) : null}
       </div>
     </>
   )

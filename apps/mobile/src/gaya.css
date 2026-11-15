@@ -1248,3 +1248,25 @@ button.baris-progres {
   flex-direction: column;
   gap: 12px;
 }
+
+/* §16 — juknis: lembar kontrol keaktifan, raport, isian evaluasi */
+.lembar-kontrol { list-style: none; margin: 0; padding: 0; }
+.lembar-kontrol li { display: grid; grid-template-columns: 52px 1fr; gap: 6px 10px; padding: 10px 4px; border-bottom: 1px solid #e5e7eb; align-items: center; }
+.lembar-kontrol li.terhitung { background: var(--teal-pucat); }
+.lembar-kontrol .lk-tgl { display: flex; flex-direction: column; align-items: center; }
+.lembar-kontrol .lk-tgl b { font-size: 1.2rem; color: var(--teal-tua); }
+.lembar-kontrol .lk-tgl small { font-size: 0.7rem; color: #6b7280; }
+.lembar-kontrol .lk-kode { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lembar-kontrol .lk-sholat { grid-column: 2; display: flex; gap: 4px; }
+.lembar-kontrol .lk-sholat button { min-width: 44px; min-height: 44px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font-weight: 600; color: #475569; }
+.lembar-kontrol .lk-sholat button.terpilih { background: var(--teal); color: #fff; border-color: var(--teal); }
+.daftar-rapor { list-style: none; margin: 8px 0 0; padding: 0; }
+.daftar-rapor li { padding: 8px 0; border-bottom: 1px solid #eef2f1; }
+.daftar-rapor li > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.daftar-rapor li small { color: #6b7280; }
+.daftar-centang { list-style: none; margin: 8px 0; padding: 0; }
+.daftar-centang li label { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.daftar-centang input[type='checkbox'] { width: 24px; height: 24px; accent-color: var(--teal); }
+.kisi-isian { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.isian-musyawarah { padding: 8px 0; border-bottom: 1px solid #eef2f1; }
+.aksi-baris { display: flex; gap: 6px; flex-shrink: 0; }
