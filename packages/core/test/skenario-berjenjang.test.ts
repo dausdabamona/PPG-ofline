@@ -43,6 +43,7 @@ import {
   periksaTokenDb,
   pengingatSetor,
   progresKelas,
+  ringkasanBerandaAdmin,
   ringkasanBerandaExe,
   saranMateriPertemuan,
   simpanDb,
@@ -297,6 +298,16 @@ describe('Skenario berjenjang v3 (§14)', () => {
     expect(infoSinkronHp(hpM.db).belumSampaiDaerah).toBe(0)
     terapkanPaket(exeA2.db, buatPaket(exeA.db, A2.id, exeA.kunci).bytes)
     expect(jumlahBelumSampaiDaerah(exeA2.db)).toBe(0)
+  })
+
+  it('9b. BUG Fase 10 #7: beranda daerah "Setoran terakhir per kelompok" terisi dari setor gabungan desa', () => {
+    const per = new Map(ringkasanBerandaAdmin(daerah.db).setoranPerKelompok.map((s) => [s.kelompok_id, s]))
+    // A1 (HP mubaligh → desa) dan A2 (EXE kelompok → desa) sampai ke daerah lewat setor gabungan desa A
+    expect(per.get(A1.id)!.terakhir_setor).not.toBeNull()
+    expect(per.get(A1.id)!.belumAdaSetoran).toBe(false)
+    expect(per.get(A2.id)!.terakhir_setor).not.toBeNull()
+    // kelompok desa B belum pernah setor
+    expect(per.get(B1.id)!.terakhir_setor).toBeNull()
   })
 
   it('10. status setor & terlambat sesuai jadwal (desa B belum pernah setor)', () => {

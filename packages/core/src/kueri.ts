@@ -153,13 +153,22 @@ export function ringkasanBerandaAdmin(db: Db, o: { hariTerlambat?: number } = {}
   }
   const hariIni = tanggalHariIni()
   const setoranPerKelompok = daftarWilayah(db, { tingkat: 'kelompok' }).map((k) => {
+    // Fase 10 (bug #7): setoran yang sampai lewat SETOR gabungan desa tercatat di `terakhir_lapor` (bukan terakhir_setor),
+    // dan kelompok ber-EXE menyetor sebagai token admin tingkat kelompok → ambil yang terbaru dari keduanya.
     const terakhir =
-      db.nilai<string | null>(`SELECT MAX(terakhir_setor) FROM perangkat WHERE wilayah_id = ? AND role IN ('pengurus', 'mubaligh')`, [k.id]) ?? null
+      db.nilai<string | null>(
+        `SELECT MAX(MAX(IFNULL(terakhir_setor, ''), IFNULL(terakhir_lapor, ''))) FROM perangkat
+         WHERE wilayah_id = ? AND (role IN ('pengurus', 'mubaligh') OR (role = 'admin' AND tingkat = 'kelompok'))`,
+        [k.id],
+      ) || null
     const h = hariSejak(terakhir, hariIni)
     let terlambat = h !== null && h > batas
     if (h === null) {
       const aktif =
-        db.nilai<string | null>(`SELECT MIN(dibuat_pada) FROM perangkat WHERE wilayah_id = ? AND role IN ('pengurus', 'mubaligh')`, [k.id]) ?? k.dibuat_pada
+        db.nilai<string | null>(
+          `SELECT MIN(dibuat_pada) FROM perangkat WHERE wilayah_id = ? AND (role IN ('pengurus', 'mubaligh') OR (role = 'admin' AND tingkat = 'kelompok'))`,
+          [k.id],
+        ) ?? k.dibuat_pada
       terlambat = (hariSejak(aktif, hariIni) ?? 0) > batas
     }
     return { kelompok_id: k.id, nama: k.nama, terakhir_setor: terakhir, hari_sejak: h, terlambat, belumAdaSetoran: terakhir === null }
