@@ -616,3 +616,68 @@ Dua cacat kecil kartu **"Setor ke Desa …"** yang terlihat saat membuat video d
 - Rekaman yang ditolak tingkat atas tetap terhitung "sudah dikirim, menunggu konfirmasi" sampai setoran berikutnya (yang mengirimnya
   ulang) — teks tetap jujur, tetapi tidak menyebut "ditolak".
 - DB lama tanpa meta `terkirim_seq` menghitung semua yang belum dikonfirmasi sebagai "belum dikirim" sampai setor berikutnya.
+
+---
+
+## Fase 10 — Juknis Pembinaan & Evaluasi Hasil Belajar Generus 2025 (2026-11-16)
+
+Kontrak: RENCANA §16 (keputusan J-T1–J-T20, daftar "Perlu dikonfirmasi PPG Daerah" §16.4). Dokumen juknis & gambarnya tidak masuk
+repo; hanya nama materi + jumlah target (`packages/core/src/data/juknis-2025.ts`).
+
+### Yang dibuat
+1. **Jenjang 7** (PAUD, Caberawit A/B/C, Pra Remaja/G1, Remaja/G2, Pra Nikah/G3). Skema **v4**; migrasi `caberawit` lama → saran umur
+   (≤ 9 th A, selain itu B) **hanya di database daerah**, ditandai `kategori_saran = 1`, turun lewat paket. Nilai lama tetap sah dan
+   cocok dengan A/B/C (`kategoriCocok`) agar target/kelas lama tidak putus. Impor CSV mengenali "Caberawit A", "CB B", "Generus 1", dst.
+   Mubaligh menetapkan jenjang (Evaluasi Semester → Ajukan jenjang) → usulan `ubah_generus` kategori, disetujui otomatis di daerah.
+2. **Keaktifan**: tabel `keaktifan` (lembar kontrol digital), kode juknis per jenjang + IZ (tidak dihitung); A otomatis dari absen
+   (pengajian desa → DS, daerah → DR); 1 per hari; persen bulan = min(jumlah, target)/target; semester = rata-rata bulanan; Pra Nikah 16.
+   HP murid/orang tua: kartu keaktifan + **Lembar Kontrol** (kode + sholat SB/ZH/AS/MG/IS sebagai catatan lokal) → ikut Setor Belajar →
+   mubaligh mengesahkan (Lainnya → Keaktifan) → ikut setor ke desa/daerah. Mubaligh/EXE mencatat kegiatan untuk banyak anak sekaligus;
+   EXE/pengurus desa-daerah boleh MS/DS/MR/DR. **Kejar target** mulai tanggal 20 di HP murid, orang tua, dan mubaligh.
+3. **Evaluasi semester**: master `materi_evaluasi` (seed juknis: PAUD–Caberawit B 14 butir, Caberawit C 22, G1 21, G2–G3 22) dengan
+   cara hitung `hitungan` (opsional centang butir), `juz` (÷ 20 per juz ÷ jumlah juz), `kitab` (÷ halaman terakhir ÷ jumlah kitab),
+   `subjektif` (1–75, **maks 75 ditegakkan core**), `keaktifan`. Hasil `evaluasi_semester` (input mentah; persen dihitung core).
+   Raport (`raporGenerus`) dengan TOTAL rata-rata, sisa target jenjang sebelumnya. Kurikulum/daerah mengubah target, butir, halaman kitab,
+   bulan evaluasi (bawaan Mei/November) di EXE **Materi Evaluasi**.
+4. **Rekap**: `rekapPenguasaan` (No, Nama, kolom tiap materi, TOTAL + rata-rata per kelompok/desa), `rekapKeaktifanBulan` (temuan
+   < 50 % untuk musyawarah), di EXE menu **Evaluasi & Keaktifan** (daerah/desa/kelompok): ekspor .xlsx (lembar per kelompok + ringkasan)
+   dan Cetak/PDF; **Laporan Hasil Belajar** per generus siap cetak. HP murid/orang tua/mubaligh: tombol **Laporan Hasil Belajar**.
+5. **Laporan bulanan kelompok** (`laporan_bulanan`, satu per kelompok per bulan): Musyawaroh 5 Unsur (+ hasil), Muda/i kelompok/desa/daerah,
+   NUNGGONI (nama, unsur MS/4S/LDII/SENKOM/PERSINAS, tanggal, kelas, temuan). Diisi di HP mubaligh/pengurus kelompok atau EXE; ikut setor;
+   rekap & ekspor di EXE desa/daerah.
+6. Ketidakkonsistenan juknis diputuskan & dicatat (§16.4).
+7. **Bug beranda daerah** "Setoran terakhir per kelompok = Belum pernah" padahal desa sudah setor gabungan: kueri hanya membaca
+   `terakhir_setor` token pengurus/mubaligh, padahal setoran via desa dicatat di `terakhir_lapor` dan EXE kelompok = token admin tingkat
+   kelompok. Direproduksi dulu (test `9b` skenario berjenjang), lalu diperbaiki.
+
+### Keamanan (review mandiri)
+- `imporSetor`: evaluasi hanya dari pemegang hak `sahkan` kelompok itu **dan penulis rekamannya** ber-hak sahkan (temuan review: EXE desa
+  bisa menulis nilai atas namanya sendiri lewat setor gabungan → ditutup, test `9c`); batas target/75 %/halaman juz/kitab; id evaluasi &
+  laporan harus id tetap; generus anggota kelompok pada tanggal kegiatan; keaktifan: kode sesuai jenjang, tanggal tidak di masa depan,
+  murid tidak boleh A / tidak boleh mengesahkan. BELAJAR: murid hanya `diajukan` untuk dirinya. KURIKULUM: materi evaluasi divalidasi.
+  PAKET EXE tidak boleh membawa materi evaluasi (hanya lewat berkas MATERI bertanda tangan daerah).
+
+### Hasil uji
+- `npm test`: core **26 berkas / 192 test**, desktop **8 / 18**, mobile **7 / 14** — semua lulus. Test baru: `core/test/juknis.test.ts`
+  (rumus contoh juknis: Iqro' 30/35 = 85,7 %, juz G1 = 12,5 %, kitab Caberawit C ≈ 9,3 %, batas 75, keaktifan 5 %/6,25 %, 1/hari,
+  migrasi v3→v4, BELAJAR→sahkan→setor, raport & rekap, pemalsuan ditolak, usulan jenjang otomatis, laporan bulanan),
+  `skenario-berjenjang` 9b/9c, `mobile/test/juknis.test.tsx`, desktop `halaman-lain` §16.
+- `npm run typecheck` bersih, `npm run build` sukses.
+- Uji asap peramban 360×740 (`uji-asap.mjs`, ditambah layar 11–16: Lembar Kontrol, raport murid, Evaluasi Semester, isian nilai 80 → ditolak
+  / 70 → tersimpan, Keaktifan mubaligh, Laporan Bulanan): **LULUS**, 0 galat konsol, 0 tombol < 44 px. (Penanda "Aktifkan" dibuat exact —
+  sisa masalah Fase 9b selesai.)
+
+### Layar yang berubah (untuk video & panduan)
+- **APK murid**: Target (+ kartu Kejar target, kartu Keaktifan bulan ini, Lembar Kontrol, tombol Laporan Hasil Belajar); Setor (teks).
+- **APK orang tua**: Target (+ kejar target, keaktifan & lembar kontrol per anak — sholat bisa dicentang, raport).
+- **APK mubaligh**: Lainnya → **Keaktifan**, **Evaluasi Semester**, **Laporan Bulanan** (menu baru); label jenjang baru di semua layar.
+- **APK pengurus kelompok**: Beranda → tombol Laporan Bulanan.
+- **EXE**: menu baru **Evaluasi & Keaktifan** (daerah/desa/kelompok) dan **Materi Evaluasi** (daerah/kurikulum); Generus & Jamaah (tanda
+  jenjang perlu dicek); Beranda daerah (setoran terakhir per kelompok kini terisi); pilihan kategori = 7 jenjang.
+
+### Sisa masalah (jujur)
+- Angka target GBMTPG Generus 2 & 3 dan sebagian halaman kitab belum ada di juknis → kosong sampai diisi Kurikulum (materi tanpa target
+  tidak ikut TOTAL; kitab tanpa halaman bernilai 0).
+- Target capaian lama ber-kategori `caberawit` tetap berlaku untuk A/B/C sampai Kurikulum menetapkan target per jenjang baru.
+- Persen raport dihitung dari target terkini; raport lama ikut berubah bila Kurikulum mengubah target kemudian.
+- Keaktifan murid di HP orang tua yang terpisah dari HP murid baru terlihat setelah balasan mubaligh; catatan sholat tidak berpindah HP.

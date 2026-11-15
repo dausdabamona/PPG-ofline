@@ -5,7 +5,7 @@
 <title>Panduan Pengguna PPG Sorong v3</title>
 </head>
 <body>
-<h1>Panduan Pengguna PPG Sorong v3</h1>
+<h1 id="panduan-pengguna-ppg-sorong-v3">Panduan Pengguna PPG Sorong v3</h1>
 <p>Aplikasi PPG Sorong dipakai <strong>tanpa internet</strong>. Data berpindah lewat <strong>berkas yang dikirim di WhatsApp (WA)</strong>. Nama berkas selalu diawali <code>PPG_…</code>.</p>
 <ul>
 <li><strong>Laptop (EXE, "PPG Sorong Admin")</strong> dipakai Admin Daerah, Admin Desa, Admin Kelompok (bila kelompok memakai laptop), dan Petugas Kurikulum. Satu aplikasi untuk semua; perannya ditentukan oleh kode aktivasi.</li>
@@ -14,72 +14,70 @@
 </ul>
 <p>Cara membuka berkas PPG dari WA: tekan berkasnya lalu pilih <strong>Buka dengan PPG Sorong</strong>, atau simpan dulu lalu tekan tombol <strong>Buka Berkas</strong> (HP) / <strong>Buka Paket</strong> atau <strong>Impor Setoran</strong> (laptop).</p>
 <hr />
-<h2>1. Gambaran alur berjenjang</h2>
-<h3>1.1 Data naik (setoran)</h3>
+<h2 id="1-gambaran-alur-berjenjang">1. Gambaran alur berjenjang</h2>
+<h3 id="11-data-naik-setoran">1.1 Data naik (setoran)</h3>
 <pre><code>HP murid ──(Setor Belajar)──► HP mubaligh
 HP pengurus / HP mubaligh ──(Setor ke Kelompok/Desa)──► EXE Kelompok (bila ada) ──(Setor ke Desa)──► EXE Desa
-EXE Desa ──(Setor ke Daerah)──► EXE Daerah
-</code></pre>
-<h3>1.2 Data turun (paket, materi, kurikulum)</h3>
+EXE Desa ──(Setor ke Daerah)──► EXE Daerah</code></pre>
+<h3 id="12-data-turun-paket-materi-kurikulum">1.2 Data turun (paket, materi, kurikulum)</h3>
 <pre><code>EXE Kurikulum ──(berkas Kurikulum)──► EXE Daerah
 EXE Daerah ──(Paket + Berkas Materi)──► EXE Desa
 EXE Desa ──(Paket, materi ikut di dalamnya)──► HP pengurus / HP mubaligh / EXE Kelompok
-HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang tua
-</code></pre>
+HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang tua</code></pre>
 <p>Catatan penting:</p>
 <ul>
 <li>Tujuan setor HP sudah tertanam di tokennya. Nama tombolnya menyesuaikan, mis. <strong>Setor ke Desa Klasaman</strong> atau <strong>Setor ke Kelompok Klasaman 1</strong>.</li>
 <li>Sejak v3, <strong>berkas materi dari daerah ikut otomatis di dalam paket desa</strong>. HP dan EXE kelompok cukup membuka paket dari desa.</li>
 <li>Setoran bersifat kumulatif: bila satu berkas hilang, setoran berikutnya tetap membawa datanya. Berkas yang dibuka dua kali tidak menggandakan data.</li>
 </ul>
-<h3>1.3 Unduh aplikasi (rilis uji terbaru)</h3>
+<h3 id="13-unduh-aplikasi-rilis-uji-terbaru">1.3 Unduh aplikasi (rilis uji terbaru)</h3>
 <p>Halaman unduhan: <strong><a href="https://github.com/dausdabamona/PPG-ofline/releases/tag/uji-terbaru">https://github.com/dausdabamona/PPG-ofline/releases/tag/uji-terbaru</a></strong></p>
 <table>
 <thead>
-<tr>
+<tr class="header">
 <th>Berkas</th>
 <th>Untuk</th>
 </tr>
 </thead>
 <tbody>
-<tr>
+<tr class="odd">
 <td><code>PPG-Sorong.apk</code></td>
 <td>HP Android (pengurus, mubaligh, murid, orang tua)</td>
 </tr>
-<tr>
+<tr class="even">
 <td><code>PPG Sorong Admin-Setup-….exe</code> atau <code>…Portable….exe</code></td>
 <td>Laptop Windows (daerah, desa, kelompok, kurikulum)</td>
 </tr>
 </tbody>
 </table>
 <p>Memasang di laptop Windows:</p>
-<ol>
+<ol type="1">
 <li>Jalankan berkas <code>.exe</code> yang diunduh.</li>
 <li>Bila muncul layar biru <strong>"Windows melindungi PC Anda"</strong>, klik <strong>Info lainnya</strong> → <strong>Tetap jalankan</strong>.</li>
 <li>Buka <strong>PPG Sorong Admin</strong> dari menu Start.</li>
 </ol>
 <p>Memasang di HP Android:</p>
-<ol>
+<ol type="1">
 <li>Unduh <code>PPG-Sorong.apk</code> di HP (atau kirim lewat WA ke diri sendiri), lalu buka berkasnya.</li>
 <li>Bila diminta, izinkan <strong>Instal dari sumber tidak dikenal</strong> untuk aplikasi yang membuka berkas (Chrome, WA, atau File).</li>
 <li>Tekan <strong>Instal</strong>. Bila Play Protect bertanya, pilih <strong>Tetap instal</strong>.</li>
 <li>Buka <strong>PPG Sorong</strong> → isi <strong>Nama HP ini</strong> (mis. "HP Bu Aminah") → tekan <strong>Lanjut</strong>.</li>
 </ol>
 <hr />
-<h2>1A. Super Admin HP: pendaftaran awal</h2>
+<h2 id="1a-super-admin-hp-pendaftaran-awal">1A. Super Admin HP: pendaftaran awal</h2>
 <p><strong>Super Admin HP</strong> adalah HP petugas pendaftaran untuk <strong>seluruh daerah</strong>, atas izin Admin Daerah. Pusat data tetap <strong>satu laptop Admin Daerah</strong>. Super Admin HP <strong>tidak</strong> membuat organisasi dan <strong>tidak</strong> memegang kunci organisasi; ia hanya mendaftarkan perangkat dan mengajukan data, lalu menyetor ke Admin Daerah. Boleh ada beberapa Super Admin HP (mis. 3 HP); semuanya setara dan masing-masing menyetor ke Admin Daerah.</p>
 <p>Super Admin HP bisa: menerbitkan token untuk <strong>pengurus, mubaligh, orang tua (wali), murid (generus), EXE Desa, EXE Kelompok, dan EXE Kurikulum</strong> (tidak bisa membuat Super Admin HP lain); menambah generus, wilayah, dan pengajian; mengimpor setoran HP yang ia daftarkan; mengirim paket dan balasan; serta <strong>Setor ke Daerah</strong>.</p>
-<h3>1A.1 Langkah di laptop Admin Daerah</h3>
+<h3 id="1a1-langkah-di-laptop-admin-daerah">1A.1 Langkah di laptop Admin Daerah</h3>
 <ol type="1">
 <li>Minta petugas mengirim <strong>Kode Perangkat Super Admin</strong> dari HP-nya (lihat 1A.2 langkah 1–4).</li>
 <li>Menu <strong>Perangkat &amp; Token</strong> → tempel di kotak <strong>Kode Perangkat</strong>.</li>
 <li><strong>Untuk</strong>: pilih <strong>Super Admin HP (pendaftaran seluruh daerah)</strong>. <strong>Wilayah tugas</strong>: pilih daerah. Isi <strong>Nama pemegang</strong> dan <strong>Masa berlaku (hari)</strong>.</li>
 <li>Tekan <strong>Terbitkan token</strong> → tunjukkan QR ke HP petugas, atau tekan <strong>Salin token</strong> lalu kirim lewat WA.</li>
 <li>Menu <strong>Kirim Paket</strong> → tekan <strong>Paket Super Admin HP (seluruh daerah)</strong> → kirim berkas <code>PPG_PAKET_…</code> ke petugas. Paket ini membawa daftar wilayah, generus, dan kunci kelompok.</li>
-<li>Setiap menerima setoran Super Admin HP: menu <strong>Impor Setoran</strong> → <strong>Pilih berkas setoran</strong>. Generus, wilayah, dan pengajian yang ditambahkan Super Admin HP <strong>langsung disetujui</strong> (“usulan Super Admin HP disetujui otomatis”); semua perangkat yang ia daftarkan muncul di <strong>Perangkat &amp; Token</strong>.</li>
+<li>Setiap menerima setoran Super Admin HP: menu <strong>Impor Setoran</strong> → <strong>Pilih berkas setoran</strong>. Generus, wilayah, dan pengajian yang ditambahkan Super Admin HP <strong>langsung disetujui</strong> ("usulan Super Admin HP disetujui otomatis"); semua perangkat yang ia daftarkan muncul di <strong>Perangkat &amp; Token</strong>.</li>
 <li>Bila HP Super Admin hilang atau tugasnya selesai: <strong>Perangkat &amp; Token</strong> → baris Super Admin HP → <strong>Cabut</strong>. Setoran dan token baru dari HP itu ditolak sesudahnya; perangkat yang sudah ia daftarkan sebelumnya tetap berlaku.</li>
 </ol>
-<h3>1A.2 Langkah di HP petugas</h3>
+<h3 id="1a2-langkah-di-hp-petugas">1A.2 Langkah di HP petugas</h3>
 <ol type="1">
 <li>Buka <strong>PPG Sorong</strong>. Di layar pertama tekan <strong>Aktifkan sebagai Super Admin HP</strong> (bila HP sudah dipakai profil biasa: layar <strong>Kode Perangkat</strong> → kartu <strong>Super Admin HP</strong> → tombol yang sama).</li>
 <li>Isi <strong>Nama HP ini</strong>, <strong>Kata sandi Super Admin</strong> (minimal 8 karakter), dan <strong>Ulangi kata sandi</strong> → tekan <strong>Buat kunci Super Admin</strong>. Catat kata sandinya — <strong>tidak bisa dipulihkan</strong>.</li>
@@ -89,26 +87,26 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 </ol>
 <p>Menu Super Admin (bawah layar): <strong>Beranda · Daftarkan · Data · Sinkron · Lainnya</strong>.</p>
 <ul>
-<li><strong>Data → Generus</strong>: pilih <strong>Kelompok</strong> → <strong>+ Tambah generus</strong> → isi <strong>Nama generus</strong>, jenis kelamin, <strong>Kategori</strong>, <strong>Nama orang tua</strong>, <strong>No. HP orang tua</strong> → <strong>Simpan generus</strong>. Anak baru bertanda <strong>Baru</strong> dan <strong>langsung bisa dipilih</strong> saat membuat token orang tua/murid. Tekan <strong>Ubah</strong> pada generus untuk <strong>Ajukan status</strong> (mis. mondok) atau <strong>Ajukan pindah</strong>.</li>
+<li><strong>Data → Generus</strong>: pilih <strong>Kelompok</strong> → <strong>+ Tambah generus</strong> → isi <strong>Nama generus</strong>, jenis kelamin, <strong>Kategori</strong>, <strong>Nama orang tua</strong>, <strong>No. HP orang tua</strong> → <strong>Simpan generus</strong>. Anak baru bertanda <strong>Baru</strong> dan <strong>langsung bisa dipilih</strong> saat membuat token orang tua/murid. Tekan <strong>Ubah</strong> pada generus untuk <strong>Ajukan status</strong> (mis. mondok) atau <strong>Ajukan pindah</strong>.</li>
 <li><strong>Data → Wilayah</strong> (desa/kelompok baru) → <strong>Ajukan wilayah</strong>; <strong>Data → Pengajian / kelas</strong> → <strong>Ajukan pengajian</strong>. Semua tambahan ini disetujui otomatis saat setoran HP ini sampai di Admin Daerah. Token untuk kelompok baru bisa diterbitkan setelah paket berikutnya dari Daerah dibuka.</li>
-<li><strong>Daftarkan</strong>: pilih <strong>Peran</strong> (Pengurus, Mubaligh, Orang tua, Murid, EXE Desa, EXE Kelompok, EXE Kurikulum) → pilih kelompok/desa → (orang tua: centang semua anaknya; murid: pilih satu anak) → isi nama → untuk pengurus/mubaligh pilih <strong>Setoran HP itu dikirim ke</strong> (<strong>HP Super Admin ini</strong> atau <strong>Langsung ke Admin Daerah (laptop)</strong>) → <strong>Pindai QR Kode Perangkat</strong> atau tempel di <strong>Kode Perangkat</strong> → <strong>Terbitkan token</strong>. Token tampil sebagai QR bergantian (penerima menekan <strong>Pindai QR Token</strong>), atau tekan <strong>Kirim lewat WA</strong> / <strong>Salin token</strong>. Token EXE ditempel di laptop (menu “Aktifkan dengan kode”).</li>
+<li><strong>Daftarkan</strong>: pilih <strong>Peran</strong> (Pengurus, Mubaligh, Orang tua, Murid, EXE Desa, EXE Kelompok, EXE Kurikulum) → pilih kelompok/desa → (orang tua: centang semua anaknya; murid: pilih satu anak) → isi nama → untuk pengurus/mubaligh pilih <strong>Setoran HP itu dikirim ke</strong> (<strong>HP Super Admin ini</strong> atau <strong>Langsung ke Admin Daerah (laptop)</strong>) → <strong>Pindai QR Kode Perangkat</strong> atau tempel di <strong>Kode Perangkat</strong> → <strong>Terbitkan token</strong>. Token tampil sebagai QR bergantian (penerima menekan <strong>Pindai QR Token</strong>), atau tekan <strong>Kirim lewat WA</strong> / <strong>Salin token</strong>. Token EXE ditempel di laptop (menu "Aktifkan dengan kode").</li>
 <li><strong>Sinkron</strong>: <strong>Setor ke Daerah</strong> (kirim berkas <code>PPG_SETOR_…</code> ke Admin Daerah; <strong>Kirim ulang semua data</strong> bila berkas sebelumnya hilang) · <strong>Buka Paket / Impor Setoran</strong> (paket Daerah dan setoran HP pengurus/mubaligh yang Anda daftarkan; boleh banyak berkas) · <strong>Kirim Paket</strong> (pilih <strong>Wilayah paket</strong>, atau <strong>Paket semua kelompok</strong>) · <strong>Kirim Balasan</strong> ke HP murid/orang tua.</li>
 <li><strong>Lainnya → Perangkat</strong>: perangkat yang didaftarkan HP ini → <strong>Bekukan</strong>, <strong>Cairkan</strong>, <strong>Cabut</strong>. Pencabutan sampai ke Daerah lewat <strong>Setor ke Daerah</strong>.</li>
 <li><strong>Lainnya → Pengaturan</strong>: <strong>Ganti sandi</strong>; <strong>Cadangkan data Super Admin</strong> (simpan di <strong>dua tempat</strong>, mis. Google Drive dan HP lain) dan <strong>Pulihkan cadangan Super Admin</strong>.</li>
 <li><strong>Kunci sekarang</strong> atau tombol nama di kanan atas menutup Super Admin. Aplikasi <strong>terkunci otomatis</strong> bila ditinggal di latar belakang lebih dari <strong>10 menit</strong>; buka lagi dengan <strong>Kata sandi Super Admin</strong> → <strong>Buka Super Admin</strong>.</li>
 </ul>
-<h3>1A.3 HP Super Admin yang juga dipakai profil biasa</h3>
+<h3 id="1a3-hp-super-admin-yang-juga-dipakai-profil-biasa">1A.3 HP Super Admin yang juga dipakai profil biasa</h3>
 <p>Data Super Admin disimpan <strong>terpisah</strong> dari profil biasa (pengurus/mubaligh/orang tua) di HP yang sama. <strong>Lainnya → Kembali ke profil biasa</strong> membuka layar <strong>Pilih Profil</strong>; di sana ada kartu <strong>Super Admin HP</strong> (bertanda <strong>Sandi</strong>) untuk masuk lagi. Bila token Super Admin tertempel di <strong>Tempel Token</strong> profil biasa, aplikasi menjelaskan bahwa kode itu untuk Super Admin HP.</p>
 <hr />
-<h2>2. Admin Daerah (laptop)</h2>
-<h3>2.1 Pengaturan awal (sekali saja)</h3>
-<ol>
+<h2 id="2-admin-daerah-laptop">2. Admin Daerah (laptop)</h2>
+<h3 id="21-pengaturan-awal-sekali-saja">2.1 Pengaturan awal (sekali saja)</h3>
+<ol type="1">
 <li>Buka aplikasi → pilih tab <strong>Buat organisasi baru (Admin Daerah)</strong>.</li>
 <li>Isi <strong>Nama organisasi</strong>, <strong>Kata sandi admin</strong> (minimal 8 karakter), dan <strong>Ulangi kata sandi</strong> → tekan <strong>Buat database admin</strong>.</li>
 <li>Lain kali, buka aplikasi → isi <strong>Kata sandi admin</strong> → tekan <strong>Masuk</strong>.</li>
 </ol>
-<h3>2.2 Cadangan kunci — WAJIB di 2 tempat</h3>
-<ol>
+<h3 id="22-cadangan-kunci--wajib-di-2-tempat">2.2 Cadangan kunci — WAJIB di 2 tempat</h3>
+<ol type="1">
 <li>Menu <strong>Pengaturan</strong> → bagian <strong>Cadangan kunci admin</strong>.</li>
 <li>Isi <strong>Kata sandi cadangan</strong> dan <strong>Ulangi kata sandi cadangan</strong> (boleh berbeda dari kata sandi admin).</li>
 <li>Tekan <strong>Ekspor cadangan kunci</strong> → simpan berkas <code>PPG_KUNCI_ADMIN_….ppgkey</code>.</li>
@@ -117,36 +115,36 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Setiap bulan: <strong>Pengaturan</strong> → <strong>Simpan cadangan database</strong> ke flashdisk.</li>
 </ol>
 <p>Tanpa berkas <code>.ppgkey</code>, bila laptop rusak atau kata sandi lupa, semua laptop desa dan semua HP harus diaktifkan ulang dari awal.</p>
-<h3>2.3 Wilayah</h3>
-<ol>
+<h3 id="23-wilayah">2.3 Wilayah</h3>
+<ol type="1">
 <li>Menu <strong>Wilayah</strong> → <strong>+ Tambah daerah</strong> → isi nama dan kode singkat (mis. <code>SRG</code>) → <strong>Simpan</strong>.</li>
 <li>Pada baris daerah tekan <strong>+ Desa</strong> → isi → <strong>Simpan</strong>. Ulangi untuk tiap desa.</li>
 <li>Pada baris desa tekan <strong>+ Kelompok</strong> → isi nama dan kode (mis. <code>K1</code>) → <strong>Simpan</strong>. Kode kelompok dipakai di berkas CSV.</li>
 </ol>
-<h3>2.4 Data generus (CSV)</h3>
-<ol>
+<h3 id="24-data-generus-csv">2.4 Data generus (CSV)</h3>
+<ol type="1">
 <li>Menu <strong>Generus &amp; Jamaah</strong> → <strong>Unduh templat CSV</strong> → buka di Excel.</li>
 <li>Isi satu baris per generus: <code>nama</code>, <code>jenis_kelamin</code> (L/P), <code>tanggal_lahir</code> (boleh <code>DD/MM/YYYY</code>), <code>kategori</code> (boleh kosong, dihitung dari umur), <code>kelompok_kode</code>, <code>wali_nama</code>, <code>wali_no_hp</code>.</li>
 <li>Simpan sebagai <strong>CSV</strong> → tekan <strong>Impor CSV</strong> → pilih berkasnya.</li>
 <li>Baris yang gagal tampil dengan alasannya. Perbaiki baris itu lalu impor lagi.</li>
 <li>Satu per satu: <strong>+ Tambah generus</strong>. Pindah kelompok dan ubah status lewat tombol <strong>Pindah</strong> dan <strong>Status</strong> di baris generus.</li>
 </ol>
-<h3>2.5 Pengajian = kelas per kategori</h3>
-<ol>
+<h3 id="25-pengajian--kelas-per-kategori">2.5 Pengajian = kelas per kategori</h3>
+<ol type="1">
 <li>Menu <strong>Pengajian</strong> → <strong>+ Tambah pengajian</strong>.</li>
 <li>Pilih <strong>Wilayah</strong> (kelompok), isi <strong>Nama pengajian</strong> (mis. "Kelas Caberawit"), <strong>Hari</strong>, <strong>Jam</strong>, <strong>Tempat</strong>.</li>
 <li>Di bagian <strong>Kelas — kategori generus</strong>, centang kategori kelas itu (PAUD, Caberawit, Praremaja, Remaja, Pranikah). Kosongkan bila pengajian untuk semua generus.</li>
 <li>Tekan <strong>Simpan</strong>. Saat absen, hanya generus kategori yang dicentang yang tampil.</li>
 </ol>
-<h3>2.6 Jadwal setor</h3>
-<ol>
+<h3 id="26-jadwal-setor">2.6 Jadwal setor</h3>
+<ol type="1">
 <li>Menu <strong>Jadwal Setor</strong>.</li>
 <li>Bagian <strong>Kelompok → Desa</strong>: pilih pola <strong>Pekanan (tiap hari tertentu)</strong>, pilih hari (mis. Ahad), isi batas jam → <strong>Simpan jadwal Kelompok → Desa</strong>.</li>
 <li>Bagian <strong>Desa → Daerah</strong>: pilih <strong>Bulanan (tiap tanggal tertentu)</strong>, pilih tanggal (1–28, mis. 5), isi batas jam → <strong>Simpan jadwal Desa → Daerah</strong>.</li>
 <li>Jadwal ikut turun lewat paket. HP dan laptop desa/kelompok akan mengingatkan dan menandai <strong>Terlambat</strong> (merah) bila lewat tenggat. Jam yang dipakai adalah jam di perangkat masing-masing (WIT untuk Sorong).</li>
 </ol>
-<h3>2.7 Aktivasi EXE Desa dan EXE Kurikulum</h3>
-<ol>
+<h3 id="27-aktivasi-exe-desa-dan-exe-kurikulum">2.7 Aktivasi EXE Desa dan EXE Kurikulum</h3>
+<ol type="1">
 <li>Admin desa / petugas kurikulum memasang EXE, memilih <strong>Aktifkan dengan kode</strong>, lalu mengirim <strong>Kode Perangkat EXE</strong> lewat WA (lihat 3.1).</li>
 <li>Di laptop daerah: menu <strong>Perangkat &amp; Token</strong> → bagian <strong>Terbitkan token / kode aktivasi</strong>.</li>
 <li>Tempel di kotak <strong>Kode Perangkat</strong>.</li>
@@ -156,50 +154,59 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Segera buat paket untuk desa itu (2.10) dan kirim berkas materi (2.9).</li>
 </ol>
 <p>Daerah juga bisa menerbitkan token HP pengurus/mubaligh dan <strong>EXE Kelompok</strong> langsung bila desa belum punya laptop.</p>
-<h3>2.8 Impor kurikulum dan setoran</h3>
-<ol>
+<h3 id="28-impor-kurikulum-dan-setoran">2.8 Impor kurikulum dan setoran</h3>
+<ol type="1">
 <li>Kumpulkan berkas <code>PPG_SETOR_….ppg</code> dari desa dan <code>PPG_KURIKULUM_….ppg</code> dari petugas kurikulum ke satu folder.</li>
 <li>Menu <strong>Impor Setoran</strong> → <strong>Pilih berkas setoran</strong> → pilih semua sekaligus.</li>
 <li>Baca <strong>Ringkasan impor</strong>. "Setoran gabungan" berarti setoran dari EXE desa. "Sudah pernah diimpor" berarti datanya sudah masuk.</li>
 <li>Bila ada rekaman ditolak, baca alasannya; perbaiki lewat <strong>Koreksi</strong> bila perlu.</li>
 <li>Periksa menu <strong>Usulan</strong> → <strong>Setujui</strong> atau <strong>Tolak</strong> usulan dari desa/HP.</li>
 </ol>
-<h3>2.9 Materi</h3>
-<ol>
+<h3 id="29-materi">2.9 Materi</h3>
+<ol type="1">
 <li>Menu <strong>Materi</strong>: kurikulum dasar sudah terisi. Tambah materi/PDF bila perlu.</li>
 <li>Tekan <strong>Buat Berkas Materi</strong> → simpan <code>PPG_MATERI_v….ppg</code>.</li>
 <li>Kirim berkas itu ke admin desa (bersama paket). Desa meneruskannya otomatis di paket ke bawah.</li>
 </ol>
-<h3>2.10 Kirim paket</h3>
-<ol>
+<h3 id="210-kirim-paket">2.10 Kirim paket</h3>
+<ol type="1">
 <li>Menu <strong>Kirim Paket</strong>.</li>
 <li>Untuk semua laptop desa: tekan <strong>Paket semua desa (EXE desa)</strong> → pilih folder.</li>
 <li>Untuk satu wilayah: pilih <strong>Wilayah</strong> → <strong>Buat &amp; simpan paket</strong>.</li>
 <li>Kirim tiap berkas <code>PPG_PAKET_….ppg</code> ke admin desa yang sesuai. Untuk HP Super Admin: tekan <strong>Paket Super Admin HP (seluruh daerah)</strong> dan kirim ke tiap Super Admin HP (lihat 1A.1).</li>
 <li>Kirim paket setiap selesai impor setoran, menyetujui usulan, mengubah data, atau mengimpor kurikulum.</li>
 </ol>
-<h3>2.11 Beranda: status setor</h3>
-<ol>
+<h3 id="211-beranda-status-setor">2.11 Beranda: status setor</h3>
+<ol type="1">
 <li>Menu <strong>Beranda</strong> → tabel <strong>Status setor tiap desa</strong>.</li>
 <li>Tiap desa tampil dengan jadwal, tenggat berikutnya, setor terakhir, dan lencana <strong>Tepat waktu</strong> (hijau) atau <strong>Terlambat</strong> (merah).</li>
 <li>Hubungi desa yang terlambat.</li>
 </ol>
-<h3>2.12 Rekap &amp; Excel</h3>
-<ol>
+<h3 id="212-rekap--excel">2.12 Rekap &amp; Excel</h3>
+<ol type="1">
 <li>Menu <strong>Rekap &amp; Laporan</strong> → pilih wilayah dan rentang tanggal.</li>
 <li>Lihat kartu <strong>Capaian target</strong> (per desa, kelompok, kelas) serta presensi dan kemajuan.</li>
 <li>Tekan <strong>Ekspor Excel</strong>. Rekap hanya memuat materi yang sudah <strong>disahkan</strong>.</li>
 </ol>
-<h3>2.13 Mencabut perangkat</h3>
-<ol>
+<h3 id="212a-evaluasi--keaktifan-juknis-2025">2.12a Evaluasi &amp; Keaktifan (Juknis 2025)</h3>
+<p>Menu <strong>Evaluasi &amp; Keaktifan</strong> (juga di EXE desa dan kelompok):</p>
+<ul>
+<li><strong>Rekap Penguasaan Materi</strong> → pilih <strong>Wilayah</strong> (kelompok/desa/daerah), <strong>Semester</strong>, dan jenjang → tabel No · Nama · kolom tiap materi · TOTAL, rata-rata, ringkasan per desa/kelompok → <strong>Ekspor Excel</strong> (lembar per kelompok + ringkasan) atau <strong>Cetak / PDF</strong>.</li>
+<li><strong>Keaktifan Bulanan</strong> → pilih <strong>Bulan</strong> → rata-rata per kelompok dan daftar anak (merah = di bawah 50%, bahan musyawarah).</li>
+<li><strong>Laporan Bulanan</strong> → Musyawaroh 5 Unsur, Muda/i, NUNGGONI tiap kelompok (<strong>Isi/ubah</strong> bila kelompok melapor lewat kertas).</li>
+<li><strong>Laporan Hasil Belajar</strong> → pilih generus → <strong>Cetak / PDF</strong> (raport).</li>
+<li><strong>Generus &amp; Jamaah</strong>: tanda kuning <strong>tetapkan A/B/C</strong> / <strong>saran umur — cek</strong> → buka generus, pilih jenjang yang benar.</li>
+</ul>
+<h3 id="213-mencabut-perangkat">2.13 Mencabut perangkat</h3>
+<ol type="1">
 <li>Menu <strong>Perangkat &amp; Token</strong> → <strong>Daftar perangkat (token)</strong>.</li>
 <li>Pada baris perangkat tekan <strong>Bekukan</strong> (sementara), <strong>Cairkan</strong>, atau <strong>Cabut</strong> (permanen).</li>
 <li>Kirim paket ke wilayahnya agar pencabutan sampai ke bawah.</li>
 </ol>
 <hr />
-<h2>3. Admin Desa (laptop)</h2>
-<h3>3.1 Aktivasi dengan kode</h3>
-<ol>
+<h2 id="3-admin-desa-laptop">3. Admin Desa (laptop)</h2>
+<h3 id="31-aktivasi-dengan-kode">3.1 Aktivasi dengan kode</h3>
+<ol type="1">
 <li>Pasang EXE → buka → pilih tab <strong>Aktifkan dengan kode (Desa / Kelompok / Kurikulum)</strong>.</li>
 <li>Isi <strong>Nama laptop ini</strong> (mis. "EXE Desa Klasaman"), <strong>Kata sandi aplikasi</strong>, dan <strong>Ulangi kata sandi aplikasi</strong> → tekan <strong>Buat Kode Perangkat</strong>.</li>
 <li>Tekan <strong>Salin kode</strong> (atau <strong>Simpan ke berkas</strong>) → kirim lewat WA ke Admin Daerah.</li>
@@ -207,13 +214,13 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Laptop boleh ditutup di antara langkah 3 dan 4. Saat dibuka lagi: isi <strong>Kata sandi aplikasi</strong> → <strong>Masuk</strong> → layar aktivasi muncul kembali.</li>
 <li>Kata sandi aplikasi <strong>tidak bisa dipulihkan</strong>. Catat baik-baik, dan rutin <strong>Pengaturan</strong> → <strong>Simpan cadangan database</strong>.</li>
 </ol>
-<h3>3.2 Buka paket dari daerah</h3>
-<ol>
+<h3 id="32-buka-paket-dari-daerah">3.2 Buka paket dari daerah</h3>
+<ol type="1">
 <li>Menu <strong>Buka Paket</strong> → <strong>Pilih berkas paket</strong> → pilih <code>PPG_PAKET_…</code> dan <code>PPG_MATERI_…</code> dari daerah sekaligus.</li>
 <li>Kepala aplikasi kini menampilkan "Admin Desa · nama desa".</li>
 </ol>
-<h3>3.3 Aktivasi HP pengurus/mubaligh dan EXE kelompok</h3>
-<ol>
+<h3 id="33-aktivasi-hp-pengurusmubaligh-dan-exe-kelompok">3.3 Aktivasi HP pengurus/mubaligh dan EXE kelompok</h3>
+<ol type="1">
 <li>Minta orangnya mengirim <strong>Kode Perangkat</strong> (HP: layar <strong>Kode Perangkat</strong> → <strong>Kirim lewat WA</strong>; laptop kelompok: lihat 4.1).</li>
 <li>Menu <strong>Perangkat &amp; Token</strong> → bagian <strong>Terbitkan kode aktivasi di desa ini</strong>.</li>
 <li>Tempel di <strong>Kode Perangkat</strong>. Pada <strong>Untuk</strong>, pilih <strong>Mubaligh (HP, satu kelompok)</strong>, <strong>Pengurus (HP, kelompok/desa/daerah)</strong>, atau <strong>EXE Kelompok (aplikasi laptop kelompok)</strong>.</li>
@@ -221,65 +228,65 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Tekan <strong>Salin token</strong> dan kirim lewat WA, atau tunjukkan QR di layar laptop agar dipindai HP.</li>
 <li>Bila muncul pesan "Data kelompok ini belum lengkap dari daerah", buka paket terbaru dari daerah dulu.</li>
 </ol>
-<h3>3.4 Kirim paket ke bawah</h3>
-<ol>
+<h3 id="34-kirim-paket-ke-bawah">3.4 Kirim paket ke bawah</h3>
+<ol type="1">
 <li>Menu <strong>Kirim Paket</strong> → <strong>Paket semua kelompok</strong> (pilih folder), atau pilih <strong>Wilayah</strong> → <strong>Buat &amp; simpan paket</strong>.</li>
 <li>Kirim tiap <code>PPG_PAKET_…</code> ke grup WA kelompoknya. Berkas materi daerah sudah ikut di dalamnya.</li>
 </ol>
-<h3>3.5 Impor setoran dari HP dan EXE kelompok</h3>
-<ol>
+<h3 id="35-impor-setoran-dari-hp-dan-exe-kelompok">3.5 Impor setoran dari HP dan EXE kelompok</h3>
+<ol type="1">
 <li>Kumpulkan <code>PPG_SETOR_…</code> dari HP pengurus/mubaligh dan EXE kelompok.</li>
 <li>Menu <strong>Impor Setoran</strong> → <strong>Pilih berkas setoran</strong> → pilih semuanya.</li>
 <li>Menu <strong>Beranda</strong> → tabel <strong>Status setor tiap kelompok</strong> menunjukkan yang tepat waktu dan terlambat.</li>
 </ol>
-<h3>3.6 Setor ke Daerah</h3>
-<ol>
+<h3 id="36-setor-ke-daerah">3.6 Setor ke Daerah</h3>
+<ol type="1">
 <li>Menu <strong>Setor ke Daerah</strong> → tekan <strong>Setor ke Daerah</strong> → simpan <code>PPG_SETOR_….ppg</code>.</li>
 <li>Kirim berkas itu lewat WA ke Admin Daerah sebelum tenggat (mis. tiap tanggal 5).</li>
 <li>Bila daerah meminta: buka <strong>Pilihan lain</strong> → <strong>Kirim ulang semua data</strong>.</li>
 </ol>
-<h3>3.7 Kirim Balasan ke HP murid/orang tua</h3>
+<h3 id="37-kirim-balasan-ke-hp-muridorang-tua">3.7 Kirim Balasan ke HP murid/orang tua</h3>
 <p>Dipakai bila mubaligh berhalangan atau sesudah token mubaligh dicabut.</p>
-<ol>
+<ol type="1">
 <li>Menu <strong>Kirim Balasan</strong>.</li>
 <li>Tekan <strong>Buat Balasan</strong> pada HP yang dituju, atau <strong>Buat balasan semua HP</strong> (pilih folder).</li>
 <li>Kirim tiap <code>PPG_BALASAN_…</code> ke HP yang namanya tertera.</li>
 </ol>
-<h3>3.8 Generus &amp; data</h3>
+<h3 id="38-generus--data">3.8 Generus &amp; data</h3>
 <p>Menu <strong>Generus &amp; Data</strong> hanya untuk melihat. Perubahan diajukan lewat <strong>+ Usulkan generus baru</strong>, <strong>Usulkan pindah</strong>, atau <strong>Usulkan status</strong>; usulan ikut setoran ke daerah.</p>
 <hr />
-<h2>4. Kelompok (laptop / EXE Kelompok)</h2>
-<h3>4.1 Aktivasi</h3>
-<ol>
+<h2 id="4-kelompok-laptop--exe-kelompok">4. Kelompok (laptop / EXE Kelompok)</h2>
+<h3 id="41-aktivasi">4.1 Aktivasi</h3>
+<ol type="1">
 <li>Ikuti langkah 3.1, tetapi kirim <strong>Kode Perangkat EXE</strong> ke <strong>Admin Desa</strong> (atau daerah).</li>
 <li>Tempel kode aktivasi di <strong>Kode aktivasi</strong> → <strong>Aktifkan</strong>.</li>
 <li>Menu <strong>Buka Paket</strong> → <strong>Pilih berkas paket</strong> → pilih <code>PPG_PAKET_…</code> dari desa.</li>
 </ol>
-<h3>4.2 Absen Pertemuan</h3>
-<ol>
+<h3 id="42-absen-pertemuan">4.2 Absen Pertemuan</h3>
+<ol type="1">
 <li>Menu <strong>Absen Pertemuan</strong> → isi <strong>Tanggal pertemuan</strong> → pilih <strong>Kelas / pengajian</strong> → <strong>Buka pertemuan</strong>.</li>
 <li>Bagian <strong>2. Materi hari ini</strong>: tekan <strong>+ Pakai</strong> pada saran, atau pilih <strong>Materi lain dari target</strong> → <strong>Tambahkan materi</strong>.</li>
 <li>Bagian <strong>3. Kehadiran &amp; materi tuntas</strong>: tekan <strong>Semua hadir</strong>, ubah yang izin/sakit/alpa.</li>
 <li>Centang materi yang <strong>tuntas</strong> per generus (hanya generus yang hadir).</li>
 <li>Tekan <strong>Simpan absen</strong>.</li>
 </ol>
-<h3>4.3 Setor, balasan, rekap</h3>
-<ol>
+<h3 id="43-setor-balasan-rekap">4.3 Setor, balasan, rekap</h3>
+<ol type="1">
 <li><strong>Impor Setoran</strong>: berkas setoran dari HP di kelompok ini.</li>
 <li><strong>Setor ke Desa</strong> → tekan <strong>Setor ke Desa</strong> → kirim berkasnya ke admin desa.</li>
 <li><strong>Kirim Balasan</strong>: seperti 3.7.</li>
 <li><strong>Rekap &amp; Laporan</strong>: capaian kelompok + <strong>Ekspor Excel</strong>.</li>
 </ol>
 <hr />
-<h2>5. Petugas Kurikulum (laptop / EXE Kurikulum)</h2>
-<h3>5.1 Aktivasi dan materi dasar</h3>
-<ol>
+<h2 id="5-petugas-kurikulum-laptop--exe-kurikulum">5. Petugas Kurikulum (laptop / EXE Kurikulum)</h2>
+<h3 id="51-aktivasi-dan-materi-dasar">5.1 Aktivasi dan materi dasar</h3>
+<ol type="1">
 <li>Ikuti langkah 3.1, kirim Kode Perangkat EXE ke <strong>Admin Daerah</strong>.</li>
 <li>Setelah aktif: menu <strong>Buka Berkas Materi</strong> → <strong>Pilih berkas materi</strong> → pilih <code>PPG_MATERI_…</code> dari daerah.</li>
 </ol>
-<h3>5.2 Target per semester</h3>
+<h3 id="52-target-per-semester">5.2 Target per semester</h3>
 <p>Periode: <strong>S1 = Juli–Desember</strong>, <strong>S2 = Januari–Juni</strong> tahun berikutnya (mis. "2026-S1" = Juli–Desember 2026; "2026-S2" = Januari–Juni 2027).</p>
-<ol>
+<ol type="1">
 <li>Menu <strong>Target Capaian</strong> → pilih <strong>Periode</strong> dan <strong>Kategori generus</strong>.</li>
 <li>Di <strong>Tambah materi ke target</strong>: pilih <strong>Bidang materi</strong> dan <strong>Kategori materi</strong> → <strong>+ Tambah</strong> per materi, atau <strong>Tambah semua di kategori ini</strong>.</li>
 <li>Atur urutan dengan <strong>↑ Naik</strong> / <strong>↓ Turun</strong>; hapus dengan <strong>Buang</strong>.</li>
@@ -287,23 +294,25 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Untuk menyalin dari semester lalu: pilih <strong>Salin dari periode</strong> → periksa → <strong>Simpan target</strong>.</li>
 <li>Tekan <strong>Jadikan periode aktif</strong> untuk semester yang sedang berjalan.</li>
 </ol>
-<h3>5.3 Materi dan berkas Kurikulum</h3>
-<ol>
+<h3 id="52a-materi-evaluasi-juknis-2025">5.2a Materi Evaluasi (Juknis 2025)</h3>
+<p>Menu <strong>Materi Evaluasi</strong> (EXE kurikulum &amp; daerah): pilih jenjang → <strong>Ubah</strong> untuk mengganti nama, <strong>target</strong> (materi GBMTPG Generus 2/3 masih "Belum ditetapkan"), daftar butir, atau <strong>halaman terakhir kitab</strong> hadits. <strong>Bulan evaluasi semester</strong> (bawaan November &amp; Mei) → <strong>Simpan</strong>. Perubahan ikut berkas Kurikulum → daerah → berkas Materi ke semua HP.</p>
+<h3 id="53-materi-dan-berkas-kurikulum">5.3 Materi dan berkas Kurikulum</h3>
+<ol type="1">
 <li>Menu <strong>Materi</strong>: tambah atau ubah materi bila perlu (<strong>+ Bidang</strong>, <strong>+ Kategori</strong>, <strong>+ Materi</strong>, <strong>Unggah PDF</strong>).</li>
 <li>Tekan <strong>Buat berkas Kurikulum</strong> (di Beranda, Materi, atau Target Capaian) → kirim <code>PPG_KURIKULUM_…</code> ke Admin Daerah.</li>
 <li>Daerah mengimpornya di <strong>Impor Setoran</strong>, lalu membuat Berkas Materi dan paket baru. Target turun sampai HP murid lewat desa.</li>
 </ol>
 <hr />
-<h2>6. Mubaligh (HP)</h2>
+<h2 id="6-mubaligh-hp">6. Mubaligh (HP)</h2>
 <p>Menu bawah: <strong>Absen · Jadwal · Materi · Lainnya</strong>.</p>
-<h3>6.1 Aktivasi</h3>
-<ol>
+<h3 id="61-aktivasi">6.1 Aktivasi</h3>
+<ol type="1">
 <li>Buka aplikasi → layar <strong>Kode Perangkat</strong> → <strong>Kirim lewat WA</strong> ke Admin Desa.</li>
 <li>Terima token → tekan <strong>Tempel Token</strong> (atau <strong>Pindai QR Token</strong>) → <strong>Aktifkan</strong>.</li>
 <li>Buka paket dari desa: <strong>Lainnya → Buka Berkas</strong> → pilih <code>PPG_PAKET_…</code>. Materi ikut di dalamnya.</li>
 </ol>
-<h3>6.2 Absen dengan materi dan tuntas</h3>
-<ol>
+<h3 id="62-absen-dengan-materi-dan-tuntas">6.2 Absen dengan materi dan tuntas</h3>
+<ol type="1">
 <li>Menu <strong>Absen</strong> → bagian <strong>1. Pilih pertemuan</strong>: pilih kelas hari ini (atau <strong>Pertemuan lain</strong>).</li>
 <li>Bagian <strong>2. Materi hari ini</strong>: tekan <strong>Pakai saran pertama</strong>, atau centang materi dari daftar target.</li>
 <li>Tekan <strong>Lanjut: isi kehadiran</strong>.</li>
@@ -312,15 +321,15 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Tekan <strong>Simpan absen</strong>.</li>
 <li>Bila kartu <strong>Setor ke …</strong> di atas Absen berwarna kuning/merah, tekan <strong>Setor sekarang</strong> → kirim berkasnya lewat WA.</li>
 </ol>
-<h3>6.3 Jadwal</h3>
-<ol>
+<h3 id="63-jadwal">6.3 Jadwal</h3>
+<ol type="1">
 <li>Menu <strong>Jadwal</strong>: jadwal rutin dan tambahan pekan ini.</li>
 <li>Tambah jadwal tambahan → <strong>Simpan jadwal</strong> → <strong>Bagikan ke grup WA</strong>.</li>
 </ol>
-<h3>6.4 Materi</h3>
+<h3 id="64-materi">6.4 Materi</h3>
 <p>Menu <strong>Materi</strong>: target semester per kelas, capaian tiap generus, dan materi yang belum tuntas per anak.</p>
-<h3>6.5 Lainnya</h3>
-<ol>
+<h3 id="65-lainnya">6.5 Lainnya</h3>
+<ol type="1">
 <li><strong>Setoran Generus</strong> → <strong>Buka berkas setoran (bisa banyak)</strong> (<code>PPG_BELAJAR_…</code>) → <strong>Sahkan</strong> atau <strong>Tolak</strong>.</li>
 <li><strong>Simak Langsung</strong> → untuk generus tanpa HP → <strong>Simpan &amp; sahkan</strong>.</li>
 <li><strong>Generus</strong> → data dan usulan (<strong>+ Usulkan generus baru</strong>, <strong>Ajukan pindah kelompok</strong>, <strong>Ajukan ubah status (mondok/aktif/…)</strong>).</li>
@@ -330,22 +339,53 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li><strong>Setor ke …</strong> → tombol <strong>Setor ke …</strong>; <strong>Setor Akhir</strong> (di <strong>Pilihan lain</strong>) hanya saat serah terima tugas.</li>
 <li><strong>Buka Berkas</strong> → paket dari desa, setoran generus, dan berkas lain.</li>
 </ol>
+<h3 id="66-keaktifan-lembar-kontrol--juknis-2025">6.6 Keaktifan (Lembar Kontrol) — Juknis 2025</h3>
+<p>Target keaktifan <strong>20 kali sebulan</strong> (Pra Nikah <strong>16</strong>). Satu hari dihitung <strong>satu kali</strong> walau ada beberapa kegiatan.</p>
+<ul>
+<li>Hadir di pengajian (Absen) otomatis tercatat <strong>A</strong> (pengajian desa = DS, daerah = DR). Izin tidak dihitung.</li>
+<li><strong>Lainnya → Keaktifan</strong>:
+<ul>
+<li><strong>Ajuan murid menunggu disahkan</strong>: lembar kontrol murid ikut di setoran belajar (<code>PPG_BELAJAR_…</code>) → <strong>Sahkan</strong> / <strong>Tolak</strong>. Hanya yang disahkan yang dihitung.</li>
+<li><strong>+ Catat kegiatan</strong> → pilih tanggal dan kode (PAUD–Caberawit: B mandiri; Generus 1–3: MK, KL, T, MS, DS, MR, DR, AA, AS, TH, QR, HD; IZ = izin) → <strong>Pilih semua</strong> atau centang anak → <strong>Simpan</strong>.</li>
+<li><strong>Kejar target bulan ini</strong> (mulai tanggal 20): anak yang keaktifannya masih kurang, beserta sisa hari.</li>
+<li><strong>Lembar kontrol per anak</strong> → <strong>Lihat</strong>.</li>
+</ul></li>
+</ul>
+<h3 id="67-evaluasi-semester">6.7 Evaluasi Semester</h3>
+<p>Evaluasi penguasaan materi tiap <strong>Mei</strong> dan <strong>November</strong> (bisa diubah Kurikulum).</p>
+<ol type="1">
+<li><strong>Lainnya → Evaluasi Semester</strong> → pilih <strong>Semester</strong> dan (opsional) <strong>Jenjang</strong> → ketuk tombol nilai di samping nama anak.</li>
+<li>Bila ada tanda <strong>jenjang perlu dicek</strong> / "Caberawit (perlu ditetapkan)": pilih jenjang di <strong>Tetapkan jenjang</strong> → <strong>Ajukan jenjang</strong> (Caberawit <strong>B</strong> = masih Iqro', <strong>C</strong> = sudah Al-Qur'an). Berlaku setelah Setor sampai daerah.</li>
+<li>Ketuk <strong>Nilai</strong> pada materi:
+<ul>
+<li>hafalan/doa/surat yang ada daftarnya → <strong>centang</strong> yang dikuasai;</li>
+<li>materi GBMTPG/Iqro' → isi <strong>jumlah dikuasai</strong> (tidak boleh melebihi target);</li>
+<li>Makna Al-Qur'an → halaman makna <strong>penuh</strong> per juz (0–20);</li>
+<li>Hadits → halaman makna penuh per kitab (sampai halaman terakhir kitab);</li>
+<li>Praktik (thoharoh, wudhu &amp; sholat C–G3, ASAD, kualitas bacaan, pegon, jenazah) → nilai penguji <strong>1–75%</strong> (lebih dari 75 ditolak).</li>
+</ul></li>
+<li><strong>TOTAL</strong> = rata-rata semua materi; yang belum dinilai = 0%. Nilai semester lalu dipakai sampai dinilai ulang ("Nilai dari …").</li>
+<li><strong>Raport</strong> → Laporan Hasil Belajar anak. Jangan lupa <strong>Setor</strong> dan <strong>Kirim Balasan</strong> agar orang tua melihatnya.</li>
+</ol>
+<h3 id="68-laporan-bulanan">6.8 Laporan Bulanan</h3>
+<p><strong>Lainnya → Laporan Bulanan</strong> → pilih bulan (<strong>‹ / ›</strong>) → isi <strong>Musyawaroh 5 Unsur</strong> (Terlaksana/Tidak + tanggal + hasil), <strong>Muda/i kelompok/desa/daerah</strong>, daftar <strong>NUNGGONI</strong> (nama, unsur, tanggal, kelas, temuan/saran → <strong>+ Tambah ke daftar</strong>) → <strong>Simpan laporan</strong>. Laporan ikut terkirim saat <strong>Setor</strong>.</p>
 <hr />
-<h2>7. Pengurus (HP)</h2>
+<h2 id="7-pengurus-hp">7. Pengurus (HP)</h2>
 <p>Menu bawah: <strong>Beranda · Absen · Data · Rekap · Sinkron</strong>.</p>
-<ol>
+<ol type="1">
 <li>Aktivasi seperti 6.1 (token dari Admin Desa).</li>
 <li><strong>Beranda</strong>: kartu pengingat <strong>Setor ke …</strong> dan ringkasan generus.</li>
 <li><strong>Absen</strong>: seperti 6.2, tanpa centang tuntas (hanya kehadiran).</li>
 <li><strong>Data</strong>: lihat generus → <strong>+ Usulkan generus baru</strong> bila ada anak baru.</li>
 <li><strong>Rekap</strong>: kehadiran dan kemajuan wilayah Anda.</li>
 <li><strong>Sinkron</strong> → <strong>Setor ke …</strong> → kirim berkasnya; buka paket baru dari desa lewat <strong>Buka Berkas</strong>.</li>
+<li>Pengurus kelompok: <strong>Beranda → Laporan Bulanan (Musyawaroh &amp; NUNGGONI)</strong> — sama seperti 6.8.</li>
 </ol>
 <hr />
-<h2>8. Satu HP untuk orang tua yang juga pengurus</h2>
+<h2 id="8-satu-hp-untuk-orang-tua-yang-juga-pengurus">8. Satu HP untuk orang tua yang juga pengurus</h2>
 <p>Contoh: Pak Hasan pengurus kelompok, punya anak Ali dan Ani. Satu HP berisi <strong>4 profil</strong>: Pengurus, Wali (orang tua), Ali, Ani.</p>
-<h3>8.1 Menyiapkan profil</h3>
-<ol>
+<h3 id="81-menyiapkan-profil">8.1 Menyiapkan profil</h3>
+<ol type="1">
 <li>Pasang APK → isi <strong>Nama HP ini</strong> (mis. "HP Pak Hasan") → <strong>Lanjut</strong>.</li>
 <li>Kirim <strong>Kode Perangkat</strong> ke Admin Desa → terima token pengurus → <strong>Tempel Token</strong> → <strong>Aktifkan</strong>. Profil pertama: Pengurus.</li>
 <li>Kirim <strong>Kode Perangkat yang sama</strong> ke mubaligh. Minta mubaligh menerbitkan 3 token untuk HP ini: satu <strong>Orang tua (wali)</strong> dengan centang Ali dan Ani, satu <strong>Generus</strong> Ali, satu <strong>Generus</strong> Ani.</li>
@@ -355,113 +395,117 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Di <strong>Profil &amp; HP</strong>, bagian <strong>Profil di HP ini</strong> kini menampilkan 4 profil.</li>
 </ol>
 <p>Kode Perangkat ada juga di <strong>Profil &amp; HP</strong> → kartu <strong>Kode Perangkat</strong> (<strong>Kirim lewat WA</strong> / <strong>Salin</strong>).</p>
-<h3>8.2 Ganti profil</h3>
-<ol>
+<h3 id="82-ganti-profil">8.2 Ganti profil</h3>
+<ol type="1">
 <li>Ketuk nama profil di pojok kanan atas → <strong>Ganti profil</strong>.</li>
 <li>Layar <strong>Pilih Profil</strong>: ketuk nama yang akan memakai HP (isi PIN bila diminta).</li>
 <li>Menu bawah berganti sesuai profil: Pengurus (Beranda, Absen, …), Wali (Target, Laporan, …), anak (Target, Materiku, …).</li>
 <li>Pasang PIN pada profil pengurus agar data kelompok terjaga: <strong>Profil &amp; HP</strong> → <strong>Pasang PIN</strong>.</li>
 </ol>
-<h3>8.3 Anak mencatat dan Setor Belajar dari HP yang sama</h3>
-<ol>
+<h3 id="83-anak-mencatat-dan-setor-belajar-dari-hp-yang-sama">8.3 Anak mencatat dan Setor Belajar dari HP yang sama</h3>
+<ol type="1">
 <li><strong>Ganti profil</strong> → pilih Ali.</li>
 <li>Menu <strong>Catat</strong> → pilih materi → isi → <strong>Simpan catatan</strong>.</li>
 <li>Ganti ke profil Ani dan lakukan hal yang sama bila perlu.</li>
 <li>Menu <strong>Setor</strong> → <strong>Setor Belajar</strong> → kirim <code>PPG_BELAJAR_…</code> ke mubaligh. Satu berkas membawa catatan semua anak di HP ini.</li>
 </ol>
-<h3>8.4 Laporan anak di profil wali</h3>
-<ol>
+<h3 id="84-laporan-anak-di-profil-wali">8.4 Laporan anak di profil wali</h3>
+<ol type="1">
 <li>Setelah mubaligh mengirim Balasan: buka berkasnya (<strong>Berkas</strong> → <strong>Buka Berkas</strong>, dari profil mana saja).</li>
 <li><strong>Ganti profil</strong> → pilih profil wali.</li>
 <li>Menu <strong>Target</strong>: "Materi yang perlu dituntaskan"; pilih <strong>Ali</strong> atau <strong>Ani</strong> di bagian <strong>Pilih anak</strong>.</li>
 <li>Menu <strong>Laporan</strong>: laporan pekanan tiap anak; <strong>Kemajuan</strong> dan <strong>Kehadiran</strong> per anak.</li>
 </ol>
-<h3>8.5 Tugas pengurus tetap jalan</h3>
+<h3 id="85-tugas-pengurus-tetap-jalan">8.5 Tugas pengurus tetap jalan</h3>
 <p>Profil Pengurus menerima paket desa dan menyetor ke desa seperti biasa (bagian 7). Catatan belajar anak yang sudah disetor ke mubaligh boleh ikut terbawa di setoran pengurus; data tidak menjadi ganda.</p>
 <hr />
-<h2>9. Murid / generus (HP)</h2>
+<h2 id="9-murid--generus-hp">9. Murid / generus (HP)</h2>
 <p>Menu bawah: <strong>Target · Materiku · Catat · Jadwal · Setor</strong>.</p>
-<ol>
+<ol type="1">
 <li>Pasang APK → kirim <strong>Kode Perangkat</strong> ke mubaligh (<strong>Kirim lewat WA</strong>, atau tunjukkan QR).</li>
 <li>Terima token: <strong>Pindai QR Token</strong> (arahkan kamera ke layar mubaligh sampai semua bagian terbaca) atau <strong>Tempel Token</strong> → boleh isi PIN → <strong>Aktifkan</strong>.</li>
 <li>Buka berkas Balasan dari mubaligh: <strong>Setor</strong> → <strong>Buka Berkas</strong>.</li>
 <li>Menu <strong>Target</strong>: "Materi yang perlu dituntaskan" — persentase, daftar materi berurutan, yang <strong>✓ Sudah tuntas</strong>, dan pertemuan berikutnya.</li>
 <li>Menu <strong>Catat</strong> (atau <strong>Catat yang sudah kupelajari</strong> di Target) → pilih materi → <strong>Simpan catatan</strong>.</li>
 <li>Menu <strong>Setor</strong> → <strong>Setor Belajar</strong> → kirim berkasnya ke mubaligh.</li>
+<li><strong>Lembar Kontrol (keaktifan)</strong>: di <strong>Target</strong> ada kartu <strong>Keaktifan bulan ini</strong> → <strong>Isi Lembar Kontrol</strong> → ketuk <strong>+</strong> pada tanggal → pilih kegiatan (mis. <strong>B</strong> mengulang hafalan 20 kali + baca Iqro'/Qur'an disimak 1 halaman; Generus: <strong>TH</strong>, <strong>QR</strong>, <strong>HD</strong>, …) → <strong>Simpan</strong>. Tanda kuning "B?" = menunggu disahkan mubaligh; hijau = sudah dihitung. Kirim lewat <strong>Setor Belajar</strong>. Kolom <strong>SB ZH AS MG IS</strong> = catatan sholat 5 waktu untuk diri sendiri/orang tua (tidak dinilai, tidak dikirim).</li>
+<li>Mulai tanggal 20, bila keaktifan belum 20 kali muncul kartu <strong>Kejar target keaktifan!</strong> — isi lembar kontrol setiap hari.</li>
+<li><strong>Laporan Hasil Belajar</strong> (di Target): nilai penguasaan materi per semester dan TOTAL.</li>
 <li>Kakak-adik di satu HP: <strong>Profil &amp; HP</strong> → <strong>+ Tambah Profil</strong> untuk anak berikutnya (lihat bagian 8).</li>
 </ol>
 <hr />
-<h2>10. Orang tua / wali (HP)</h2>
+<h2 id="10-orang-tua--wali-hp">10. Orang tua / wali (HP)</h2>
 <p>Menu bawah: <strong>Target · Laporan · Kemajuan · Kehadiran · Berkas</strong>.</p>
-<ol>
+<ol type="1">
 <li>Kirim <strong>Kode Perangkat</strong> ke mubaligh → terima token → <strong>Aktifkan</strong>.</li>
 <li>Setiap pekan buka berkas Balasan dari mubaligh: <strong>Berkas</strong> → <strong>Buka Berkas</strong>.</li>
 <li><strong>Target</strong>: materi yang perlu dituntaskan anak. Punya beberapa anak: pilih nama di <strong>Pilih anak</strong>.</li>
 <li><strong>Laporan</strong>: laporan pekanan (geser pekan dengan <strong>‹</strong> / <strong>›</strong>).</li>
 <li><strong>Kemajuan</strong> dan <strong>Kehadiran</strong> (60 hari terakhir) per anak.</li>
+<li>Di <strong>Target</strong>: kartu <strong>Kejar target</strong> (mulai tanggal 20), <strong>Keaktifan bulan ini</strong> → <strong>Lihat Lembar Kontrol</strong> (orang tua boleh mencentang sholat 5 waktu sebagai catatan di HP ini), dan <strong>Laporan Hasil Belajar</strong>. Bila banyak kolom kosong menjelang akhir bulan, bantu anak mengaji di rumah atau hubungi mubaligh.</li>
 </ol>
 <hr />
-<h2>11. Jadwal rutin</h2>
+<h2 id="11-jadwal-rutin">11. Jadwal rutin</h2>
 <table>
 <thead>
-<tr>
+<tr class="header">
 <th>Kapan</th>
 <th>Siapa</th>
 <th>Kegiatan</th>
 </tr>
 </thead>
 <tbody>
-<tr>
+<tr class="odd">
 <td>Setiap pertemuan</td>
 <td>Mubaligh / pengurus / EXE kelompok</td>
 <td><strong>Absen</strong> dengan materi hari ini dan centang tuntas</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Setiap pekan (mis. Sabtu)</td>
 <td>Murid</td>
 <td><strong>Setor Belajar</strong> ke mubaligh</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Setiap pekan (mis. Ahad)</td>
 <td>Mubaligh</td>
 <td><strong>Setoran Generus</strong> → sahkan → <strong>Kirim Balasan ke semua</strong> → <strong>Laporan Pekanan</strong></td>
 </tr>
-<tr>
+<tr class="even">
 <td>Sesuai jadwal setor (mis. tiap Ahad)</td>
 <td>HP pengurus &amp; mubaligh, EXE kelompok</td>
 <td><strong>Setor ke Kelompok/Desa</strong></td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Sesudah menerima setoran</td>
 <td>Admin Desa</td>
 <td><strong>Impor Setoran</strong> → periksa <strong>Beranda</strong></td>
 </tr>
-<tr>
+<tr class="even">
 <td>Bulanan (mis. sebelum tanggal 5)</td>
 <td>Admin Desa</td>
 <td><strong>Setor ke Daerah</strong></td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Bulanan (sesudah tanggal 5)</td>
 <td>Admin Daerah</td>
 <td><strong>Impor Setoran</strong> → <strong>Usulan</strong> → <strong>Kirim Paket</strong> semua desa → <strong>Beranda</strong> (status setor)</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Sesudah paket daerah datang</td>
 <td>Admin Desa</td>
 <td><strong>Buka Paket</strong> → <strong>Kirim Paket</strong> semua kelompok</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Awal semester (Juli &amp; Januari)</td>
 <td>Petugas Kurikulum</td>
 <td><strong>Target Capaian</strong> periode baru → <strong>Jadikan periode aktif</strong> → <strong>Buat berkas Kurikulum</strong></td>
 </tr>
-<tr>
+<tr class="even">
 <td>Bulanan</td>
 <td>Semua laptop</td>
 <td><strong>Pengaturan → Simpan cadangan database</strong></td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Bulanan</td>
 <td>Semua HP</td>
 <td><strong>Profil &amp; HP → Cadangkan data HP</strong></td>
@@ -469,76 +513,76 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 </tbody>
 </table>
 <hr />
-<h2>12. Jika terjadi masalah</h2>
-<h3>12.1 QR tidak terbaca</h3>
-<ol>
+<h2 id="12-jika-terjadi-masalah">12. Jika terjadi masalah</h2>
+<h3 id="121-qr-tidak-terbaca">12.1 QR tidak terbaca</h3>
+<ol type="1">
 <li>Saat pertama menekan <strong>Pindai</strong>, izinkan <strong>kamera</strong>. Bila sudah ditolak: tekan <strong>Buka Pengaturan</strong> → izinkan Kamera → kembali → <strong>Coba lagi</strong>.</li>
 <li>Di HP/laptop yang menampilkan QR: tekan <strong>⛶ Layar penuh</strong> dan <strong>naikkan kecerahan layar</strong> sampai penuh.</li>
 <li>Pegang kamera tegak lurus, sejarak 20–30 cm, sampai QR memenuhi bingkai. Token panjang terdiri dari beberapa QR yang berganti sendiri — tahan sampai tertulis semua bagian terbaca (mis. "7 dari 7").</li>
 <li>Bila tetap gagal: pilih <strong>Kirim lewat WA</strong> / <strong>Salin</strong> di pengirim, lalu <strong>Tempel Token</strong> di penerima.</li>
 </ol>
-<h3>12.2 Masalah lain</h3>
+<h3 id="122-masalah-lain">12.2 Masalah lain</h3>
 <table>
 <thead>
-<tr>
+<tr class="header">
 <th>Masalah</th>
 <th>Yang dilakukan</th>
 </tr>
 </thead>
 <tbody>
-<tr>
+<tr class="odd">
 <td>Pesan "Kode ini untuk aplikasi laptop (EXE), bukan untuk HP."</td>
 <td>Kode itu untuk laptop desa/kelompok/kurikulum. Tempel di laptop pada <strong>Aktifkan dengan kode</strong>. Untuk HP, minta token pengurus/mubaligh dari Admin Desa.</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Pesan "Wilayah token berada di luar wilayah EXE desa penerbitnya"</td>
 <td>Token itu tidak sah untuk kelompok tersebut. Minta Admin Desa menerbitkan ulang setelah membuka paket terbaru dari daerah.</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>HP aktif dengan token dari desa sebelum pembaruan v3 ini, lalu muncul pesan "pengirim tidak sah"</td>
 <td>Minta Admin Desa menerbitkan token baru untuk HP itu (Kode Perangkat sama) → <strong>+ Tambah Profil</strong> → <strong>Aktifkan</strong>. Catatan lama tetap utuh.</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Pesan "Data kelompok ini belum lengkap dari daerah" saat desa menerbitkan token</td>
 <td>Admin Desa: <strong>Buka Paket</strong> terbaru dari daerah, lalu terbitkan lagi.</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Berkas "Sudah pernah diimpor" atau "tidak lebih baru"</td>
 <td>Datanya sudah masuk / perangkat sudah memegang berkas yang lebih baru. Abaikan.</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Pesan "bukan untuk HP ini" / "bukan untuk EXE ini"</td>
 <td>Berkas untuk wilayah atau perangkat lain, atau token perangkat ini sudah dicabut. Hubungi admin di atasnya.</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Pesan setoran "ditujukan ke tingkat lain"</td>
 <td>Kirim berkas ke tujuan yang tertulis di tombol <strong>Setor ke …</strong> (kelompok/desa).</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Desa/kelompok tampil <strong>Terlambat</strong></td>
 <td>Lakukan <strong>Setor ke …</strong> sekarang. Periksa jam dan tanggal HP/laptop sudah benar (WIT).</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Lupa kata sandi Admin Daerah</td>
 <td>Layar Masuk → <strong>Lupa kata sandi?</strong> → pilih berkas <code>.ppgkey</code> → isi <strong>Kata sandi cadangan kunci</strong> dan <strong>Kata sandi admin baru</strong> → <strong>Pulihkan &amp; masuk</strong>.</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Lupa kata sandi aplikasi laptop desa/kelompok/kurikulum</td>
 <td>Tidak bisa dipulihkan. Pasang ulang → <strong>Pulihkan dari cadangan</strong> (database + kata sandinya), atau <strong>Aktifkan dengan kode</strong> baru dari tingkat atas.</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Lupa PIN profil HP</td>
 <td>Minta token ulang dari penerbitnya → <strong>+ Tambah Profil</strong> → <strong>Tempel Token</strong> → isi PIN baru → <strong>Aktifkan</strong>.</td>
 </tr>
-<tr>
+<tr class="even">
 <td>HP hilang / rusak</td>
 <td>Dengan cadangan: pasang APK → <strong>Profil &amp; HP</strong> → <strong>Pulihkan dari cadangan</strong>. Tanpa cadangan: admin <strong>Cabut</strong> token lama, lalu aktivasi ulang dari Kode Perangkat HP baru.</td>
 </tr>
-<tr>
+<tr class="odd">
 <td>Token kedaluwarsa ("Masa berlaku profil habis")</td>
 <td>Kirim Kode Perangkat ke penerbit token → terima token baru → <strong>+ Tambah Profil</strong> → <strong>Aktifkan</strong>.</td>
 </tr>
-<tr>
+<tr class="even">
 <td>Daerah memulihkan database lama</td>
 <td>Minta desa <strong>Setor ke Daerah → Pilihan lain → Kirim ulang semua data</strong>.</td>
 </tr>

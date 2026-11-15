@@ -193,6 +193,16 @@ Daerah juga bisa menerbitkan token HP pengurus/mubaligh dan **EXE Kelompok** lan
 2. Lihat kartu **Capaian target** (per desa, kelompok, kelas) serta presensi dan kemajuan.
 3. Tekan **Ekspor Excel**. Rekap hanya memuat materi yang sudah **disahkan**.
 
+### 2.12a Evaluasi & Keaktifan (Juknis 2025)
+
+Menu **Evaluasi & Keaktifan** (juga di EXE desa dan kelompok):
+- **Rekap Penguasaan Materi** → pilih **Wilayah** (kelompok/desa/daerah), **Semester**, dan jenjang → tabel No · Nama · kolom tiap
+  materi · TOTAL, rata-rata, ringkasan per desa/kelompok → **Ekspor Excel** (lembar per kelompok + ringkasan) atau **Cetak / PDF**.
+- **Keaktifan Bulanan** → pilih **Bulan** → rata-rata per kelompok dan daftar anak (merah = di bawah 50%, bahan musyawarah).
+- **Laporan Bulanan** → Musyawaroh 5 Unsur, Muda/i, NUNGGONI tiap kelompok (**Isi/ubah** bila kelompok melapor lewat kertas).
+- **Laporan Hasil Belajar** → pilih generus → **Cetak / PDF** (raport).
+- **Generus & Jamaah**: tanda kuning **tetapkan A/B/C** / **saran umur — cek** → buka generus, pilih jenjang yang benar.
+
 ### 2.13 Mencabut perangkat
 
 1. Menu **Perangkat & Token** → **Daftar perangkat (token)**.
@@ -300,6 +310,12 @@ Periode: **S1 = Juli–Desember**, **S2 = Januari–Juni** tahun berikutnya (mis
 5. Untuk menyalin dari semester lalu: pilih **Salin dari periode** → periksa → **Simpan target**.
 6. Tekan **Jadikan periode aktif** untuk semester yang sedang berjalan.
 
+### 5.2a Materi Evaluasi (Juknis 2025)
+
+Menu **Materi Evaluasi** (EXE kurikulum & daerah): pilih jenjang → **Ubah** untuk mengganti nama, **target** (materi GBMTPG
+Generus 2/3 masih "Belum ditetapkan"), daftar butir, atau **halaman terakhir kitab** hadits. **Bulan evaluasi semester** (bawaan
+November & Mei) → **Simpan**. Perubahan ikut berkas Kurikulum → daerah → berkas Materi ke semua HP.
+
 ### 5.3 Materi dan berkas Kurikulum
 
 1. Menu **Materi**: tambah atau ubah materi bila perlu (**+ Bidang**, **+ Kategori**, **+ Materi**, **Unggah PDF**).
@@ -348,6 +364,41 @@ Menu **Materi**: target semester per kelas, capaian tiap generus, dan materi yan
 7. **Setor ke …** → tombol **Setor ke …**; **Setor Akhir** (di **Pilihan lain**) hanya saat serah terima tugas.
 8. **Buka Berkas** → paket dari desa, setoran generus, dan berkas lain.
 
+### 6.6 Keaktifan (Lembar Kontrol) — Juknis 2025
+
+Target keaktifan **20 kali sebulan** (Pra Nikah **16**). Satu hari dihitung **satu kali** walau ada beberapa kegiatan.
+
+- Hadir di pengajian (Absen) otomatis tercatat **A** (pengajian desa = DS, daerah = DR). Izin tidak dihitung.
+- **Lainnya → Keaktifan**:
+  - **Ajuan murid menunggu disahkan**: lembar kontrol murid ikut di setoran belajar (`PPG_BELAJAR_…`) → **Sahkan** / **Tolak**.
+    Hanya yang disahkan yang dihitung.
+  - **+ Catat kegiatan** → pilih tanggal dan kode (PAUD–Caberawit: B mandiri; Generus 1–3: MK, KL, T, MS, DS, MR, DR, AA, AS, TH, QR, HD;
+    IZ = izin) → **Pilih semua** atau centang anak → **Simpan**.
+  - **Kejar target bulan ini** (mulai tanggal 20): anak yang keaktifannya masih kurang, beserta sisa hari.
+  - **Lembar kontrol per anak** → **Lihat**.
+
+### 6.7 Evaluasi Semester
+
+Evaluasi penguasaan materi tiap **Mei** dan **November** (bisa diubah Kurikulum).
+
+1. **Lainnya → Evaluasi Semester** → pilih **Semester** dan (opsional) **Jenjang** → ketuk tombol nilai di samping nama anak.
+2. Bila ada tanda **jenjang perlu dicek** / "Caberawit (perlu ditetapkan)": pilih jenjang di **Tetapkan jenjang** → **Ajukan jenjang**
+   (Caberawit **B** = masih Iqro', **C** = sudah Al-Qur'an). Berlaku setelah Setor sampai daerah.
+3. Ketuk **Nilai** pada materi:
+   - hafalan/doa/surat yang ada daftarnya → **centang** yang dikuasai;
+   - materi GBMTPG/Iqro' → isi **jumlah dikuasai** (tidak boleh melebihi target);
+   - Makna Al-Qur'an → halaman makna **penuh** per juz (0–20);
+   - Hadits → halaman makna penuh per kitab (sampai halaman terakhir kitab);
+   - Praktik (thoharoh, wudhu & sholat C–G3, ASAD, kualitas bacaan, pegon, jenazah) → nilai penguji **1–75%** (lebih dari 75 ditolak).
+4. **TOTAL** = rata-rata semua materi; yang belum dinilai = 0%. Nilai semester lalu dipakai sampai dinilai ulang ("Nilai dari …").
+5. **Raport** → Laporan Hasil Belajar anak. Jangan lupa **Setor** dan **Kirim Balasan** agar orang tua melihatnya.
+
+### 6.8 Laporan Bulanan
+
+**Lainnya → Laporan Bulanan** → pilih bulan (**‹ / ›**) → isi **Musyawaroh 5 Unsur** (Terlaksana/Tidak + tanggal + hasil),
+**Muda/i kelompok/desa/daerah**, daftar **NUNGGONI** (nama, unsur, tanggal, kelas, temuan/saran → **+ Tambah ke daftar**) →
+**Simpan laporan**. Laporan ikut terkirim saat **Setor**.
+
 ---
 
 ## 7. Pengurus (HP)
@@ -360,6 +411,7 @@ Menu bawah: **Beranda · Absen · Data · Rekap · Sinkron**.
 4. **Data**: lihat generus → **+ Usulkan generus baru** bila ada anak baru.
 5. **Rekap**: kehadiran dan kemajuan wilayah Anda.
 6. **Sinkron** → **Setor ke …** → kirim berkasnya; buka paket baru dari desa lewat **Buka Berkas**.
+7. Pengurus kelompok: **Beranda → Laporan Bulanan (Musyawaroh & NUNGGONI)** — sama seperti 6.8.
 
 ---
 
@@ -416,7 +468,13 @@ Menu bawah: **Target · Materiku · Catat · Jadwal · Setor**.
 4. Menu **Target**: "Materi yang perlu dituntaskan" — persentase, daftar materi berurutan, yang **✓ Sudah tuntas**, dan pertemuan berikutnya.
 5. Menu **Catat** (atau **Catat yang sudah kupelajari** di Target) → pilih materi → **Simpan catatan**.
 6. Menu **Setor** → **Setor Belajar** → kirim berkasnya ke mubaligh.
-7. Kakak-adik di satu HP: **Profil & HP** → **+ Tambah Profil** untuk anak berikutnya (lihat bagian 8).
+7. **Lembar Kontrol (keaktifan)**: di **Target** ada kartu **Keaktifan bulan ini** → **Isi Lembar Kontrol** → ketuk **+** pada tanggal →
+   pilih kegiatan (mis. **B** mengulang hafalan 20 kali + baca Iqro'/Qur'an disimak 1 halaman; Generus: **TH**, **QR**, **HD**, …) →
+   **Simpan**. Tanda kuning "B?" = menunggu disahkan mubaligh; hijau = sudah dihitung. Kirim lewat **Setor Belajar**.
+   Kolom **SB ZH AS MG IS** = catatan sholat 5 waktu untuk diri sendiri/orang tua (tidak dinilai, tidak dikirim).
+8. Mulai tanggal 20, bila keaktifan belum 20 kali muncul kartu **Kejar target keaktifan!** — isi lembar kontrol setiap hari.
+9. **Laporan Hasil Belajar** (di Target): nilai penguasaan materi per semester dan TOTAL.
+10. Kakak-adik di satu HP: **Profil & HP** → **+ Tambah Profil** untuk anak berikutnya (lihat bagian 8).
 
 ---
 
@@ -429,6 +487,9 @@ Menu bawah: **Target · Laporan · Kemajuan · Kehadiran · Berkas**.
 3. **Target**: materi yang perlu dituntaskan anak. Punya beberapa anak: pilih nama di **Pilih anak**.
 4. **Laporan**: laporan pekanan (geser pekan dengan **‹** / **›**).
 5. **Kemajuan** dan **Kehadiran** (60 hari terakhir) per anak.
+6. Di **Target**: kartu **Kejar target** (mulai tanggal 20), **Keaktifan bulan ini** → **Lihat Lembar Kontrol** (orang tua boleh
+   mencentang sholat 5 waktu sebagai catatan di HP ini), dan **Laporan Hasil Belajar**. Bila banyak kolom kosong menjelang akhir bulan,
+   bantu anak mengaji di rumah atau hubungi mubaligh.
 
 ---
 
