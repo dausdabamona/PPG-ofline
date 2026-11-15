@@ -27,7 +27,7 @@ export const LABEL_ROLE: Record<string, string> = {
 
 /** Label peran token dengan tingkat (EXE desa / EXE kelompok). */
 export function labelRole(role: string, tingkat?: string | null): string {
-  if (role === 'admin') return tingkat === 'kelompok' ? 'EXE Kelompok' : tingkat === 'desa' ? 'EXE Desa' : 'EXE Admin'
+  if (role === 'admin') return tingkat === 'kelompok' ? 'EXE Kelompok' : tingkat === 'desa' ? 'EXE Desa' : tingkat === 'daerah' ? 'Super Admin HP' : 'EXE Admin'
   return LABEL_ROLE[role] ?? role
 }
 
@@ -93,6 +93,8 @@ export const LABEL_JENIS_USULAN: Record<string, string> = {
   tambah_jamaah: 'Tambah jamaah',
   pindah_kelompok: 'Pindah kelompok',
   ubah_status: 'Ubah status generus',
+  tambah_wilayah: 'Tambah wilayah',
+  tambah_pengajian: 'Tambah pengajian',
 }
 export const LABEL_STATUS_USULAN: Record<string, string> = { menunggu: 'Menunggu', disetujui: 'Disetujui', ditolak: 'Ditolak' }
 export const LABEL_PRESENSI: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa' }

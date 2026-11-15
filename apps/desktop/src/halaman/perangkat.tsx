@@ -36,7 +36,7 @@ const HAK_ROLE: Record<'pengurus' | 'mubaligh', Hak[]> = {
   mubaligh: ['catat', 'lihat', 'sahkan', 'terbit_generus'],
 }
 
-type JenisTerbit = 'mubaligh' | 'pengurus' | 'exe_desa' | 'exe_kelompok' | 'kurikulum'
+type JenisTerbit = 'mubaligh' | 'pengurus' | 'exe_desa' | 'exe_kelompok' | 'kurikulum' | 'super_hp'
 
 const JENIS: Record<JenisTerbit, { teks: string; role: 'pengurus' | 'mubaligh' | 'admin' | 'kurikulum'; tingkat?: Tingkat }> = {
   mubaligh: { teks: 'Mubaligh (HP, satu kelompok)', role: 'mubaligh', tingkat: 'kelompok' },
@@ -44,6 +44,8 @@ const JENIS: Record<JenisTerbit, { teks: string; role: 'pengurus' | 'mubaligh' |
   exe_desa: { teks: 'EXE Desa (aplikasi laptop desa)', role: 'admin', tingkat: 'desa' },
   exe_kelompok: { teks: 'EXE Kelompok (aplikasi laptop kelompok)', role: 'admin', tingkat: 'kelompok' },
   kurikulum: { teks: 'EXE Kurikulum (tim kurikulum)', role: 'kurikulum', tingkat: 'daerah' },
+  // Fase 9: HP petugas pendaftaran seluruh daerah (token admin tingkat daerah, hak terbit_bawah)
+  super_hp: { teks: 'Super Admin HP (pendaftaran seluruh daerah)', role: 'admin', tingkat: 'daerah' },
 }
 
 export function HalamanPerangkat() {
@@ -90,7 +92,7 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
     setHak(HAK_BAWAAN[role])
     if (tingkatJenis && wilayah && ambilWilayah(db, wilayah)?.tingkat !== tingkatJenis) setWilayah('')
   }, [jenis])
-  const pilihanJenis: JenisTerbit[] = peran === 'daerah' ? ['mubaligh', 'pengurus', 'exe_desa', 'exe_kelompok', 'kurikulum'] : ['mubaligh', 'pengurus', 'exe_kelompok']
+  const pilihanJenis: JenisTerbit[] = peran === 'daerah' ? ['mubaligh', 'pengurus', 'exe_desa', 'exe_kelompok', 'kurikulum', 'super_hp'] : ['mubaligh', 'pengurus', 'exe_kelompok']
 
   const terbit = async () => {
     const j = JENIS[jenis]
@@ -144,7 +146,7 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
               </label>
             ))}
           </div>
-        </fieldset> : <p className="keterangan kolom-lebar">Hak EXE mengikuti tingkatnya (EXE desa boleh menerbitkan kode aktivasi di desanya; EXE kelompok mencatat & mengesahkan; kurikulum mengelola materi & target).</p>}
+        </fieldset> : jenis === 'super_hp' ? <p className="keterangan kolom-lebar">Super Admin HP menerbitkan token semua peran (pengurus, mubaligh, orang tua, murid, EXE desa/kelompok/kurikulum) di seluruh daerah, menambah data sebagai usulan yang disetujui otomatis saat setorannya diimpor, dan menyetor ke daerah. Tidak bisa menerbitkan Super Admin HP lain. Cabut di daftar perangkat bila HP hilang.</p> : <p className="keterangan kolom-lebar">Hak EXE mengikuti tingkatnya (EXE desa boleh menerbitkan kode aktivasi di desanya; EXE kelompok mencatat & mengesahkan; kurikulum mengelola materi & target).</p>}
       </div>
       <div className="aksi">
         <Tombol onClick={terbit} disabled={!infoKode?.ok || !wilayah || !nama.trim()}>

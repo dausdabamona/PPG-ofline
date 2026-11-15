@@ -32,9 +32,9 @@ export function HalamanPaket() {
     }))
   }, [db])
 
-  const satu = async () => {
-    const w = ambilWilayah(db, wilayah)
-    const p = await aksi(() => buatPaket(db, wilayah, kunci))
+  const satu = async (id: string = wilayah) => {
+    const w = ambilWilayah(db, id)
+    const p = await aksi(() => buatPaket(db, id, kunci))
     if (!p || !w) return
     if (p.penerima === 0) toast('info', `Paket ${w.nama} tidak punya penerima aktif — belum ada token pengurus/mubaligh/EXE di wilayah ini.`)
     const lokasi = await aksi(() => platform.simpanBerkas(p.nama, p.bytes))
@@ -71,7 +71,7 @@ export function HalamanPaket() {
         judul="Kirim Paket"
         keterangan={
           daerah
-            ? 'Paket membawa data master, kegiatan, koreksi, target, jadwal setor, token & pencabutan terbaru ke EXE desa dan HP pengurus/mubaligh.'
+            ? 'Paket membawa data master, kegiatan, koreksi, target, jadwal setor, token & pencabutan terbaru ke EXE desa dan HP pengurus/mubaligh. Super Admin HP menerima paket wilayah daerah (seluruh daerah).'
             : 'Paket membawa data desa dari daerah, berkas materi & target kurikulum, token & pencabutan terbaru ke HP pengurus/mubaligh dan EXE kelompok di desa ini.'
         }
       />
@@ -79,7 +79,7 @@ export function HalamanPaket() {
         <div className="filter">
           <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="— pilih wilayah —" akar={daerah ? null : wilayahId} />
           <div className="aksi-filter">
-            <Tombol onClick={satu} disabled={!wilayah}>
+            <Tombol onClick={() => satu()} disabled={!wilayah}>
               Buat & simpan paket
             </Tombol>
             <Tombol varian="kedua" onClick={() => semua('kelompok')}>
@@ -88,6 +88,11 @@ export function HalamanPaket() {
             {daerah ? (
               <Tombol varian="kedua" onClick={() => semua('desa')}>
                 Paket semua desa (EXE desa)
+              </Tombol>
+            ) : null}
+            {daerah && akar[0] ? (
+              <Tombol varian="kedua" onClick={() => satu(akar[0])}>
+                Paket Super Admin HP (seluruh daerah)
               </Tombol>
             ) : null}
           </div>

@@ -74,6 +74,8 @@ export const LABEL_JENIS_USULAN: Record<string, string> = {
   tambah_jamaah: 'Jamaah baru',
   pindah_kelompok: 'Pindah kelompok',
   ubah_status: 'Ubah status',
+  tambah_wilayah: 'Wilayah baru',
+  tambah_pengajian: 'Pengajian baru',
 }
 export const LABEL_TIPE_MATERI: Record<string, string> = { hafalan: 'Hafalan', checklist: 'Centang', level: 'Tingkat 1–5' }
 

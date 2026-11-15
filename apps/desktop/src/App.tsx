@@ -184,7 +184,8 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
   const info = useMemo(() => (db && tahap.t === 'siap' ? infoInstalasi(db) : null), [db, tahap, versi])
 
   const nilai = useMemo<NilaiApp | null>(() => {
-    if (!db || tahap.t !== 'siap' || !info?.peran || info.peran === 'hp') return null
+    // Fase 9: database Super Admin HP hanya dipakai di APK
+    if (!db || tahap.t !== 'siap' || !info?.peran || info.peran === 'hp' || info.peran === 'super_hp') return null
     return {
       db,
       kunci: tahap.kunci,

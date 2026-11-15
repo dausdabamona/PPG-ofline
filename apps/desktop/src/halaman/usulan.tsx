@@ -26,6 +26,10 @@ function uraian(db: Db, u: UsulanData): string {
       return `${namaG(d.generus_id)} pindah ke ${ambilWilayah(db, String(d.kelompok_tujuan_id))?.nama ?? '?'} mulai ${tanggalLokal(String(d.tanggal))}`
     case 'ubah_status':
       return `${namaG(d.generus_id)} → ${label(LABEL_STATUS_GENERUS, String(d.status))} mulai ${tanggalLokal(String(d.tanggal))}${d.keterangan ? ` (${s(d.keterangan)})` : ''}`
+    case 'tambah_wilayah':
+      return `${d.tingkat === 'desa' ? 'Desa' : 'Kelompok'} ${s(d.nama)}${d.kode ? ` (kode ${s(d.kode)})` : ''} di ${ambilWilayah(db, u.kelompok_id)?.nama ?? '?'}`
+    case 'tambah_pengajian':
+      return `${s(d.nama)} di ${ambilWilayah(db, u.kelompok_id)?.nama ?? '?'}${typeof d.hari === 'number' ? `, hari ke-${d.hari}` : ''}${d.jam ? ` pukul ${s(d.jam)}` : ''}`
   }
 }
 

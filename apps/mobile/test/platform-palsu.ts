@@ -8,6 +8,10 @@ const wasm = readFileSync(require.resolve('sql.js/dist/sql-wasm.wasm'))
 
 export interface PlatformPalsu extends Platform {
   db: Uint8Array | null
+  /** Fase 9: database Super Admin HP. */
+  dbSuper: Uint8Array | null
+  /** Picu peristiwa "aplikasi kembali ke depan". */
+  keDepan: () => void
   jumlahSimpan: number
   /** Berkas yang dikembalikan pada panggilan pilihBerkas berikutnya (FIFO). */
   antreanBuka: BerkasMasuk[][]
@@ -71,12 +75,25 @@ export function buatPemindaiPalsu(): PemindaiPalsu {
 
 export function buatPlatformPalsu(awal: Uint8Array | null = null, opsi: { pemindai?: PemindaiPalsu } = {}): PlatformPalsu & { pemindai?: PemindaiPalsu } {
   const latar = new Set<() => void>()
+  const depan = new Set<() => void>()
   const masuk = new Set<(b: BerkasMasuk) => void>()
   const kembali = new Set<() => boolean>()
   const p: PlatformPalsu & { pemindai?: PemindaiPalsu } = {
     jenis: opsi.pemindai ? 'native' : 'web',
     pemindai: opsi.pemindai,
     db: awal,
+    dbSuper: null,
+    keDepan: () => depan.forEach((f) => f()),
+    saatAktifKembali(fn) {
+      depan.add(fn)
+      return () => depan.delete(fn)
+    },
+    async muatDbSuper() {
+      return p.dbSuper ? new Uint8Array(p.dbSuper) : null
+    },
+    async simpanDbSuper(b) {
+      p.dbSuper = new Uint8Array(b)
+    },
     jumlahSimpan: 0,
     antreanBuka: [],
     dibagikan: [],

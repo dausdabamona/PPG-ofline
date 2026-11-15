@@ -39,6 +39,11 @@ export interface Platform {
   simpanDb(bytes: Uint8Array): Promise<void>
   /** Daftarkan fungsi yang dipanggil saat aplikasi ke latar belakang. Mengembalikan pelepas. */
   saatLatarBelakang(fn: () => void): () => void
+  /** Fase 9: dipanggil saat aplikasi kembali ke depan (kunci otomatis Super Admin HP). Mengembalikan pelepas. */
+  saatAktifKembali(fn: () => void): () => void
+  /** Fase 9: database Super Admin HP — terpisah dari database profil biasa (IndexedDB `ppg-super-db`). */
+  muatDbSuper(): Promise<Uint8Array | null>
+  simpanDbSuper(bytes: Uint8Array): Promise<void>
   /** Pilih berkas dari HP (bisa banyak). Kosong bila dibatalkan. */
   pilihBerkas(opsi?: { banyak?: boolean; terima?: string }): Promise<BerkasMasuk[]>
   /** Berkas yang dibuka dari aplikasi lain (WA → "Buka dengan PPG Sorong"). Mengembalikan pelepas. */
@@ -65,6 +70,8 @@ export interface Platform {
 export const KELAS_PEMINDAI_NATIVE = 'pemindai-native'
 
 const KUNCI_DB = 'ppg-hp-db'
+/** Fase 9: database Super Admin HP disimpan di kunci IndexedDB tersendiri (data & kunci terpisah dari profil biasa). */
+const KUNCI_DB_SUPER = 'ppg-super-db'
 
 async function salinKePapan(teks: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -137,15 +144,15 @@ function dariB64(t: string): Uint8Array {
   return out
 }
 
-async function penyimpananIdb() {
+async function penyimpananIdb(kunci: string = KUNCI_DB) {
   const { get, set } = await import('idb-keyval')
   return {
     muat: async () => {
-      const v = await get<Uint8Array | ArrayBuffer>(KUNCI_DB)
+      const v = await get<Uint8Array | ArrayBuffer>(kunci)
       if (!v) return null
       return v instanceof Uint8Array ? v : new Uint8Array(v)
     },
-    simpan: (b: Uint8Array) => set(KUNCI_DB, new Uint8Array(b)),
+    simpan: (b: Uint8Array) => set(kunci, new Uint8Array(b)),
   }
 }
 
@@ -156,6 +163,15 @@ export function platformWeb(urlWasm: string): Platform {
     opsiSqlJs: async () => ({ locateFile: () => urlWasm }),
     muatDb: async () => (await penyimpananIdb()).muat(),
     simpanDb: async (b) => (await penyimpananIdb()).simpan(b),
+    muatDbSuper: async () => (await penyimpananIdb(KUNCI_DB_SUPER)).muat(),
+    simpanDbSuper: async (b) => (await penyimpananIdb(KUNCI_DB_SUPER)).simpan(b),
+    saatAktifKembali(fn) {
+      const f = () => {
+        if (document.visibilityState === 'visible') fn()
+      }
+      document.addEventListener('visibilitychange', f)
+      return () => document.removeEventListener('visibilitychange', f)
+    },
     saatLatarBelakang(fn) {
       const f = () => {
         if (document.visibilityState === 'hidden') fn()
@@ -271,6 +287,16 @@ export async function platformNative(urlWasm: string): Promise<Platform> {
         if (!s.isActive) fn()
       })
       const lepasWeb = web.saatLatarBelakang(fn)
+      return () => {
+        void h.then((x) => x.remove())
+        lepasWeb()
+      }
+    },
+    saatAktifKembali(fn) {
+      const h = App.addListener('appStateChange', (s) => {
+        if (s.isActive) fn()
+      })
+      const lepasWeb = web.saatAktifKembali(fn)
       return () => {
         void h.then((x) => x.remove())
         lepasWeb()

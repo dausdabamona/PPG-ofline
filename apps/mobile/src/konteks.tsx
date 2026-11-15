@@ -11,7 +11,7 @@ export interface Toast {
   pesan: string
 }
 
-export type Tujuan = 'pilih' | 'tambah' | 'akun' | 'utama'
+export type Tujuan = 'pilih' | 'tambah' | 'akun' | 'utama' | 'super'
 
 export interface NilaiApp {
   db: Db

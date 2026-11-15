@@ -7,28 +7,30 @@ import type { BerkasKirim, BerkasMasuk, Platform } from './platform'
 import { KotakGalat, Memuat } from './komponen/ui'
 import { pesanGalat, pesanHasilBerkas } from './utils/label'
 import { LayarAwal, LayarPilihProfil, LayarSambut } from './halaman/awal'
+import { AplikasiSuper } from './halaman/super-masuk'
 import { Kerangka } from './kerangka'
 
 const JEDA_SIMPAN_MS = 500
 
-type Tahap = { t: 'memuat' } | { t: 'galat'; pesan: string } | { t: 'sambut' } | { t: 'awal' } | { t: 'pilih' } | { t: 'siap' }
+type Tahap = { t: 'memuat' } | { t: 'galat'; pesan: string } | { t: 'sambut' } | { t: 'awal' } | { t: 'pilih' } | { t: 'siap' } | { t: 'super' }
 
-/** Tentukan layar pertama dari isi database. */
-function tahapAwal(db: Db): Tahap {
+/** Tentukan layar pertama dari isi database. `adaSuper`: HP ini juga memegang Super Admin HP (Fase 9). */
+function tahapAwal(db: Db, adaSuper = false): Tahap {
   if (adalahAdmin(db)) return { t: 'galat', pesan: 'Data ini milik aplikasi admin (komputer), bukan HP.' }
   try {
     ambilIdentitas(db)
   } catch {
-    return { t: 'sambut' }
+    return adaSuper ? { t: 'pilih' } : { t: 'sambut' }
   }
   const semua = daftarProfil(db)
-  if (!semua.length) return { t: 'awal' }
+  if (!semua.length) return adaSuper ? { t: 'pilih' } : { t: 'awal' }
+  if (adaSuper) return { t: 'pilih' }
   const aktif = profilAktif(db)
   if (semua.length > 1 || !aktif || aktif.ada_pin) return { t: 'pilih' }
   return { t: 'siap' }
 }
 
-export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
+export function App(p: { platform: Platform; jedaSimpanMs?: number; kunciSuperMs?: number }) {
   const { platform } = p
   const jedaSimpan = p.jedaSimpanMs ?? JEDA_SIMPAN_MS
   const [db, setDb] = useState<Db | null>(null)
@@ -41,6 +43,9 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
   const antre = useRef<Promise<void>>(Promise.resolve())
   const kotor = useRef(false)
   const lepas = useRef<(() => void) | null>(null)
+  // Fase 9: Super Admin HP (database terpisah)
+  const [adaSuper, setAdaSuper] = useState(false)
+  const penanganSuper = useRef<((b: BerkasMasuk) => void) | null>(null)
 
   const simpanSekarang = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current)
@@ -83,9 +88,11 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
         const opsi = await platform.opsiSqlJs()
         const bytes = await platform.muatDb()
         const d = await bukaDb(bytes ?? undefined, opsi)
+        const sup = !!(await platform.muatDbSuper())
         if (batal) return
         pasangDb(d)
-        setTahap(tahapAwal(d))
+        setAdaSuper(sup)
+        setTahap(tahapAwal(d, sup))
       } catch (e) {
         if (!batal) setTahap({ t: 'galat', pesan: pesanGalat(e) })
       }
@@ -137,7 +144,11 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
   const siapDb = !!db
   useEffect(() => {
     if (!siapDb) return
-    return platform.saatBerkasMasuk((b) => void bukaBerkas([b]))
+    return platform.saatBerkasMasuk((b) => {
+      // mode Super Admin aktif → berkas dibuka di database Super Admin
+      if (penanganSuper.current) penanganSuper.current(b)
+      else void bukaBerkas([b])
+    })
   }, [platform, siapDb, bukaBerkas])
 
   const kirimBerkas = useCallback(
@@ -169,9 +180,9 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
       kotor.current = true
       await simpanSekarang()
       setLayarAkun(false)
-      setTahap(tahapAwal(baru))
+      setTahap(tahapAwal(baru, adaSuper))
     },
-    [platform, pasangDb, simpanSekarang],
+    [platform, pasangDb, simpanSekarang, adaSuper],
   )
 
   const ke = useCallback((t: Tujuan) => {
@@ -179,6 +190,7 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
     setLayarAkun(false)
     if (t === 'pilih') setTahap({ t: 'pilih' })
     else if (t === 'tambah') setTahap({ t: 'awal' })
+    else if (t === 'super') setTahap({ t: 'super' })
     else setTahap({ t: 'siap' })
   }, [])
 
@@ -207,10 +219,39 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
     [db, platform, versi, profil, toast.tambah, aksi, bukaBerkas, kirimBerkas, simpanSekarang, gantiDb, ke],
   )
 
+  const keSuper = () => setTahap({ t: 'super' })
+  const namaHp = (() => {
+    try {
+      return db ? ambilIdentitas(db).label : ''
+    } catch {
+      return ''
+    }
+  })()
+
   let isi
   if (tahap.t === 'memuat' || (tahap.t !== 'galat' && !db)) isi = <Memuat teks="Membuka aplikasi…" />
+  else if (tahap.t === 'super')
+    isi = (
+      <AplikasiSuper
+        platform={platform}
+        toast={toast.tambah}
+        namaHp={namaHp}
+        kunciOtomatisMs={p.kunciSuperMs}
+        jedaSimpanMs={jedaSimpan}
+        pasangPenanganBerkas={(fn) => {
+          penanganSuper.current = fn
+        }}
+        keluar={() => {
+          penanganSuper.current = null
+          void platform.muatDbSuper().then((b) => {
+            setAdaSuper(!!b)
+            setTahap(tahapAwal(db!, !!b))
+          })
+        }}
+      />
+    )
   else if (tahap.t === 'galat') isi = <div className="layar-tengah"><KotakGalat pesan={tahap.pesan} /></div>
-  else if (tahap.t === 'sambut') isi = <LayarSambut db={db!} selesai={() => setTahap({ t: 'awal' })} toast={toast.tambah} />
+  else if (tahap.t === 'sambut') isi = <LayarSambut db={db!} selesai={() => setTahap({ t: 'awal' })} toast={toast.tambah} superAdmin={keSuper} />
   else if (tahap.t === 'awal')
     isi = (
       <LayarAwal
@@ -218,16 +259,33 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number }) {
         platform={platform}
         toast={toast.tambah}
         bukaBerkas={bukaBerkas}
-        batal={daftarProfil(db!).length ? () => setTahap(tahapAwal(db!).t === 'siap' ? { t: 'siap' } : { t: 'pilih' }) : undefined}
+        adaSuper={adaSuper}
+        superAdmin={keSuper}
+        batal={daftarProfil(db!).length || adaSuper ? () => setTahap(tahapAwal(db!, adaSuper).t === 'siap' ? { t: 'siap' } : { t: 'pilih' }) : undefined}
         selesai={() => {
           void simpanSekarang()
           setTahap({ t: 'siap' })
         }}
       />
     )
-  else if (tahap.t === 'pilih')
-    isi = <LayarPilihProfil db={db!} toast={toast.tambah} pilih={() => setTahap({ t: 'siap' })} tambah={() => setTahap({ t: 'awal' })} />
-  else if (!nilai) isi = <LayarPilihProfil db={db!} toast={toast.tambah} pilih={() => setTahap({ t: 'siap' })} tambah={() => setTahap({ t: 'awal' })} />
+  else if (tahap.t === 'pilih' || !nilai)
+    isi = (
+      <LayarPilihProfil
+        db={db!}
+        toast={toast.tambah}
+        pilih={() => setTahap({ t: 'siap' })}
+        tambah={() => {
+          try {
+            ambilIdentitas(db!)
+            setTahap({ t: 'awal' })
+          } catch {
+            setTahap({ t: 'sambut' })
+          }
+        }}
+        adaSuper={adaSuper}
+        bukaSuper={keSuper}
+      />
+    )
   else
     isi = (
       <PenyediaApp nilai={nilai}>
