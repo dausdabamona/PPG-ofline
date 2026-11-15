@@ -144,7 +144,7 @@ export function Kerangka(p: { akun: boolean }) {
         ) : (
           <>
             <IndikatorSetor pergi={setTab} tab={aktif.kunci} />
-            <div className="isi-tab" key={`${aktif.kunci}-${ulang}`}>
+            <div className="isi-tab" key={`${profil.id}-${aktif.kunci}-${ulang}`}>
               {aktif.isi({ pergi: setTab })}
             </div>
           </>

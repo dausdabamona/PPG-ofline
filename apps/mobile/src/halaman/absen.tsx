@@ -161,7 +161,7 @@ function PilihMateriHariIni(p: { kelompokId: string; tanggal: string; opsi: Opsi
           ) : d.target.length ? (
             <p>Semua target kelas ini sudah tuntas. Masyaa Allah!</p>
           ) : (
-            <p>Target kurikulum untuk kelas ini belum ada. Buka berkas materi terbaru dari daerah (Lainnya → Buka Berkas).</p>
+            <p>Target kurikulum untuk kelas ini belum ada. Buka paket terbaru dari desa — berkas materi ikut di dalamnya (Lainnya → Buka Berkas).</p>
           )}
           {d.target.length ? (
             <details className="lanjutan">

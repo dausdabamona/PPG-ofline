@@ -37,6 +37,7 @@ import { adalahExe, ambilMeta, aturMeta, peranInstalasi, type PeranInstalasi } f
 import { ambilWilayah, kelompokDalamWilayah } from './repo/wilayah'
 import {
   bacaKodePerangkat,
+  buktiWilayahSah,
   HAK_DARI_DESA,
   hakBawaan,
   tandaTanganiToken,
@@ -312,6 +313,14 @@ export function terbitkanTokenBawah(db: Db, kunci: KunciExe, o: OpsiTerbitTokenB
     }
   }
   const tp = uraiToken(saya.token).payload
+  // Fase 8: bukti daerah bahwa kelompok ini di bawah desa penerbit (diperiksa HP/EXE kelompok tanpa pohon wilayah)
+  let bukti: string | undefined
+  if (w.id !== saya.wilayah_id) {
+    bukti = ambilMeta(db, `bukti_wilayah:${w.id}`)
+    if (!bukti || !buktiWilayahSah(bukti, { orgId: tp.org_id, anakId: w.id, indukId: saya.wilayah_id, adminSignPub: tp.admin_sign_pub })) {
+      throw new GalatPpg('BUKTI_WILAYAH_TIDAK_ADA', 'Data kelompok ini belum lengkap dari daerah. Buka paket terbaru dari daerah dulu.')
+    }
+  }
   const terbit = sekarangIso()
   const payload: PayloadToken = {
     v: 1,
@@ -331,6 +340,7 @@ export function terbitkanTokenBawah(db: Db, kunci: KunciExe, o: OpsiTerbitTokenB
     berlaku_sampai: tambahHariIso(terbit, berlakuHari),
     penerbit: saya.token,
   }
+  if (bukti) payload.bukti_wilayah = bukti
   // tujuan SETOR: EXE kelompok aktif (untuk HP di kelompok itu), selain itu EXE desa ini
   const exeKelompok =
     o.role !== 'admin' && tingkat === 'kelompok'

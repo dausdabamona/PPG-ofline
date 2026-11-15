@@ -72,7 +72,7 @@ export function HalamanPaket() {
         keterangan={
           daerah
             ? 'Paket membawa data master, kegiatan, koreksi, target, jadwal setor, token & pencabutan terbaru ke EXE desa dan HP pengurus/mubaligh.'
-            : 'Paket membawa data desa dari daerah, token & pencabutan terbaru ke HP pengurus/mubaligh dan EXE kelompok di desa ini.'
+            : 'Paket membawa data desa dari daerah, berkas materi & target kurikulum, token & pencabutan terbaru ke HP pengurus/mubaligh dan EXE kelompok di desa ini.'
         }
       />
       <Kartu judul="Paket satu wilayah">
@@ -94,7 +94,8 @@ export function HalamanPaket() {
         </div>
         {!daerah ? (
           <p className="keterangan">
-            Berkas materi (PPG_MATERI_….ppg) dari daerah diteruskan <b>apa adanya</b> ke grup WA kelompok/HP — tidak perlu dibuat ulang di desa.
+            Berkas materi terakhir dari daerah <b>ikut otomatis</b> di dalam paket (apa adanya, bertanda tangan daerah). HP & EXE kelompok
+            cukup membuka paket ini — tidak perlu mengirim berkas PPG_MATERI_….ppg terpisah.
           </p>
         ) : null}
       </Kartu>

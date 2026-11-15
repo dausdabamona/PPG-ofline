@@ -158,7 +158,8 @@ await periksaTombol(A, 'desa-beranda')
 // ---------- kelompok ----------
 await aktifkan(K, tokK, 'kelompok')
 await menu(K, 'Buka Paket')
-await pilihBerkas(K, 'Pilih berkas paket', [paketK, materi])
+// Fase 8: berkas materi daerah sudah ikut di dalam paket desa → cukup buka paketnya
+await pilihBerkas(K, 'Pilih berkas paket', [paketK])
 await K.getByRole('heading', { name: 'Ringkasan impor' }).waitFor()
 await menu(K, 'Absen Pertemuan')
 const opsiK = await K.getByLabel('Kelas / pengajian').locator('option').allTextContents()
@@ -177,6 +178,10 @@ await A.getByRole('heading', { name: 'Ringkasan impor' }).waitFor()
 await menu(A, 'Setor ke Daerah')
 const setorA = await unduh(A, () => A.getByRole('main').getByRole('button', { name: 'Setor ke Daerah' }).click())
 await A.screenshot({ path: join(KELUAR, 'v3-desa-setor.png'), fullPage: true })
+// Fase 8: menu Kirim Balasan di EXE desa (belum ada HP murid/orang tua → status kosong yang ramah)
+await menu(A, 'Kirim Balasan')
+await A.getByText(/Belum ada HP murid\/orang tua yang dikenal/).waitFor()
+await periksaTombol(A, 'desa-balasan')
 
 // ---------- kurikulum ----------
 await aktifkan(R, tokR, 'kurikulum')

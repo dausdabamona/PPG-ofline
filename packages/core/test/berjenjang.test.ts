@@ -51,6 +51,7 @@ import {
   tambahWilayah,
   tandaiTuntas,
   tandaTanganiToken,
+  tandaTanganiBuktiWilayah,
   terapkanBalasan,
   terapkanMateri,
   terapkanPaket,
@@ -182,6 +183,12 @@ describe('rantai kepercayaan berjenjang (periksaToken)', () => {
     expect(periksaToken(olehDesa({ wilayah_id: 'B1' }), opsi())).toMatchObject({ kode: 'RANTAI_TIDAK_SAH' })
     // tanpa pohon wilayah (HP baru) pemeriksaan wilayah dilewati
     expect(periksaToken(olehDesa({ wilayah_id: 'B1' }), opsi({ wilayahMencakup: undefined })).sah).toBe(true)
+    // Fase 8: HP/EXE kelompok (wajib bukti wilayah) menolak token tanpa bukti daerah, juga untuk kelompok yang benar
+    expect(periksaToken(olehDesa({ wilayah_id: 'B1' }), opsi({ wilayahMencakup: undefined, wajibBuktiWilayah: true }))).toMatchObject({ kode: 'RANTAI_TIDAK_SAH' })
+    expect(periksaToken(olehDesa({}), opsi({ wajibBuktiWilayah: true }))).toMatchObject({ kode: 'RANTAI_TIDAK_SAH' })
+    const bukti = tandaTanganiBuktiWilayah('ORG', 'A1', 'DA', admin.rahasia)
+    expect(periksaToken(olehDesa({ bukti_wilayah: bukti }), opsi({ wilayahMencakup: undefined, wajibBuktiWilayah: true })).sah).toBe(true)
+    expect(periksaToken(olehDesa({ wilayah_id: 'B1', bukti_wilayah: bukti }), opsi({ wilayahMencakup: () => true }))).toMatchObject({ kode: 'RANTAI_TIDAK_SAH' })
     expect(periksaToken(olehDesa({ hak: ['catat', 'terbit_bawah'] }), opsi())).toMatchObject({ kode: 'RANTAI_TIDAK_SAH' })
     expect(periksaToken(olehDesa({ role: 'admin', tingkat: 'desa', wilayah_id: 'DA', hak: ['catat'] }), opsi())).toMatchObject({ kode: 'TOKEN_TIDAK_SAH' })
     expect(periksaToken(olehDesa({ role: 'kurikulum', tingkat: 'daerah', wilayah_id: 'D', hak: ['lihat'] }), opsi())).toMatchObject({ kode: 'TOKEN_TIDAK_SAH' })

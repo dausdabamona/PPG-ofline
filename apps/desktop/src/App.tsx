@@ -34,6 +34,7 @@ import { HalamanSetor } from './halaman/setor'
 import { HalamanJadwalSetor } from './halaman/jadwal-setor'
 import { HalamanTarget } from './halaman/target'
 import { HalamanAbsen } from './halaman/absen'
+import { HalamanBalasan } from './halaman/balasan'
 import { MENU, MENU_PERAN, judulPeran, teksMenu, type KunciMenu } from './menu'
 
 export { MENU, MENU_PERAN, judulPeran, teksMenu, type KunciMenu } from './menu'
@@ -374,6 +375,8 @@ function Halaman(p: { kunci: KunciMenu; pilih: (k: KunciMenu) => void }) {
       return <HalamanKoreksi />
     case 'paket':
       return <HalamanPaket />
+    case 'balasan':
+      return <HalamanBalasan />
     case 'rekap':
       return <HalamanRekap />
     case 'pengaturan':

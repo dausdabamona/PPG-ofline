@@ -385,7 +385,9 @@ describe('EXE v3 — satu EXE untuk semua tingkat', () => {
     pfK.antreanBuka.push([{ nama: paketK.nama, bytes: paketK.bytes }, { nama: materi.nama, bytes: materi.bytes }])
     await u.click(screen.getByRole('button', { name: 'Pilih berkas paket' }))
     await screen.findByRole('heading', { name: 'Ringkasan impor' })
-    expect(screen.getAllByText('Berhasil')).toHaveLength(2)
+    // Fase 8: materi sudah ikut di paket desa → berkas materi yang dipilih bersamaan tercatat sudah terpasang
+    expect(screen.getAllByText('Berhasil')).toHaveLength(1)
+    expect(screen.getByText('Sudah pernah diimpor')).toBeTruthy()
     expect(screen.getByTestId('peran-wilayah').textContent).toBe('Admin Kelompok · Klasaman 2')
 
     // Absen pertemuan: kelas caberawit → saran materi → tandai hadir & tuntas

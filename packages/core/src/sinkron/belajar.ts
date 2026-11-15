@@ -10,6 +10,7 @@ import { validasiKemajuan, type DataKemajuan, type KemajuanBelajar } from '../re
 import { catatSeqDiterima, daftarkanToken, daftarPencabutan, tokenDikenal } from '../repo/perangkat'
 import { cariProfilPencatat, daftarProfil, pastikanProfilBolehMencatat, statusProfil, type Profil } from '../repo/profil'
 import { adalahAdmin, ambilMetaAngka, aturMeta, ambilRekaman, seqBerikut, sisipkanRekaman, tandaTanya, ubahRekaman, type Rekaman } from '../repo/umum'
+import { wajibBuktiWilayahDb } from '../rantai'
 import { kunciSetorSah, periksaToken, uraiToken, type PayloadToken } from '../token'
 import { sekarangIso, tanggalHariIni, tanggalRingkas } from '../waktu'
 import { bacaBerkasJenis, catatImpor, imporTerdahulu, kunciAdminTerpasang, sidikBerkas } from './umum'
@@ -150,7 +151,7 @@ export function imporBelajar(dbMubaligh: Db, bytes: Uint8Array, namaBerkas?: str
   const teksToken = new Map<string, string>()
   let alasanPertama = ''
   for (const teks of Array.isArray(isi.tokens) ? isi.tokens : []) {
-    const h = periksaToken(teks, { adminSignPub: admin.signPub, pencabutan, tokenDikenal: dikenal })
+    const h = periksaToken(teks, { adminSignPub: admin.signPub, pencabutan, tokenDikenal: dikenal, wajibBuktiWilayah: wajibBuktiWilayahDb(dbMubaligh) })
     if (!h.sah) {
       alasanPertama ||= h.alasan
       continue

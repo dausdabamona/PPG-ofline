@@ -32,8 +32,9 @@ import { daftarProfil, pastikanProfilBolehMencatat, simpanRahasiaProfil, type Pr
 import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, tandaTanya, type Rekaman } from '../repo/umum'
 import { ambilWilayah, kelompokDalamWilayah, leluhurWilayah, turunanWilayah } from '../repo/wilayah'
 import { TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
-import { periksaToken, uraiToken, type KunciSetor } from '../token'
+import { buktiWilayahSah, periksaToken, tandaTanganiBuktiWilayah, uraiToken, type KunciSetor } from '../token'
 import { sekarangIso } from '../waktu'
+import { terapkanMateri } from './materi'
 import { bacaBerkasJenis, catatImpor, kunciAdminTerpasang, sidikBerkas } from './umum'
 
 export interface IsiPaket {
@@ -55,6 +56,16 @@ export interface IsiPaket {
   konfirmasi_daerah?: Record<string, number>
   /** v3: perangkat_id EXE → b64url(segelKe(box_pub, JSON {kelompok_id: KunciTitipan})) — kunci kelompok titipan daerah. */
   kunci_titipan?: Record<string, string>
+  /**
+   * Fase 8 (hanya paket daerah): kelompok_id → tanda tangan daerah "kelompok ini di bawah desa induknya" (`bukti_wilayah`).
+   * EXE desa menanamkannya di token yang ia terbitkan untuk kelompok itu.
+   */
+  bukti_wilayah?: Record<string, string>
+  /**
+   * Fase 8 (paket EXE desa/kelompok): berkas MATERI daerah (b64url) yang diteruskan APA ADANYA — tanda tangan daerah
+   * diperiksa penerima; diterapkan hanya bila lebih baru dari yang terpasang.
+   */
+  materi_daerah?: string
 }
 
 function pilih(db: Db, tabel: NamaTabelSinkron, kolom: string, nilai: string[], tambahan = ''): Rekaman[] {
@@ -194,7 +205,21 @@ export function buatPaket(db: Db, wilayahId: string, kunci: KunciPemegang): Berk
     konfirmasi_daerah: konfirmasiDaerah,
   }
   if (Object.keys(kunciTitipan).length) isi.kunci_titipan = kunciTitipan
-  if (saya) isi.token_pengirim = saya.token
+  if (saya) {
+    isi.token_pengirim = saya.token
+    const materi = ambilMeta(db, 'berkas_materi')
+    if (materi) isi.materi_daerah = materi
+  }
+  if (daerah && penerima.some((p) => p.role === 'admin')) {
+    const bukti: Record<string, string> = {}
+    for (const id of turunan) {
+      const k = ambilWilayah(db, id)
+      if (k && !k.dihapus && k.tingkat === 'kelompok' && k.induk_id) {
+        bukti[k.id] = tandaTanganiBuktiWilayah((kunci as KunciAdmin).orgId, k.id, k.induk_id, kunci.tandaTangan.rahasia)
+      }
+    }
+    if (Object.keys(bukti).length) isi.bukti_wilayah = bukti
+  }
   const kunciBerkas = kunciAcak32()
   const kunciPenerima: Record<string, string> = {}
   for (const p of penerima) kunciPenerima[p.perangkat_id] = keB64url(segelKe(dariB64url(p.box_pub), kunciBerkas))
@@ -223,6 +248,10 @@ export interface RingkasanTerapkan {
   pencabutanBaru: number
   /** Profil HP ini yang berubah status karena pencabutan/pembekuan. */
   profilTerdampak: { id: string; nama: string; dibekukan: boolean; dicabut: boolean }[]
+  /** Fase 8: berkas MATERI daerah yang ikut di PAKET EXE dan diterapkan (versinya), bila ada yang baru. */
+  materiDiterapkan?: number
+  /** Fase 8 (MATERI): berkas yang sama persis sudah terpasang — tidak ada perubahan. */
+  sudahPernah?: boolean
 }
 
 /** Potret status profil (untuk mendeteksi perubahan setelah menerapkan berkas). */
@@ -297,6 +326,16 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
           return null
         }
 
+  // Fase 8: berkas MATERI daerah yang diteruskan EXE — diverifikasi tanda tangan daerah oleh terapkanMateri
+  let materiDiterapkan: number | undefined
+  if (!dariDaerah && typeof isi.materi_daerah === 'string') {
+    try {
+      const m = terapkanMateri(db, dariB64url(isi.materi_daerah))
+      if (!m.sudahPernah) materiDiterapkan = m.versi
+    } catch {
+      // materi tidak lebih baru / rusak → diabaikan; paket tetap diterapkan
+    }
+  }
   const sebelum = potretProfil(db)
   const kunciExe = adalahExe(db) ? kunciExeTerbuka(db) : undefined
   return db.transaksi(() => {
@@ -335,6 +374,14 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
       const milik = new Set(daftarProfil(db, 'admin').flatMap((p) => kelompokDalamWilayah(db, p.wilayah_id)))
       simpanKunciTitipan(db, kunciExe, Object.fromEntries(Object.entries(peta).filter(([k]) => milik.has(k) && !diLuar(k))))
     }
+    if (dariDaerah && kunciExe && isi.bukti_wilayah && typeof isi.bukti_wilayah === 'object') {
+      for (const [k, bukti] of Object.entries(isi.bukti_wilayah)) {
+        const w = ambilWilayah(db, k)
+        if (w?.induk_id && buktiWilayahSah(bukti, { orgId: admin.orgId, anakId: k, indukId: w.induk_id, adminSignPub: admin.signPub })) {
+          aturMeta(db, `bukti_wilayah:${k}`, bukti)
+        }
+      }
+    }
     aturMeta(db, kunciVersi, Math.max(versi, terpasang))
     if (b.header.dibuat_pada > dibuatTerpasang) aturMeta(db, kunciDibuat, b.header.dibuat_pada)
     aturMeta(db, 'terakhir_paket', sekarangIso())
@@ -346,6 +393,7 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
       pencabutanBaru,
       profilTerdampak: profilBerubah(db, sebelum),
     }
+    if (materiDiterapkan !== undefined) ringkasan.materiDiterapkan = materiDiterapkan
     catatImpor(db, b.header, ringkasan, sidikBerkas(bytes), namaBerkas)
     return ringkasan
   })

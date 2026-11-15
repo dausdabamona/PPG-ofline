@@ -3,7 +3,7 @@ import { periksaBerkas, type BerkasTerbaca } from '../berkas'
 import { dariB64url } from '../crypto'
 import type { Db } from '../db'
 import { GalatPpg } from '../galat'
-import { wilayahRantaiPenerbit } from '../rantai'
+import { wajibBuktiWilayahDb, wilayahRantaiPenerbit } from '../rantai'
 import { daftarPencabutan } from '../repo/perangkat'
 import { daftarProfil } from '../repo/profil'
 import { periksaToken, type PayloadToken } from '../token'
@@ -19,7 +19,12 @@ import { kunciAdminTerpasang } from './umum'
 export function periksaPengirimMubaligh(db: Db, b: BerkasTerbaca, tokenPengirim: unknown, kelompokId: string, o: { bolehExe?: boolean } = {}): PayloadToken {
   const admin = kunciAdminTerpasang(db)
   if (typeof tokenPengirim !== 'string') throw new GalatPpg('PENGIRIM_TIDAK_SAH', 'Berkas tidak memuat token pengirim.')
-  const h = periksaToken(tokenPengirim, { adminSignPub: admin.signPub, pencabutan: daftarPencabutan(db), abaikanKedaluwarsa: true })
+  const h = periksaToken(tokenPengirim, {
+    adminSignPub: admin.signPub,
+    pencabutan: daftarPencabutan(db),
+    abaikanKedaluwarsa: true,
+    wajibBuktiWilayah: wajibBuktiWilayahDb(db),
+  })
   if (!h.sah && h.kode !== 'DIBEKUKAN') throw new GalatPpg('PENGIRIM_TIDAK_SAH', `Pengirim berkas tidak sah: ${h.alasan}`)
   const p = h.payload!
   const mubaligh = p.role === 'mubaligh' && p.wilayah_id === kelompokId

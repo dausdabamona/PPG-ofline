@@ -200,11 +200,12 @@ describe('Skenario berjenjang v3 (§14)', () => {
     // paket desa (ditandatangani EXE desa, diverifikasi lewat rantai sampai daerah)
     const pA1 = buatPaket(exeA.db, A1.id, exeA.kunci)
     expect(pA1.header.pengirim_perangkat_id).toBe(exeA.id)
-    terapkanPaket(hpM.db, pA1.bytes)
+    // Fase 8: berkas MATERI daerah ikut diteruskan otomatis di paket desa
+    expect(terapkanPaket(hpM.db, pA1.bytes).materiDiterapkan).toBeGreaterThan(0)
     expect(() => terapkanPaket(hpM.db, pA1.bytes)).toThrow(/tidak lebih baru/)
     bukaBerkasApaSaja(exeA2.db, buatPaket(exeA.db, A2.id, exeA.kunci).bytes)
-    terapkanMateri(hpM.db, materiBytes)
-    terapkanMateri(exeA2.db, materiBytes)
+    expect(terapkanMateri(hpM.db, materiBytes).sudahPernah).toBe(true)
+    expect(terapkanMateri(exeA2.db, materiBytes).sudahPernah).toBe(true)
     // paket desa yang dipalsukan (ditandatangani perangkat lain) ditolak
     const palsu = buatPaket(exeA.db, A1.id, { ...exeA.kunci, tandaTangan: exeB.kunci.tandaTangan })
     expect(() => terapkanPaket(hpM.db, palsu.bytes)).toThrow(/Tanda tangan/)
@@ -340,10 +341,8 @@ describe('Skenario berjenjang v3 (§14)', () => {
     expect(periksaTokenDb(daerah.db, palsu)).toMatchObject({ sah: false, kode: 'RANTAI_TIDAK_SAH' })
     expect(periksaTokenDb(exeB.db, palsu)).toMatchObject({ sah: false, kode: 'RANTAI_TIDAK_SAH' })
     expect(periksaToken(palsu, { adminSignPub: uraiToken(palsu).payload.admin_sign_pub, wilayahMencakup: wilayahMencakupDb(hpM.db) })).toMatchObject({ kode: 'RANTAI_TIDAK_SAH' })
-    // HP yang belum punya pohon wilayah bisa memasangnya, tetapi setorannya ditolak desa A (dan daerah)
-    await aktifkanProfil(hpX.db, palsu)
-    const sx = buatSetor(hpX.db)
-    expect(() => imporSetor(exeA.db, sx.bytes, exeA.kunci)).toThrow(/di luar wilayah|tidak sah/)
+    // Fase 8: HP yang belum punya pohon wilayah pun menolaknya (bukti wilayah daerah tidak cocok)
+    await expect(aktifkanProfil(hpX.db, palsu)).rejects.toMatchObject({ kode: 'RANTAI_TIDAK_SAH' })
   })
 
   it('13. token buatan EXE desa yang dicabut ditolak', async () => {

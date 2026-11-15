@@ -73,6 +73,12 @@ export interface PayloadToken {
   atas_box_pub?: string
   /** v3: perangkat_id tingkat atas langsung. */
   atas_perangkat_id?: string
+  /**
+   * Fase 8: bukti wilayah (b64url) — tanda tangan admin daerah atas `PPGWB1.<org_id>.<wilayah_id>.<wilayah penerbit>`
+   * (lihat `tandaTanganiBuktiWilayah`). Wajib pada token yang diterbitkan EXE desa untuk kelompok di desanya, agar HP/EXE
+   * yang belum punya pohon wilayah tepercaya bisa memastikan kelompok itu memang di bawah desa penerbit.
+   */
+  bukti_wilayah?: string
 }
 
 /** Satu versi kunci kelompok setor (X25519). `rahasia` hanya dipegang mubaligh. */
@@ -90,6 +96,25 @@ export interface KunciSetor {
 
 function pesanKunciSetor(orgId: string, kelompokId: string, versi: number, publik: string): Uint8Array {
   return keUtf8(`PPGKS1.${orgId}.${kelompokId}.${versi}.${publik}`)
+}
+
+function pesanBuktiWilayah(orgId: string, anakId: string, indukId: string): Uint8Array {
+  return keUtf8(`PPGWB1.${orgId}.${anakId}.${indukId}`)
+}
+
+/** Admin daerah menandatangani pernyataan "wilayah `anakId` berada langsung di bawah `indukId`" (Fase 8). */
+export function tandaTanganiBuktiWilayah(orgId: string, anakId: string, indukId: string, rahasiaAdmin: Uint8Array): string {
+  return keB64url(tandaTangani(pesanBuktiWilayah(orgId, anakId, indukId), rahasiaAdmin))
+}
+
+/** Apakah bukti wilayah bertanda tangan sah admin daerah. Tidak pernah melempar. */
+export function buktiWilayahSah(bukti: unknown, o: { orgId: string; anakId: string; indukId: string; adminSignPub: string }): boolean {
+  if (typeof bukti !== 'string' || !bukti) return false
+  try {
+    return periksaTandaTangan(pesanBuktiWilayah(o.orgId, o.anakId, o.indukId), dariB64url(bukti), dariB64url(o.adminSignPub))
+  } catch {
+    return false
+  }
 }
 
 /** Admin menandatangani kunci setor publik satu kelompok. */
@@ -221,7 +246,8 @@ function bentukPayloadSah(p: PayloadToken): boolean {
     teks(p.berlaku_sampai) &&
     (p.generus_ids === undefined || (Array.isArray(p.generus_ids) && p.generus_ids.every(teks))) &&
     (p.atas_box_pub === undefined || teks(p.atas_box_pub)) &&
-    (p.atas_perangkat_id === undefined || teks(p.atas_perangkat_id))
+    (p.atas_perangkat_id === undefined || teks(p.atas_perangkat_id)) &&
+    (p.bukti_wilayah === undefined || teks(p.bukti_wilayah))
   )
 }
 
@@ -268,6 +294,13 @@ export interface OpsiPeriksaToken {
    * `undefined` = tidak diketahui (mis. HP yang belum punya pohon wilayah) → pemeriksaan dilewati.
    */
   wilayahMencakup?: (atasId: string, bawahId: string) => boolean | undefined
+  /**
+   * Fase 8: token terbitan EXE desa untuk kelompok WAJIB membawa `bukti_wilayah` sah (tanda tangan daerah) — dipakai di HP
+   * dan EXE kelompok, yang pohon wilayahnya tidak ada atau berasal dari paket desa (tidak tepercaya). Bila tidak wajib
+   * (EXE daerah/desa, pohon dari daerah), token tanpa bukti diterima selama pohon wilayah tidak menolaknya.
+   * Bukti yang ada tetapi tidak sah selalu ditolak.
+   */
+  wajibBuktiWilayah?: boolean
 }
 
 export type KodeTolakToken =
@@ -409,9 +442,11 @@ function periksaDariDesa(p: PayloadToken, q: PayloadToken, opsi: OpsiPeriksaToke
     if (p.tingkat !== q.tingkat) return tolak('RANTAI_TIDAK_SAH', 'Tingkat token tidak sesuai wilayah penerbit.')
   } else {
     if (p.tingkat !== 'kelompok') return tolak('RANTAI_TIDAK_SAH', 'Tingkat token tidak sesuai wilayah penerbit.')
-    if (opsi.wilayahMencakup?.(q.wilayah_id, p.wilayah_id) === false) {
-      return tolak('RANTAI_TIDAK_SAH', 'Wilayah token berada di luar wilayah EXE desa penerbitnya.')
+    const luar = tolak('RANTAI_TIDAK_SAH', 'Wilayah token berada di luar wilayah EXE desa penerbitnya.')
+    if (p.bukti_wilayah !== undefined || opsi.wajibBuktiWilayah) {
+      if (!buktiWilayahSah(p.bukti_wilayah, { orgId: p.org_id, anakId: p.wilayah_id, indukId: q.wilayah_id, adminSignPub: opsi.adminSignPub })) return luar
     }
+    if (opsi.wilayahMencakup?.(q.wilayah_id, p.wilayah_id) === false) return luar
   }
   return null
 }

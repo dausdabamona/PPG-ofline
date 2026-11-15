@@ -17,7 +17,7 @@ import { LABEL_TABEL, label, waktuLokal } from '../utils/label'
 function keteranganMode(mode: 'setor' | 'paket', peran: PeranExe): string {
   if (mode === 'paket') {
     if (peran === 'kurikulum') return 'Pilih berkas PPG_MATERI_….ppg dari Admin Daerah agar materi dasar tersedia sebelum menyusun target.'
-    if (peran === 'kelompok') return 'Pilih berkas PPG_PAKET_….ppg dari desa dan PPG_MATERI_….ppg dari daerah (boleh banyak sekaligus).'
+    if (peran === 'kelompok') return 'Pilih berkas PPG_PAKET_….ppg dari desa (berkas materi daerah sudah ikut di dalamnya; boleh banyak sekaligus).'
     return 'Pilih berkas PPG_PAKET_….ppg dan PPG_MATERI_….ppg dari daerah (boleh banyak sekaligus).'
   }
   if (peran === 'daerah') return 'Pilih berkas PPG_SETOR_….ppg dari desa/pengurus/mubaligh, atau PPG_KURIKULUM_….ppg dari tim kurikulum (boleh banyak sekaligus).'

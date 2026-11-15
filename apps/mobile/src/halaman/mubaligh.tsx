@@ -324,7 +324,7 @@ export function MateriKelas() {
         <KeadaanData hasil={progres} kosong={(d) => !d}>
           {(d) =>
             !d!.materi.length ? (
-              <Kosong teks={`Target kurikulum kelas ${label(LABEL_KATEGORI, kat)} untuk ${labelPeriode(d!.periode)} belum ada. Buka berkas materi terbaru dari daerah.`} />
+              <Kosong teks={`Target kurikulum kelas ${label(LABEL_KATEGORI, kat)} untuk ${labelPeriode(d!.periode)} belum ada. Buka paket terbaru dari desa (berkas materi ikut di dalamnya).`} />
             ) : (
               <>
                 <Kartu judul={`Kelas ${label(LABEL_KATEGORI, kat)}`}>

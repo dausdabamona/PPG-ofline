@@ -2,11 +2,11 @@
 // EXE desa/kelompok cukup meneruskan berkas MATERI daerah apa adanya (tanda tangan daerah diperiksa tiap penerima).
 import type { KunciAdmin } from '../admin'
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, type BerkasKeluar, type HeaderBerkas } from '../berkas'
-import { dariB64url } from '../crypto'
+import { dariB64url, keB64url } from '../crypto'
 import type { Db } from '../db'
 import { gabungSemua, rekamanKirim, type RekamanPerTabel } from '../gabung'
 import { GalatPpg } from '../galat'
-import { adalahAdmin, ambilMeta, ambilMetaAngka, aturMeta, type Rekaman } from '../repo/umum'
+import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, type Rekaman } from '../repo/umum'
 import { sekarangIso } from '../waktu'
 import { berkasLebihBaru, type RingkasanTerapkan } from './paket'
 import { bacaBerkasJenis, catatImpor, kunciAdminTerpasang, sidikBerkas } from './umum'
@@ -43,6 +43,11 @@ export function terapkanMateri(db: Db, bytes: Uint8Array, namaBerkas?: string): 
   const versi = Number(b.header.versi ?? 0)
   const terpasang = ambilMetaAngka(db, 'versi_materi')
   const dibuatTerpasang = ambilMeta(db, 'materi_dibuat') ?? ''
+  if (versi === terpasang && b.header.dibuat_pada === dibuatTerpasang) {
+    // Fase 8: berkas yang sama sudah terpasang (mis. sudah ikut di paket desa) → bukan galat
+    const kosong = { ditambah: 0, diperbarui: 0, diabaikan: 0, bentrok: 0, ditolak: [] }
+    return { jenis: 'MATERI', versi, perTabel: {}, total: kosong, pencabutanBaru: 0, profilTerdampak: [], sudahPernah: true }
+  }
   if (!berkasLebihBaru(versi, b.header.dibuat_pada, terpasang, dibuatTerpasang)) throw new GalatPpg('MATERI_LAMA', `Materi v${versi} tidak lebih baru dari yang terpasang (v${terpasang}).`)
   const isi = dekompresJson<{ rekaman: RekamanPerTabel }>(b.isi)
   return db.transaksi(() => {
@@ -59,9 +64,17 @@ export function terapkanMateri(db: Db, bytes: Uint8Array, namaBerkas?: string): 
       { sumber: 'admin', seqLokalBaru: 0 },
     )
     aturMeta(db, 'versi_materi', Math.max(versi, terpasang))
+    // Fase 8: EXE menyimpan salinan berkas asli agar EXE desa bisa meneruskannya otomatis di PAKET (apa adanya)
+    if (adalahExe(db)) aturMeta(db, 'berkas_materi', keB64url(bytes))
     if (b.header.dibuat_pada > dibuatTerpasang) aturMeta(db, 'materi_dibuat', b.header.dibuat_pada)
     const ringkasan: RingkasanTerapkan = { jenis: 'MATERI', versi, perTabel: g.perTabel, total: g.total, pencabutanBaru: 0, profilTerdampak: [] }
     catatImpor(db, b.header, ringkasan, sidikBerkas(bytes), namaBerkas)
     return ringkasan
   })
+}
+
+/** Salinan berkas MATERI daerah terakhir yang diterapkan di EXE/HP ini (untuk diteruskan lewat PAKET), atau undefined. */
+export function berkasMateriTersimpan(db: Db): Uint8Array | undefined {
+  const t = ambilMeta(db, 'berkas_materi')
+  return t ? dariB64url(t) : undefined
 }

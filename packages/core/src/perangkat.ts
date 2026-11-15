@@ -34,7 +34,7 @@ import {
   type RahasiaToken,
 } from './token'
 import { sekarangIso, tambahHariIso } from './waktu'
-import { wilayahMencakupDb } from './rantai'
+import { wajibBuktiWilayahDb, wilayahMencakupDb } from './rantai'
 
 /** Identitas kriptografis HP ini. */
 export interface IdentitasPerangkat {
@@ -157,7 +157,12 @@ export async function aktifkanProfil(db: Db, teksToken: string, opsi: { pin?: st
     throw new GalatPpg('ORG_BERBEDA', 'Token ini dari organisasi/admin lain dari profil yang sudah ada di HP ini.')
   }
   const adminSignPub = ambilMeta(db, 'admin_sign_pub') ?? p.admin_sign_pub
-  const hasil = periksaToken(t.teks, { adminSignPub, pencabutan: daftarPencabutan(db), wilayahMencakup: wilayahMencakupDb(db) })
+  const hasil = periksaToken(t.teks, {
+    adminSignPub,
+    pencabutan: daftarPencabutan(db),
+    wilayahMencakup: wilayahMencakupDb(db),
+    wajibBuktiWilayah: wajibBuktiWilayahDb(db),
+  })
   if (!hasil.sah && hasil.kode !== 'DIBEKUKAN') throw new GalatPpg(hasil.kode, hasil.alasan)
   if (
     p.perangkat_id !== identitas.id ||

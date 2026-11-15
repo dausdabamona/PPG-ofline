@@ -2,7 +2,7 @@
 import type { Db } from './db'
 import { GalatPpg } from './galat'
 import { daftarPencabutan, tokenDikenal } from './repo/perangkat'
-import { ambilMeta } from './repo/umum'
+import { ambilMeta, peranInstalasi } from './repo/umum'
 import { periksaToken, rantaiPenerbit, type HasilPeriksaToken, type OpsiPeriksaToken } from './token'
 
 /**
@@ -26,11 +26,20 @@ export function wilayahMencakupDb(db: Db): (atasId: string, bawahId: string) => 
   }
 }
 
-/** Opsi `periksaToken` dari database: kunci admin daerah terpasang, pencabutan, pohon wilayah. */
+/**
+ * Fase 8: apakah perangkat ini wajib menuntut `bukti_wilayah` pada token terbitan EXE desa. Hanya EXE daerah dan EXE desa
+ * yang pohon wilayahnya berasal langsung dari daerah; HP dan EXE kelompok (pohon dari paket desa, atau belum ada) wajib.
+ */
+export function wajibBuktiWilayahDb(db: Db): boolean {
+  const peran = peranInstalasi(db)
+  return peran !== 'daerah' && peran !== 'desa'
+}
+
+/** Opsi `periksaToken` dari database: kunci admin daerah terpasang, pencabutan, pohon wilayah, kewajiban bukti wilayah. */
 export function opsiPeriksaDb(db: Db, tambahan: Partial<OpsiPeriksaToken> = {}): OpsiPeriksaToken {
   const adminSignPub = ambilMeta(db, 'admin_sign_pub')
   if (!adminSignPub) throw new GalatPpg('BELUM_AKTIVASI', 'Aplikasi ini belum diaktifkan.')
-  return { adminSignPub, pencabutan: daftarPencabutan(db), wilayahMencakup: wilayahMencakupDb(db), ...tambahan }
+  return { adminSignPub, pencabutan: daftarPencabutan(db), wilayahMencakup: wilayahMencakupDb(db), wajibBuktiWilayah: wajibBuktiWilayahDb(db), ...tambahan }
 }
 
 /** Periksa token memakai data lokal (pencabutan + pohon wilayah). `denganDikenal` → T12 berlaku di semua mata rantai. */
