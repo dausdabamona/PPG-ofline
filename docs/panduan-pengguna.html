@@ -10,6 +10,7 @@
 <ul>
 <li><strong>Laptop (EXE, "PPG Sorong Admin")</strong> dipakai Admin Daerah, Admin Desa, Admin Kelompok (bila kelompok memakai laptop), dan Petugas Kurikulum. Satu aplikasi untuk semua; perannya ditentukan oleh kode aktivasi.</li>
 <li><strong>HP (APK, "PPG Sorong")</strong> dipakai pengurus, mubaligh, murid (generus), dan orang tua (wali). Satu HP bisa berisi beberapa profil.</li>
+<li><strong>Super Admin HP</strong> (bagian 1A): HP petugas pendaftaran seluruh daerah, diaktifkan oleh Admin Daerah. Pusat data tetap laptop Admin Daerah.</li>
 </ul>
 <p>Cara membuka berkas PPG dari WA: tekan berkasnya lalu pilih <strong>Buka dengan PPG Sorong</strong>, atau simpan dulu lalu tekan tombol <strong>Buka Berkas</strong> (HP) / <strong>Buka Paket</strong> atau <strong>Impor Setoran</strong> (laptop).</p>
 <hr />
@@ -64,6 +65,40 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Tekan <strong>Instal</strong>. Bila Play Protect bertanya, pilih <strong>Tetap instal</strong>.</li>
 <li>Buka <strong>PPG Sorong</strong> → isi <strong>Nama HP ini</strong> (mis. "HP Bu Aminah") → tekan <strong>Lanjut</strong>.</li>
 </ol>
+<hr />
+<h2>1A. Super Admin HP: pendaftaran awal</h2>
+<p><strong>Super Admin HP</strong> adalah HP petugas pendaftaran untuk <strong>seluruh daerah</strong>, atas izin Admin Daerah. Pusat data tetap <strong>satu laptop Admin Daerah</strong>. Super Admin HP <strong>tidak</strong> membuat organisasi dan <strong>tidak</strong> memegang kunci organisasi; ia hanya mendaftarkan perangkat dan mengajukan data, lalu menyetor ke Admin Daerah. Boleh ada beberapa Super Admin HP (mis. 3 HP); semuanya setara dan masing-masing menyetor ke Admin Daerah.</p>
+<p>Super Admin HP bisa: menerbitkan token untuk <strong>pengurus, mubaligh, orang tua (wali), murid (generus), EXE Desa, EXE Kelompok, dan EXE Kurikulum</strong> (tidak bisa membuat Super Admin HP lain); menambah generus, wilayah, dan pengajian; mengimpor setoran HP yang ia daftarkan; mengirim paket dan balasan; serta <strong>Setor ke Daerah</strong>.</p>
+<h3>1A.1 Langkah di laptop Admin Daerah</h3>
+<ol type="1">
+<li>Minta petugas mengirim <strong>Kode Perangkat Super Admin</strong> dari HP-nya (lihat 1A.2 langkah 1–4).</li>
+<li>Menu <strong>Perangkat &amp; Token</strong> → tempel di kotak <strong>Kode Perangkat</strong>.</li>
+<li><strong>Untuk</strong>: pilih <strong>Super Admin HP (pendaftaran seluruh daerah)</strong>. <strong>Wilayah tugas</strong>: pilih daerah. Isi <strong>Nama pemegang</strong> dan <strong>Masa berlaku (hari)</strong>.</li>
+<li>Tekan <strong>Terbitkan token</strong> → tunjukkan QR ke HP petugas, atau tekan <strong>Salin token</strong> lalu kirim lewat WA.</li>
+<li>Menu <strong>Kirim Paket</strong> → tekan <strong>Paket Super Admin HP (seluruh daerah)</strong> → kirim berkas <code>PPG_PAKET_…</code> ke petugas. Paket ini membawa daftar wilayah, generus, dan kunci kelompok.</li>
+<li>Setiap menerima setoran Super Admin HP: menu <strong>Impor Setoran</strong> → <strong>Pilih berkas setoran</strong>. Generus, wilayah, dan pengajian yang ditambahkan Super Admin HP <strong>langsung disetujui</strong> (“usulan Super Admin HP disetujui otomatis”); semua perangkat yang ia daftarkan muncul di <strong>Perangkat &amp; Token</strong>.</li>
+<li>Bila HP Super Admin hilang atau tugasnya selesai: <strong>Perangkat &amp; Token</strong> → baris Super Admin HP → <strong>Cabut</strong>. Setoran dan token baru dari HP itu ditolak sesudahnya; perangkat yang sudah ia daftarkan sebelumnya tetap berlaku.</li>
+</ol>
+<h3>1A.2 Langkah di HP petugas</h3>
+<ol type="1">
+<li>Buka <strong>PPG Sorong</strong>. Di layar pertama tekan <strong>Aktifkan sebagai Super Admin HP</strong> (bila HP sudah dipakai profil biasa: layar <strong>Kode Perangkat</strong> → kartu <strong>Super Admin HP</strong> → tombol yang sama).</li>
+<li>Isi <strong>Nama HP ini</strong>, <strong>Kata sandi Super Admin</strong> (minimal 8 karakter), dan <strong>Ulangi kata sandi</strong> → tekan <strong>Buat kunci Super Admin</strong>. Catat kata sandinya — <strong>tidak bisa dipulihkan</strong>.</li>
+<li>Muncul <strong>Kode Perangkat Super Admin</strong> (QR). Tekan <strong>Kirim lewat WA</strong> atau <strong>Salin</strong>, kirim ke Admin Daerah.</li>
+<li>Setelah token diterima: tekan <strong>Pindai QR Token</strong> (arahkan ke QR di laptop) atau <strong>Tempel Token</strong> → tempel di <strong>Token Super Admin</strong> → <strong>Aktifkan Super Admin</strong>.</li>
+<li>Menu <strong>Sinkron</strong> → <strong>Buka Paket / Impor Setoran</strong> → pilih berkas paket dari Admin Daerah.</li>
+</ol>
+<p>Menu Super Admin (bawah layar): <strong>Beranda · Daftarkan · Data · Sinkron · Lainnya</strong>.</p>
+<ul>
+<li><strong>Data → Generus</strong>: pilih <strong>Kelompok</strong> → <strong>+ Tambah generus</strong> → isi <strong>Nama generus</strong>, jenis kelamin, <strong>Kategori</strong>, <strong>Nama orang tua</strong>, <strong>No. HP orang tua</strong> → <strong>Simpan generus</strong>. Anak baru bertanda <strong>Baru</strong> dan <strong>langsung bisa dipilih</strong> saat membuat token orang tua/murid. Tekan <strong>Ubah</strong> pada generus untuk <strong>Ajukan status</strong> (mis. mondok) atau <strong>Ajukan pindah</strong>.</li>
+<li><strong>Data → Wilayah</strong> (desa/kelompok baru) → <strong>Ajukan wilayah</strong>; <strong>Data → Pengajian / kelas</strong> → <strong>Ajukan pengajian</strong>. Semua tambahan ini disetujui otomatis saat setoran HP ini sampai di Admin Daerah. Token untuk kelompok baru bisa diterbitkan setelah paket berikutnya dari Daerah dibuka.</li>
+<li><strong>Daftarkan</strong>: pilih <strong>Peran</strong> (Pengurus, Mubaligh, Orang tua, Murid, EXE Desa, EXE Kelompok, EXE Kurikulum) → pilih kelompok/desa → (orang tua: centang semua anaknya; murid: pilih satu anak) → isi nama → untuk pengurus/mubaligh pilih <strong>Setoran HP itu dikirim ke</strong> (<strong>HP Super Admin ini</strong> atau <strong>Langsung ke Admin Daerah (laptop)</strong>) → <strong>Pindai QR Kode Perangkat</strong> atau tempel di <strong>Kode Perangkat</strong> → <strong>Terbitkan token</strong>. Token tampil sebagai QR bergantian (penerima menekan <strong>Pindai QR Token</strong>), atau tekan <strong>Kirim lewat WA</strong> / <strong>Salin token</strong>. Token EXE ditempel di laptop (menu “Aktifkan dengan kode”).</li>
+<li><strong>Sinkron</strong>: <strong>Setor ke Daerah</strong> (kirim berkas <code>PPG_SETOR_…</code> ke Admin Daerah; <strong>Kirim ulang semua data</strong> bila berkas sebelumnya hilang) · <strong>Buka Paket / Impor Setoran</strong> (paket Daerah dan setoran HP pengurus/mubaligh yang Anda daftarkan; boleh banyak berkas) · <strong>Kirim Paket</strong> (pilih <strong>Wilayah paket</strong>, atau <strong>Paket semua kelompok</strong>) · <strong>Kirim Balasan</strong> ke HP murid/orang tua.</li>
+<li><strong>Lainnya → Perangkat</strong>: perangkat yang didaftarkan HP ini → <strong>Bekukan</strong>, <strong>Cairkan</strong>, <strong>Cabut</strong>. Pencabutan sampai ke Daerah lewat <strong>Setor ke Daerah</strong>.</li>
+<li><strong>Lainnya → Pengaturan</strong>: <strong>Ganti sandi</strong>; <strong>Cadangkan data Super Admin</strong> (simpan di <strong>dua tempat</strong>, mis. Google Drive dan HP lain) dan <strong>Pulihkan cadangan Super Admin</strong>.</li>
+<li><strong>Kunci sekarang</strong> atau tombol nama di kanan atas menutup Super Admin. Aplikasi <strong>terkunci otomatis</strong> bila ditinggal di latar belakang lebih dari <strong>10 menit</strong>; buka lagi dengan <strong>Kata sandi Super Admin</strong> → <strong>Buka Super Admin</strong>.</li>
+</ul>
+<h3>1A.3 HP Super Admin yang juga dipakai profil biasa</h3>
+<p>Data Super Admin disimpan <strong>terpisah</strong> dari profil biasa (pengurus/mubaligh/orang tua) di HP yang sama. <strong>Lainnya → Kembali ke profil biasa</strong> membuka layar <strong>Pilih Profil</strong>; di sana ada kartu <strong>Super Admin HP</strong> (bertanda <strong>Sandi</strong>) untuk masuk lagi. Bila token Super Admin tertempel di <strong>Tempel Token</strong> profil biasa, aplikasi menjelaskan bahwa kode itu untuk Super Admin HP.</p>
 <hr />
 <h2>2. Admin Daerah (laptop)</h2>
 <h3>2.1 Pengaturan awal (sekali saja)</h3>
@@ -140,7 +175,7 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Menu <strong>Kirim Paket</strong>.</li>
 <li>Untuk semua laptop desa: tekan <strong>Paket semua desa (EXE desa)</strong> → pilih folder.</li>
 <li>Untuk satu wilayah: pilih <strong>Wilayah</strong> → <strong>Buat &amp; simpan paket</strong>.</li>
-<li>Kirim tiap berkas <code>PPG_PAKET_….ppg</code> ke admin desa yang sesuai.</li>
+<li>Kirim tiap berkas <code>PPG_PAKET_….ppg</code> ke admin desa yang sesuai. Untuk HP Super Admin: tekan <strong>Paket Super Admin HP (seluruh daerah)</strong> dan kirim ke tiap Super Admin HP (lihat 1A.1).</li>
 <li>Kirim paket setiap selesai impor setoran, menyetujui usulan, mengubah data, atau mengimpor kurikulum.</li>
 </ol>
 <h3>2.11 Beranda: status setor</h3>

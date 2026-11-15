@@ -473,3 +473,48 @@ Hasil uji Pak Fir: QR pendaftaran tidak berfungsi (kode teks berfungsi); menu mu
 | V-T33 | (Fase 8) **Materi ikut paket desa**: EXE menyimpan salinan berkas MATERI daerah terakhir (meta `berkas_materi`) dan menyertakannya di setiap PAKET EXE (`materi_daerah`, apa adanya); penerima menerapkannya lewat `terapkanMateri` (tanda tangan daerah, versi monoton; gagal/lama diabaikan) sebelum isi paket. MATERI identik yang sudah terpasang → `sudahPernah`, bukan galat | Desa tidak lagi meneruskan berkas materi secara manual; berkas yang terlewat ikut di paket berikutnya |
 | V-T34 | (Fase 8) **Kirim Balasan di EXE desa/kelompok** (menu baru `balasan`): daftar `daftarPenerimaBalasan`, **Buat Balasan** per HP atau **Buat balasan semua HP** (folder) | Sisa Fase 6; pencabutan mubaligh sampai HP murid tanpa menunggu mubaligh baru |
 | V-T35 | (Fase 8) HP: isi tab dipasang ulang saat profil berganti (`key` memuat id profil) | Tidak ada keadaan formulir/tampilan profil lain yang terbawa pada HP keluarga |
+
+---
+
+## 15. Super Admin HP — pendaftaran awal dari HP (Fase 9, 15 Nov 2026)
+
+### 15.1 Keputusan Pak Fir (terkunci, revisi akhir)
+
+| Kode | Keputusan |
+|---|---|
+| S1 | **Pusat/server tetap satu EXE Admin Daerah** (laptop). HP **tidak** membuat organisasi, **tidak** memegang kunci induk, dan **tidak** ada fitur "pindahkan ke laptop" |
+| S2 | Beberapa HP (saat ini 3) boleh menjadi **Super Admin HP**, semuanya **setara** di bawah EXE Daerah. Diaktifkan seperti biasa: Kode Perangkat → token dari EXE Daerah (**Perangkat & Token** → Untuk: **Super Admin HP (pendaftaran seluruh daerah)**). Daerah bisa mencabutnya |
+| S3 | Menu Super Admin HP: terbitkan token **semua peran** (pengurus, mubaligh, orang tua, murid, EXE desa/kelompok/kurikulum) **kecuali Super Admin HP lain**; daftar & cabut perangkat terbitannya; tambah generus/wilayah/pengajian (nama anak baru langsung bisa dipilih untuk token orang tua/murid); impor setoran HP di bawahnya; kirim paket & balasan; **Setor ke Daerah** (setor gabungan) & buka paket dari Daerah |
+| S4 | Kunci perangkat Super Admin HP dilindungi **kata sandi wajib** (min. 8), terkunci otomatis bila di latar belakang > 10 menit |
+
+### 15.2 Rancangan
+
+- **Token.** Role `admin`, tingkat `daerah`, wilayah = daerah, hak `catat`, `lihat`, `terbit_bawah` (`HAK_SUPER_HP`), ditandatangani admin daerah
+  (`terbitkanToken`). `adalahTokenSuperHp(payload)` mengenalinya. Rantai yang ada diperluas (satu sumber, `token.ts`): penerbit Super Admin
+  HP boleh menerbitkan `pengurus` (tingkat apa pun), `mubaligh`, `admin` desa (boleh `terbit_bawah`) / kelompok (boleh `sahkan`),
+  `kurikulum` (daerah), dan **`generus`/`wali`** (delegasi — sebelumnya hanya mubaligh). Token admin tingkat daerah yang penerbitnya bukan
+  daerah ditolak (`RANTAI_TIDAK_SAH`).
+- **Instalasi.** Super Admin HP = database jenis EXE (`inisialisasiExe`, kunci identitas `enc:` dibungkus PBKDF2 sandi) **di dalam APK**,
+  `peran_instalasi = 'super_hp'`, diaktifkan `aktifkanExe(db, kunci, token, { superHp: true })`. Semua fungsi EXE desa dipakai ulang:
+  `terbitkanTokenBawah`, `buatSetor` (setor gabungan), `imporSetor`/`imporBanyak`, `buatPaket`, `buatBalasan`, `cabut/bekukan/cairkanPerangkat`.
+- **Data master** tetap hanya ditulis daerah (K5). Super Admin HP mengajukan **usulan** (`tambah_generus`, `tambah_wilayah`,
+  `tambah_pengajian`, `ubah_status`, `pindah_kelompok`) dengan **id rekaman yang ditetapkan saat diajukan**; daerah **menyetujui otomatis**
+  usulan dari pengirim Super Admin HP saat mengimpor setorannya, memakai id itu. Generus usulan langsung bisa dipilih untuk token
+  orang tua/murid (`generusPilihanToken`).
+- **APK.** Database Super Admin disimpan di kunci IndexedDB tersendiri `ppg-super-db` (profil biasa tetap `ppg-hp-db`). Layar pertama &
+  layar Kode Perangkat: **Aktifkan sebagai Super Admin HP**; layar Pilih Profil: kartu **Super Admin HP** (sandi). Berkas dari WA saat
+  mode Super Admin aktif dibuka di database Super Admin.
+
+### 15.3 Keputusan teknis otonom (Fase 9)
+
+| Kode | Keputusan | Alasan |
+|---|---|---|
+| V-T36 | Super Admin HP = **role `admin` tingkat `daerah`** (bukan role baru); `aktifkanExe` menolak token itu di laptop (`TOKEN_UNTUK_SUPER_HP`) dan Super Admin HP menolak token lain (`TOKEN_BUKAN_SUPER_HP` / `TOKEN_UNTUK_EXE`); profil HP biasa menolaknya (`TOKEN_UNTUK_EXE`, UI mengarahkan ke tombol Super Admin) | Format token tidak berubah (`v: 1`); seluruh mesin EXE desa (rantai, titipan kunci, setor gabungan, paket berpenerbit) langsung berlaku tanpa duplikasi |
+| V-T37 | Token terbitan Super Admin HP **tidak membawa `bukti_wilayah`**: wilayah penerbit = daerah (akar, tertanda admin daerah), jadi setiap wilayah organisasi ada di dalamnya; pohon lokal tetap diperiksa bila ada | Bukti wilayah (V-T32) mencegah desa A mengaku kelompok desa B; untuk daerah tidak ada "wilayah lain". Token untuk id wilayah karangan tidak bisa membawa data apa pun (daerah menolak data di luar pohonnya) |
+| V-T38 | Tujuan SETOR token pengurus/mubaligh terbitan Super Admin HP = **HP Super Admin itu** (bawaan) atau **langsung daerah** (pilihan **Setoran HP itu dikirim ke**); token EXE desa/kelompok/kurikulum, orang tua, dan murid **tanpa** `atas_*` (EXE → daerah; murid → mubaligh) | Petugas lapangan bisa mengumpulkan setoran HP yang ia daftarkan; laptop desa tidak bergantung pada HP petugas |
+| V-T39 | Usulan dari pengirim Super Admin HP **disetujui otomatis** di daerah saat `imporSetor` (urut: wilayah desa → kelompok → pengajian → generus → lainnya); jenis `tambah_*` membawa `data.id` (ULID) yang dipakai `setujuiUsulan` (idempoten bila rekaman sudah ada). Usulan yang gagal diterapkan tetap **menunggu** dan dicatat di `ditolak`. Usulan boleh ber-`kelompok_id` desa/daerah (tambah wilayah/pengajian); paket membawa usulan seluruh `turunan` wilayah | Master tetap hanya ditulis daerah (K5) tanpa antrean persetujuan manual untuk petugas tepercaya; nama anak baru bisa langsung dipakai di token orang tua |
+| V-T40 | `cariProfilPencatat`: profil **tingkat daerah** mencakup semua wilayah (termasuk yang belum ada di pohon lokal) | Super Admin HP bisa mengajukan kelompok di desa yang juga baru diajukan |
+| V-T41 | PAKET kini juga membawa **pencabutan semua token `admin`** (EXE & Super Admin HP), bukan hanya token di wilayah paket | HP menolak token yang diterbitkan Super Admin HP/EXE desa sesudah dicabut, tanpa menunggu daerah |
+| V-T42 | Setor gabungan mencatat token **kurikulum** di `perangkat_bawah` bila rantainya melewati pengirim | EXE kurikulum terbitan Super Admin HP terlihat di daftar perangkat daerah |
+| V-T43 | APK: database Super Admin di IndexedDB `ppg-super-db`, kunci di memori hanya selama mode Super Admin terbuka; **kunci otomatis** saat kembali dari latar belakang ≥ 10 menit (`Platform.saatAktifKembali`), tombol **Kunci sekarang**, **Kembali ke profil biasa**. Cadangan Super Admin = `buatCadanganHp` (berkas `PPG_CADANGAN_SUPER_…ppgdb`, sandi cadangan) — kunci perangkat di dalamnya tetap terbungkus sandi Super Admin | Desain paling sederhana yang aman: data & kunci terpisah dari profil biasa tanpa skema baru; HP 2 GB hanya membuka satu database sql.js pada satu waktu |
+| V-T44 | EXE Daerah: tombol **Paket Super Admin HP (seluruh daerah)** di Kirim Paket (= paket wilayah daerah; amplop untuk token tingkat daerah: Super Admin HP & pengurus daerah, berisi kunci titipan semua kelompok) | Satu tombol yang jelas untuk petugas |

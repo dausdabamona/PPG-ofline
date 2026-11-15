@@ -506,3 +506,63 @@ teknis baru dicatat di rencana sebagai V-T32–V-T35. Dependensi dan versi tidak
 - Rekaman tetap tidak ditandatangani per rekaman; tujuan SETOR HP tetap tertanam di token; tenggat memakai jam perangkat.
 - Alur HP keluarga di **UI** HP belum punya test jsdom khusus (logika diuji di core; uji asap Chrome mencakup profil generus di HP yang
   sama). Electron dan Gradle tidak dijalankan di sini; pemindai QR native belum dicoba dengan kamera HP sungguhan.
+
+---
+
+## Fase 9 — Super Admin HP (2026-11-15)
+
+Rancangan akhir Pak Fir (revisi dari usulan "organisasi di HP"): **pusat tetap satu EXE Admin Daerah**; beberapa HP petugas menjadi
+**Super Admin HP** setara di bawahnya untuk pendaftaran awal seluruh daerah. Keputusan di rencana §15 (S1–S4, V-T36–V-T44).
+
+### Yang dibuat
+- **Core** (`token.ts`, `instalasi.ts`, `admin.ts`, `sinkron/setor.ts`, `sinkron/paket.ts`, `repo/usulan.ts`, …): token Super Admin HP
+  (admin tingkat daerah, `HAK_SUPER_HP`, `adalahTokenSuperHp`), aturan rantai `periksaDariSuper` + delegasi murid/orang tua dari Super
+  Admin HP, `aktifkanExe(..., { superHp })`, peran instalasi `super_hp`, `terbitkanTokenBawah` untuk semua peran (+ `generusIds`,
+  `setorKe`), `generusPilihanToken`, usulan `tambah_wilayah`/`tambah_pengajian` + id tetap, persetujuan otomatis di daerah
+  (`usulanOtomatis` di ringkasan impor), pencabutan token admin ikut semua paket, kurikulum terbitan pengirim dicatat.
+- **APK**: `halaman/super-masuk.tsx` (buat sandi → Kode Perangkat Super Admin → token; kunci/buka; kunci otomatis 10 menit),
+  `halaman/super-admin.tsx` (Beranda · Daftarkan · Data · Sinkron · Lainnya), `konteks-super.tsx`; pintu masuk di layar sambut, layar
+  Kode Perangkat, dan Pilih Profil; token Super Admin di Tempel Token biasa → penjelasan. `Platform`: `muatDbSuper`/`simpanDbSuper`
+  (IndexedDB `ppg-super-db`), `saatAktifKembali`.
+- **EXE**: Perangkat & Token → **Super Admin HP (pendaftaran seluruh daerah)**; Kirim Paket → **Paket Super Admin HP (seluruh daerah)**;
+  label peran, usulan baru, ringkasan impor "usulan Super Admin HP disetujui otomatis"; laptop menolak token Super Admin HP.
+- Uji asap Chrome baru: `apps/mobile/uji-peramban/uji-asap-super.mjs` + `admin-uji-super.ts`.
+
+### Hasil uji
+- `packages/core/test/fase9-super-hp.test.ts` (3 test): **EXE Daerah → 3 HP Super Admin** → #1 menambah anak baru + token orang tua
+  untuk anak itu + mubaligh (setor ke HP #1) + kelompok baru; #2 mubaligh (setor langsung daerah) + token murid → murid Setor Belajar →
+  mubaligh mengimpor; #3 EXE desa (lalu EXE desa menerbitkan HP di desanya), EXE kurikulum, pengurus daerah → setor gabungan ketiganya →
+  **daerah melihat semua perangkat & data**, usulan disetujui otomatis (id sama) → paket balik → mubaligh melihat anak baru → balasan ke
+  orang tua → **daerah mencabut Super Admin #3**: paket berikutnya tak bisa ia buka, token yang ia terbitkan sesudahnya ditolak daerah
+  dan HP mubaligh (V-T41), setorannya ditolak; token lamanya tetap berlaku. Plus aturan rantai (rakitan Super Admin lain, hak, rantai
+  4 tingkat daerah → Super → EXE desa → mubaligh → murid).
+- `apps/mobile/test/super-admin-hp.test.tsx` (2 test, UI jsdom): aktivasi lewat UI (sandi pendek ditolak, token salah ditolak), paket &
+  materi lewat "Buka dengan", tambah generus → token orang tua (anak baru tercentang, nama orang tua terisi) → mubaligh → EXE desa →
+  impor setoran mubaligh → Setor ke Daerah (daerah: usulan otomatis 1, 4 perangkat terdaftar) → Kirim Paket → daftar Perangkat →
+  cadangan → kunci otomatis → sandi salah/benar → Kembali ke profil biasa → kartu **Super Admin HP** di Pilih Profil; token Super Admin
+  di Tempel Token biasa diarahkan.
+- `apps/desktop/test/super-admin-hp.test.tsx` (UI jsdom): terbitkan token Super Admin HP → paket seluruh daerah → impor setoran
+  Super Admin HP (usulan otomatis) → cabut di daftar perangkat → setorannya ditolak; laptop menolak token itu.
+- `npm test`: core **24 berkas / 166 test**, desktop **8 / 17**, mobile **6 / 13** — **196 test lulus**, 0 gagal (Fase 8: 190).
+  Satu test lama disesuaikan (admin tingkat daerah kini = Super Admin HP).
+- `npm run typecheck` bersih; `npm run build` sukses; `npx cap sync android` sukses.
+- **Chrome headless 360×740** (`uji-asap-super.mjs`, port 4319): sandi → kode → token → paket → tambah generus → token orang tua (QR
+  berseri ≥ 280 px) → Setor ke Daerah (diimpor admin tiruan: 1 usulan otomatis) → muat ulang → Pilih Profil → sandi → Perangkat:
+  **0 galat konsol, 0 tombol < 44 px**.
+
+### Keputusan otonom baru
+V-T36–V-T44 (lihat rencana §15.3). Pilihan "Jadwal setor" di HP tidak dibuat (revisi Pak Fir tidak memintanya; jadwal setor tetap
+master EXE Daerah).
+
+### Sisa masalah (jujur)
+- Super Admin HP yang dicabut **tidak diberi tahu** (paket daerah tak lagi bisa ia buka); HP itu masih bisa menerbitkan token, tetapi
+  token baru ditolak daerah dan HP yang sudah menerima paket sesudah pencabutan. HP baru yang belum pernah menerima paket akan menerima
+  aktivasi token itu (sama seperti V-T2), tetapi setorannya ditolak di tingkat atas.
+- HP pengurus/mubaligh yang menyetor ke Super Admin HP yang kemudian dicabut/hilang harus diberi **token baru** (tujuan setor tertanam di
+  token, V-T5); token yang menyetor langsung ke daerah tidak terdampak. Panduan menyarankan pilihan **Langsung ke Admin Daerah** bila ragu.
+- Generus baru dari Super Admin HP baru ada di HP mubaligh setelah setoran Super Admin sampai di daerah dan paket berikutnya turun;
+  BELAJAR murid untuk anak baru ditolak mubaligh sebelum itu.
+- Paket daerah untuk Super Admin HP memuat **seluruh** data daerah (ukuran besar pada organisasi besar); belum ada paket ringkas
+  (wilayah + kunci saja).
+- Kata sandi Super Admin **tidak bisa dipulihkan** (sama dengan EXE bawah, V-T21); pulihkan dari cadangan + sandinya, atau aktivasi ulang.
+- Gradle/Electron tidak dijalankan di sini; pemindai QR native belum dicoba di HP sungguhan.
