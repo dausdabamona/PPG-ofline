@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   aktifkanProfil,
   alasanEvaluasiTidakSah,
+  alasanMateriEvaluasiTidakSah,
   ajukanUsulan,
   ambilGenerus,
   ambilLaporanBulanan,
@@ -357,6 +358,17 @@ describe('Laporan bulanan kelompok', () => {
     const rka = rekapKeaktifanBulan(a, { wilayahId: d.desa.id, bulan: '2026-11' })
     expect(rka.perKelompok[0]!.nama).toBe('Klasaman 1')
     expect(rka.perluPerhatian.length).toBe(rka.baris.length)
+  })
+})
+
+describe('Berkas KURIKULUM: materi evaluasi divalidasi', () => {
+  it('cara/target tidak sah & id tidak cocok ditolak', () => {
+    const dasar = { id: EVL('paud', 'thoharoh'), jenjang: 'paud', kode: 'thoharoh', nama: 'Thoharoh', cara: 'subjektif', target: 75, rincian_json: null }
+    expect(alasanMateriEvaluasiTidakSah(dasar)).toBeNull()
+    expect(alasanMateriEvaluasiTidakSah({ ...dasar, target: 100 })).toMatch(/75/)
+    expect(alasanMateriEvaluasiTidakSah({ ...dasar, id: 'EVL-paud-lain' })).toMatch(/Id/)
+    expect(alasanMateriEvaluasiTidakSah({ ...dasar, cara: 'sulap' })).toMatch(/Cara/)
+    expect(alasanMateriEvaluasiTidakSah({ ...dasar, jenjang: 'caberawit' })).toMatch(/Jenjang/)
   })
 })
 

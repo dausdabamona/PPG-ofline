@@ -15,7 +15,7 @@ import { adalahAdmin, ambilMetaAngka, aturMeta, peranInstalasi, type Rekaman } f
 import type { NamaTabelSinkron } from '../skema'
 import { periksaToken } from '../token'
 import { sekarangIso, tanggalRingkas } from '../waktu'
-import { PENGATURAN_KURIKULUM } from '../juknis'
+import { alasanMateriEvaluasiTidakSah, PENGATURAN_KURIKULUM } from '../juknis'
 import { bacaBerkasJenis, catatImpor, imporTerdahulu, kunciAdminTerpasang, sidikBerkas } from './umum'
 
 /** Tabel yang dibawa berkas KURIKULUM. */
@@ -108,7 +108,11 @@ export function imporKurikulum(dbDaerah: Db, bytes: Uint8Array, kunciAdmin: Kunc
     const g = gabungSemua(dbDaerah, masuk, (tabel) => ({
       sumber: 'admin',
       seqLokalBaru: 0,
-      periksa: (rek) => (tabel === 'pengaturan' && !PENGATURAN_KURIKULUM.includes(rek.id) ? 'Pengaturan ini bukan wewenang kurikulum.' : null),
+      periksa: (rek) => {
+        if (tabel === 'pengaturan' && !PENGATURAN_KURIKULUM.includes(rek.id)) return 'Pengaturan ini bukan wewenang kurikulum.'
+        if (tabel === 'materi_evaluasi') return alasanMateriEvaluasiTidakSah(rek)
+        return null
+      },
     }))
     const ringkasan: RingkasanImporKurikulum = {
       jenis: 'KURIKULUM',

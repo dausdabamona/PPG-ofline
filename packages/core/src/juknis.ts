@@ -489,6 +489,24 @@ function validasiMateriEvaluasi(m: { nama: string; cara: CaraEvaluasi; target: n
   if (m.rincian.butir && m.target !== null && m.rincian.butir.length !== m.target) throw new GalatPpg('TARGET_TIDAK_SAH', 'Target = jumlah butir.')
 }
 
+/** Pemeriksaan rekaman materi evaluasi dari berkas KURIKULUM (bentuk & batas). Kembalikan alasan atau null. */
+export function alasanMateriEvaluasiTidakSah(rek: Record<string, unknown>): string | null {
+  if (!KATEGORI_GENERUS.includes(rek.jenjang as KategoriGenerus)) return 'Jenjang materi evaluasi tidak dikenal.'
+  if (rek.id !== idMateriEvaluasi(String(rek.jenjang), String(rek.kode))) return 'Id materi evaluasi tidak sah.'
+  if (rek.dihapus) return null
+  try {
+    validasiMateriEvaluasi({
+      nama: String(rek.nama ?? ''),
+      cara: rek.cara as CaraEvaluasi,
+      target: rek.target === null || rek.target === undefined ? null : Number(rek.target),
+      rincian: uraiJson<RincianMateriEvaluasi>(rek.rincian_json, {}),
+    })
+  } catch (e) {
+    return e instanceof GalatPpg ? e.pesan : 'Materi evaluasi tidak sah.'
+  }
+  return null
+}
+
 /** Ubah materi evaluasi (Kurikulum / daerah): nama, target, satuan, rincian (butir, juz, kitab + halaman). */
 export function ubahMateriEvaluasi(
   db: Db,

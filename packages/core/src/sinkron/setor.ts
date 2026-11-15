@@ -322,6 +322,14 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     return anggota ? null : 'Generus bukan anggota kelompok ini pada tanggal tersebut.'
   }
   const ditolak: RingkasanImporSetor['ditolak'] = []
+  /**
+   * §16 (review): penulis rekaman (perangkat_id) harus memegang token ber-hak `sahkan` untuk kelompok itu — mencegah EXE
+   * desa/pengirim gabungan menulis nilai/keaktifan sah atas namanya sendiri hanya karena ada mubaligh di kelompok itu.
+   */
+  const penulisBerhakSahkan = (perangkatId: string, kel: string): boolean => {
+    if (tokenSah.some((p) => p.perangkat_id === perangkatId && p.hak.includes('sahkan') && mencakup(p.wilayah_id, kel) === true)) return true
+    return daftarPerangkat(db, { perangkatId }).some((t) => hakToken(t.token).includes('sahkan') && kelompokDalamWilayah(db, t.wilayah_id).includes(kel))
+  }
   /** J-T10: keaktifan MS/DS/MR/DR dari perangkat admin/pengurus tingkat desa/daerah (pengirim atau terdaftar di bawahnya). */
   const bolehCatatDesa = (rek: Rekaman): boolean => {
     if (!KODE_DESA_DAERAH.includes(String(rek.kode) as KodeKeaktifan)) return false
@@ -401,7 +409,9 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
             if (!tok.some((t) => !t.dicabut_pada || String(rek.diubah_pada) < t.dicabut_pada)) return 'Rekaman dibuat setelah token perangkatnya dicabut.'
           }
           if (tabel === 'kemajuan_belajar' && rek.status_sah !== 'diajukan' && !kelompokSahkan.has(kel)) return 'Pengirim tidak berhak mengesahkan.'
-          if (tabel === 'keaktifan' && rek.status_sah !== 'diajukan' && !kelompokSahkan.has(kel) && !bolehCatatDesa(rek)) return 'Pengirim tidak berhak mengesahkan.'
+          if (tabel === 'keaktifan' && rek.status_sah !== 'diajukan' && !(kelompokSahkan.has(kel) && penulisBerhakSahkan(String(rek.perangkat_id), kel)) && !bolehCatatDesa(rek)) {
+            return 'Pengirim tidak berhak mengesahkan.'
+          }
         } else if (tabel === 'kemajuan_belajar' || tabel === 'keaktifan') {
           if (rek.status_sah !== 'diajukan' && !kelompokSahkan.has(kel) && !(tabel === 'keaktifan' && bolehCatatDesa(rek))) return 'Pengirim tidak berhak mengesahkan.'
           if (rek.perangkat_id !== pengirim && !kelompokSahkan.has(kel)) return 'Rekaman milik perangkat lain.'
@@ -413,7 +423,7 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         }
         // §16 (J-T9/J-T10): nilai evaluasi hanya dari pemegang hak sahkan kelompok itu, dalam batas target & 75 %
         if (tabel === 'evaluasi_semester') {
-          if (!kelompokSahkan.has(kel)) return 'Pengirim tidak berhak menilai generus kelompok ini.'
+          if (!kelompokSahkan.has(kel) || !penulisBerhakSahkan(String(rek.perangkat_id), kel)) return 'Pengirim tidak berhak menilai generus kelompok ini.'
           const a = alasanRekamanEvaluasiTidakSah(db, rek)
           if (a) return a
         }

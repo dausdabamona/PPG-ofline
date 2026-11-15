@@ -43,6 +43,8 @@ import {
   periksaTokenDb,
   pengingatSetor,
   progresKelas,
+  idEvaluasi,
+  idMateriEvaluasi,
   ringkasanBerandaAdmin,
   ringkasanBerandaExe,
   saranMateriPertemuan,
@@ -308,6 +310,28 @@ describe('Skenario berjenjang v3 (§14)', () => {
     expect(per.get(A2.id)!.terakhir_setor).not.toBeNull()
     // kelompok desa B belum pernah setor
     expect(per.get(B1.id)!.terakhir_setor).toBeNull()
+  })
+
+  it('9c. §16: EXE desa (tanpa hak sahkan) tidak bisa menulis nilai evaluasi/keaktifan sah lewat setor gabungan', () => {
+    const kini = new Date().toISOString()
+    const seq = Number(exeA.db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'seq'`)) + 1
+    exeA.db.jalankan(`UPDATE meta SET nilai = ? WHERE kunci = 'seq'`, [String(seq)])
+    const idEv = idEvaluasi(ali.id, '2026-S1', idMateriEvaluasi('caberawit_c', 'surat'))
+    exeA.db.jalankan(
+      `INSERT INTO evaluasi_semester (id, generus_id, kelompok_id, periode, jenjang, materi_evaluasi_id, dikuasai, nilai, rincian_json, tanggal, penguji,
+         perangkat_id, dibuat_pada, diubah_pada, dihapus, versi, seq_lokal) VALUES (?, ?, ?, '2026-S1', 'caberawit_c', ?, 45, NULL, NULL, '2026-11-16', 'X', ?, ?, ?, 0, 1, ?)`,
+      [idEv, ali.id, A1.id, idMateriEvaluasi('caberawit_c', 'surat'), exeA.id, kini, kini, seq],
+    )
+    exeA.db.jalankan(
+      `INSERT INTO keaktifan (id, generus_id, kelompok_id, tanggal, kode, sumber, status_sah, disahkan_oleh, disahkan_pada, keterangan,
+         perangkat_id, dibuat_pada, diubah_pada, dihapus, versi, seq_lokal) VALUES ('KA-PALSU', ?, ?, '2026-11-16', 'B', 'admin', 'disahkan', 'X', ?, NULL, ?, ?, ?, 0, 1, ?)`,
+      [ali.id, A1.id, kini, exeA.id, kini, kini, seq],
+    )
+    const r = imporSetor(daerah.db, buatSetor(exeA.db).bytes, daerah.kunci)
+    expect(r.ditolak.filter((x) => x.tabel === 'evaluasi_semester' || x.tabel === 'keaktifan').map((x) => x.alasan)).toEqual([
+      expect.stringMatching(/tidak berhak mengesahkan/),
+      expect.stringMatching(/tidak berhak menilai/),
+    ])
   })
 
   it('10. status setor & terlambat sesuai jadwal (desa B belum pernah setor)', () => {
