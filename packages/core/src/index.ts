@@ -96,3 +96,6 @@ export * from './juknis'
 export * from './rekap-juknis'
 export { SEED_JUKNIS_2025, type SeedMateriEvaluasi, type KitabTarget } from './data/juknis-2025'
 export { seedMateriEvaluasi, pecahCaberawitLama } from './skema'
+// §17 — kepengurusan PPG per jabatan/bidang
+export * from './kepengurusan'
+export * from './bidang'

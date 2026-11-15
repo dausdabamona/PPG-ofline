@@ -3,6 +3,8 @@
 import type { Db } from './db'
 import type { CaraEvaluasi, RincianMateriEvaluasi } from './data/juknis-2025'
 import { GalatPpg } from './galat'
+import { JABATAN_PENCATAT_AGENDA } from './kepengurusan'
+import { uraiToken } from './token'
 import { sha256Hex } from './crypto'
 import { PetaRiwayat } from './laporan'
 import { ambilGenerus, jenjangSebelumnya, KATEGORI_GENERUS, type Generus, type KategoriGenerus } from './repo/generus'
@@ -130,6 +132,14 @@ function pencatatResmi(db: Db, kelompokId: string, kode: KodeKeaktifan): { profi
     const p = cariProfilPencatat(db, kelompokId, ['mubaligh', 'admin'], 'sahkan')
     return { profil: p, nama: p.nama, sumber: p.role === 'admin' ? 'admin' : 'mubaligh' }
   } catch (e) {
+    // §17: pengurus daerah berjabatan agenda (muda/i, olahraga, tahfidz, …) boleh AA/AS dari agenda kegiatan
+    if (kode === 'AA' || kode === 'AS') {
+      const pj = daftarProfil(db, 'pengurus').find(
+        (x) => statusProfil(x).bolehMencatat && (uraiToken(x.token).payload.jabatan ?? []).some((j) => JABATAN_PENCATAT_AGENDA.includes(j)),
+      )
+      if (!pj) throw e
+      return { profil: pj, nama: pj.nama, sumber: 'admin' }
+    }
     // J-T10: EXE desa / pengurus desa-daerah boleh mencatat kegiatan desa/daerah
     if (!KODE_DESA_DAERAH.includes(kode)) throw e
     const p = cariProfilPencatat(db, kelompokId, ['admin', 'pengurus'], 'catat')

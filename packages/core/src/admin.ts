@@ -22,6 +22,7 @@ import { adalahGalatPpg, GalatPpg } from './galat'
 import { ulid } from './ids'
 import { seedKurikulum } from './kurikulum'
 import { seedMateriEvaluasi } from './skema'
+import { alasanJabatanTidakSah, BIDANG_RAHASIA, bidangRahasiaUntuk, type BidangRahasia, type Jabatan } from './kepengurusan'
 import { tambahGenerus, tambahJamaah, ubahGenerus, normalKategori, type KategoriGenerus, type StatusGenerus } from './repo/generus'
 import { ambilPerangkat, catatPencabutan, daftarkanToken, daftarPerangkat, type PerangkatTerdaftar } from './repo/perangkat'
 import { adalahAdmin, ambilMeta, ambilRekaman, aturMeta, ID_ADMIN, sisipkanRekaman, ubahRekaman } from './repo/umum'
@@ -39,6 +40,7 @@ import {
   tandaTanganiKunciSetor,
   tandaTanganiToken,
   type Hak,
+  type KunciBidang,
   type KunciSetor,
   type PayloadToken,
   type RahasiaToken,
@@ -265,6 +267,44 @@ export function daftarKunciSetor(db: Db, kunci: KunciAdmin, kelompokId: string, 
 }
 
 /** Versi terbaru kunci kelompok setor (membuat v1 bila belum ada). */
+// ---------------- kunci bidang rahasia (§17) ----------------
+
+/** Pastikan pasangan kunci bidang rahasia ada (versi 1); kembalikan versi terbaru. */
+export function pastikanKunciBidang(db: Db, kunci: KunciAdmin, bidang: BidangRahasia): number {
+  const v = db.nilai<number | null>('SELECT MAX(versi) FROM kunci_bidang WHERE bidang = ?', [bidang])
+  return v || buatKunciBidang(db, kunci, bidang, 1)
+}
+
+function buatKunciBidang(db: Db, kunci: KunciAdmin, bidang: BidangRahasia, versi: number): number {
+  if (!BIDANG_RAHASIA.includes(bidang)) throw new GalatPpg('BIDANG_TIDAK_SAH', 'Bidang rahasia tidak dikenal.')
+  const p = buatPasanganKotak()
+  db.jalankan('INSERT INTO kunci_bidang (bidang, versi, publik, rahasia_terenkripsi, dibuat_pada) VALUES (?, ?, ?, ?, ?)', [
+    bidang,
+    versi,
+    keB64url(p.publik),
+    encB64(kunci.induk, p.rahasia),
+    sekarangIso(),
+  ])
+  return versi
+}
+
+/** Semua versi kunci bidang (dengan kunci baca) — untuk token jabatan pembaca & paket daerah. */
+export function daftarKunciBidang(db: Db, kunci: KunciAdmin, bidang: BidangRahasia): KunciBidang[] {
+  pastikanKunciBidang(db, kunci, bidang)
+  return db
+    .kueri<{ versi: number; publik: string; rahasia_terenkripsi: string }>('SELECT versi, publik, rahasia_terenkripsi FROM kunci_bidang WHERE bidang = ? ORDER BY versi', [bidang])
+    .map((k) => ({ bidang, versi: k.versi, publik: k.publik, rahasia: keB64url(decB64(kunci.induk, k.rahasia_terenkripsi)) }))
+}
+
+/**
+ * Ganti kunci bidang rahasia (mis. setelah bendahara/BK lama dicabut): catatan baru dienkripsi versi baru, yang turun lewat
+ * PAKET daerah hanya ke pemegang jabatan pembaca yang masih aktif.
+ */
+export function gantiKunciBidang(db: Db, kunci: KunciAdmin, bidang: BidangRahasia): number {
+  if (!adalahAdmin(db)) throw new GalatPpg('HANYA_ADMIN', 'Kunci bidang diganti di EXE Daerah.')
+  return db.transaksi(() => buatKunciBidang(db, kunci, bidang, pastikanKunciBidang(db, kunci, bidang) + 1))
+}
+
 export function pastikanKunciKelompok(db: Db, kunci: KunciAdmin, kelompokId: string): number {
   const v = db.nilai<number | null>('SELECT MAX(versi) FROM kunci_kelompok WHERE kelompok_id = ?', [kelompokId])
   if (v) return v
@@ -334,6 +374,8 @@ export interface OpsiTerbitToken {
   hak?: Hak[]
   /** Masa berlaku (hari), bawaan 365. */
   berlakuHari?: number
+  /** §17: jabatan/bidang PPG (hanya pengurus; boleh lebih dari satu). */
+  jabatan?: Jabatan[]
 }
 
 /**
@@ -376,6 +418,9 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
     )
     if (lain.length) throw new GalatPpg('SATU_MUBALIGH_SATU_KELOMPOK', 'HP ini sudah memegang token mubaligh kelompok lain (K12).')
   }
+  const jabatan = o.jabatan?.length ? [...new Set(o.jabatan)] : undefined
+  const aj = alasanJabatanTidakSah(jabatan, o.role, w.tingkat)
+  if (aj) throw new GalatPpg('JABATAN_TIDAK_SAH', aj)
   const berlakuHari = o.berlakuHari ?? 365
   if (!(berlakuHari > 0 && berlakuHari <= 3650)) throw new GalatPpg('MASA_BERLAKU_TIDAK_SAH', 'Masa berlaku 1–3650 hari.')
 
@@ -387,6 +432,9 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
       rahasia.kunci_umum_versi = ku.versi
     }
     if (o.role === 'mubaligh') rahasia.kunci_kelompok_setor = daftarKunciSetor(db, kunci, w.id, true)
+    // §17: kunci baca bidang rahasia hanya untuk jabatan pembacanya
+    const bidangBaca = jabatan ? bidangRahasiaUntuk(jabatan) : []
+    if (bidangBaca.length) rahasia.kunci_bidang = bidangBaca.flatMap((b) => daftarKunciBidang(db, kunci, b))
     const terbit = sekarangIso()
     const payload: PayloadToken = {
       v: 1,
@@ -405,6 +453,7 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
       terbit,
       berlaku_sampai: tambahHariIso(terbit, berlakuHari),
     }
+    if (jabatan) payload.jabatan = jabatan
     if (Object.keys(rahasia).length) {
       payload.rahasia = keB64url(segelKe(dariB64url(kode.box_pub), keUtf8(JSON.stringify(rahasia))))
     }

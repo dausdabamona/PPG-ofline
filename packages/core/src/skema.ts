@@ -97,6 +97,12 @@ export const TABEL_SINKRON = {
     kolom: ['kelompok_id', 'bulan', 'isi_json'],
     kolomKelompok: 'kelompok_id',
   },
+  // v5 (§17) — catatan bidang kepengurusan PPG (notulen, kas, inventaris, agenda, konseling, …); isi rahasia terenkripsi
+  catatan_bidang: {
+    jenis: 'kegiatan',
+    kolom: ['wilayah_id', 'bidang', 'jenis', 'tanggal', 'judul', 'isi_json', 'isi_rahasia', 'versi_kunci', 'rujukan_id'],
+    kolomKelompok: 'wilayah_id',
+  },
   usulan: {
     jenis: 'kegiatan',
     kolom: ['jenis', 'data_json', 'status', 'alasan', 'kelompok_id'],
@@ -128,6 +134,7 @@ const TIPE_KOLOM: Record<string, string> = {
   target: 'INTEGER',
   dikuasai: 'INTEGER',
   kategori_saran: 'INTEGER',
+  versi_kunci: 'INTEGER',
 }
 
 /** Bentuk kolom untuk ALTER TABLE (tanpa NOT NULL tanpa default). */
@@ -222,8 +229,16 @@ const DDL_LOKAL_V4 = `
 CREATE TABLE IF NOT EXISTS catatan_sholat (generus_id TEXT NOT NULL, tanggal TEXT NOT NULL, sholat TEXT NOT NULL, PRIMARY KEY (generus_id, tanggal));
 `
 
+const DDL_LOKAL_V5 = `
+-- v5 (§17): kunci bidang rahasia (keuangan/konseling) — daerah, dienkripsi kunci induk
+CREATE TABLE IF NOT EXISTS kunci_bidang (
+  bidang TEXT NOT NULL, versi INTEGER NOT NULL, publik TEXT NOT NULL, rahasia_terenkripsi TEXT NOT NULL, dibuat_pada TEXT NOT NULL,
+  PRIMARY KEY (bidang, versi)
+);
+`
+
 /** Versi skema saat ini. */
-export const VERSI_SKEMA = 4
+export const VERSI_SKEMA = 5
 
 function adaKolom(db: Db, tabel: string, kolom: string): boolean {
   return db.kueri<{ name: string }>(`PRAGMA table_info(${tabel})`).some((k) => k.name === kolom)
@@ -274,6 +289,12 @@ const MIGRASI: ((db: Db) => void)[] = [
       pecahCaberawitLama(db)
       seedMateriEvaluasi(db)
     }
+  },
+  // v5 (§17): kepengurusan PPG per jabatan — catatan bidang & kunci bidang rahasia
+  (db) => {
+    tambahTabelDanKolom(db)
+    db.jalankanSkrip(DDL_LOKAL_V5)
+    db.jalankanSkrip(`CREATE INDEX IF NOT EXISTS idx_catatan_bidang ON catatan_bidang(bidang, jenis, wilayah_id);`)
   },
 ]
 

@@ -29,6 +29,8 @@ import { ambilWilayah, kelompokDalamWilayah } from '../repo/wilayah'
 import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, type KategoriGenerus } from '../repo/generus'
 import { alasanKeaktifanTidakSah, alasanRekamanEvaluasiTidakSah, KODE_DESA_DAERAH, type KodeKeaktifan } from '../juknis'
 import { alasanLaporanBulananTidakSah, idLaporanBulanan } from '../rekap-juknis'
+import { alasanIsiCatatan, idKontrolMt, jabatanToken } from '../bidang'
+import { JABATAN_PENCATAT_AGENDA, JENIS_CATATAN, jabatanBolehMenulis, type Jabatan } from '../kepengurusan'
 import { PetaRiwayat } from '../laporan'
 import { DAFTAR_TABEL_SINKRON, TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
 import { adalahTokenSuperHp, periksaToken, uraiToken, type PayloadToken } from '../token'
@@ -330,8 +332,41 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     if (tokenSah.some((p) => p.perangkat_id === perangkatId && p.hak.includes('sahkan') && mencakup(p.wilayah_id, kel) === true)) return true
     return daftarPerangkat(db, { perangkatId }).some((t) => hakToken(t.token).includes('sahkan') && kelompokDalamWilayah(db, t.wilayah_id).includes(kel))
   }
+  /** Token penulis rekaman (pengirim + terdaftar), tidak dicabut sebelum rekaman diubah. */
+  const tokenPenulis = (rek: Rekaman): { role: string; wilayah_id: string; jabatan: string[] }[] => {
+    const pid = String(rek.perangkat_id)
+    const out: { role: string; wilayah_id: string; jabatan: string[] }[] = tokenSah
+      .filter((p) => p.perangkat_id === pid)
+      .map((p) => ({ role: p.role, wilayah_id: p.wilayah_id, jabatan: p.jabatan ?? [] }))
+    for (const t of daftarPerangkat(db, { perangkatId: pid })) {
+      if (t.dicabut_pada && String(rek.diubah_pada) >= t.dicabut_pada) continue
+      out.push({ role: t.role, wilayah_id: t.wilayah_id, jabatan: jabatanToken(t.token) })
+    }
+    return out
+  }
+  const alasanCatatanImpor = (rek: Rekaman): string | null => {
+    const meta = JENIS_CATATAN[String(rek.jenis)]
+    if (!meta) return 'Jenis catatan tidak dikenal.'
+    if (rek.bidang !== meta.bidang) return 'Bidang catatan tidak cocok dengan jenisnya.'
+    const tok = tokenPenulis(rek)
+    const boleh =
+      meta.penulis === 'semua'
+        ? tok.some((t) => t.role === 'pengurus' || t.role === 'mubaligh')
+        : meta.penulis === 'mubaligh'
+          ? tok.some((t) => t.role === 'mubaligh' && t.wilayah_id === rek.wilayah_id) && rek.id === idKontrolMt(String(rek.perangkat_id), String(rek.tanggal).slice(0, 7))
+          : tok.some((t) => t.role === 'pengurus' && jabatanBolehMenulis(t.jabatan, String(rek.jenis)))
+    if (!boleh) return 'Penulis catatan tidak memegang jabatan yang berwenang.'
+    if (rek.dihapus) return null
+    if (meta.rahasia) return typeof rek.isi_rahasia === 'string' && rek.isi_json === null ? null : 'Catatan rahasia harus terenkripsi.'
+    if (rek.isi_rahasia) return 'Catatan ini tidak boleh berisi data terenkripsi.'
+    return alasanIsiCatatan(String(rek.jenis), uraiJson(rek.isi_json, null))
+  }
   /** J-T10: keaktifan MS/DS/MR/DR dari perangkat admin/pengurus tingkat desa/daerah (pengirim atau terdaftar di bawahnya). */
   const bolehCatatDesa = (rek: Rekaman): boolean => {
+    // §17: jabatan agenda daerah (muda/i, olahraga, tahfidz, …) juga boleh AA/AS
+    if (['AA', 'AS'].includes(String(rek.kode))) {
+      return tokenPenulis(rek).some((t) => t.role === 'pengurus' && t.jabatan.some((j) => JABATAN_PENCATAT_AGENDA.includes(j as Jabatan)))
+    }
     if (!KODE_DESA_DAERAH.includes(String(rek.kode) as KodeKeaktifan)) return false
     const pid = String(rek.perangkat_id)
     if (pencatatDesa.has(pid)) return true
@@ -399,7 +434,13 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         const kol = 'kolomKelompok' in info ? info.kolomKelompok : undefined
         const kel = kol ? String(rek[kol] ?? '') : ''
         // Fase 9: usulan boleh untuk wilayah desa/daerah (tambah wilayah/pengajian) — cukup di dalam cakupan pengirim
-        if (tabel === 'usulan' ? !kelompokBoleh.has(kel) && !(gabungan && (dalamCakupan(kel) || superPengirim)) : !kelompokBoleh.has(kel)) {
+        const diLuarWilayah =
+          tabel === 'usulan'
+            ? !kelompokBoleh.has(kel) && !(gabungan && (dalamCakupan(kel) || superPengirim))
+            : tabel === 'catatan_bidang'
+              ? !dalamCakupan(kel)
+              : !kelompokBoleh.has(kel)
+        if (diLuarWilayah) {
           return 'Data di luar wilayah pengirim.'
         }
         if (gabungan) {
@@ -429,6 +470,11 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         }
         if (tabel === 'keaktifan' && !rek.dihapus) {
           const a = alasanKeaktifanTidakSah(rek, jenjangGenerus.get(String(rek.generus_id)))
+          if (a) return a
+        }
+        // §17 (J-K6): catatan bidang hanya dari penulis berjabatan yang berwenang (kontrol MT: mubaligh; nunggoni: siapa pun)
+        if (tabel === 'catatan_bidang') {
+          const a = alasanCatatanImpor(rek)
           if (a) return a
         }
         if (tabel === 'laporan_bulanan') {

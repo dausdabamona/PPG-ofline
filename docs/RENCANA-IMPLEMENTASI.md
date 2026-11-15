@@ -610,3 +610,56 @@ hitungan bercentang → `{"butir": [0, 3, …]}` (dikuasai = jumlah centang).
 9. Jumlah halaman kitab hadits selain K. Sholah (151), K. Nawafil (98), Materi Pegon (19), Materi Bacaan (37) tidak tertulis
    → diisi Kurikulum.
 10. **Wudhu & Sholat**: PAUD–Caberawit B dihitung per butir (8 butir), Caberawit C–Generus 3 nilai subjektif (≤ 75) — sesuai teks.
+
+---
+
+## 17. Struktur & Proker Kepengurusan PPG Daerah — pengurus per jabatan/bidang (Fase 11, 16 Nov 2026)
+
+Sumber: "Struktur & Proker Kepengurusan PPG 2025" Daerah Sorong (jobdes + program kerja per bidang, "Kontrol Keaktifan &
+Keteladanan MT", lembar penilaian tahfidz). Permintaan pemilik: struktur dimasukkan ke role sesuai pembidangannya. **Nama orang
+dari dokumen tidak masuk repo** — admin daerah mengisi nama saat menerbitkan token. Wilayah contoh uji: Desa Sorong (Remu,
+Klasaman, Kp Baru Barokah), Desa Aimas (Jalur A, Jalur C, Espetri, Modan), Desa Fakfak (Kota, Bomberay), Desa Kaimana (Kota,
+Bantemi — kode lama `KMN-BTM`).
+
+### 17.1 Rancangan
+
+- **Jabatan di token pengurus.** `PayloadToken.jabatan?: Jabatan[]` (format token tetap `v: 1`; aplikasi lama mengabaikannya).
+  Satu token boleh memegang **beberapa jabatan** (mis. wakil ketua + tenaga pendidik); orang tua sekaligus pengurus = dua profil (K13).
+  Jabatan tingkat daerah: `ketua`, `wakil_ketua`, `sekretaris`, `bendahara`, `kurikulum`, `tenaga_pendidik`, `penggalang_dana`,
+  `sarpras`, `muda_mudi`, `olahraga_seni`, `kemandirian`, `keputrian`, `bk`, `tahfidz`; tingkat desa: `pj_desa`; tingkat kelompok:
+  `pj_kelompok`. Token berjabatan **hanya diterbitkan EXE Daerah** (tanda tangan akar); token berjabatan dari rantai lain ditolak
+  (`RANTAI_TIDAK_SAH`). Hak data tiap jabatan ditegakkan core (`jabatanBoleh`), bukan hanya UI.
+- **Catatan bidang** = satu tabel kegiatan baru `catatan_bidang(wilayah_id, bidang, jenis, tanggal, judul, isi_json, isi_rahasia,
+  versi_kunci, rujukan_id)` untuk semua proker bidang: notulen musyawarah, kas & target tabungan desa, dana masuk, inventaris &
+  usulan pengadaan sarpras, data & kebutuhan mubaligh, program SDM, kontrol keaktifan MT, group pembinaan & agenda muda/i,
+  agenda olahraga/seni/keputrian/kemandirian, data kemandirian generus & info kerja, peserta & ujian tahfidz, konseling, nunggoni.
+  Isi divalidasi per (bidang, jenis) di core (`alasanCatatanBidangTidakSah`).
+- **Data rahasia per penerima.** Bidang `keuangan` (kas, target tabungan, dana masuk) dan `konseling` (BK) disimpan sebagai
+  `isi_rahasia` = `segelKe(kunci bidang publik versi n, gzip(JSON))`. Pasangan kunci bidang (X25519, berversi) dibuat & disimpan
+  daerah (dienkripsi kunci induk, tabel lokal `kunci_bidang`), lalu diberikan di `RahasiaToken.kunci_bidang` hanya kepada jabatan
+  pembaca: keuangan → ketua, wakil ketua, bendahara, penggalang dana; konseling → bk saja. Perangkat lain (desa, mubaligh, ketua untuk
+  BK) hanya menerima & meneruskan ciphertext; ketua melihat **jumlah kasus** saja (kolom terbuka: wilayah, tanggal). Ganti kunci
+  bidang (`gantiKunciBidang`) → versi baru turun lewat PAKET daerah (amplop per penerima berjabatan) — pemegang lama yang dicabut tidak
+  membaca catatan baru.
+- **Wewenang impor (SETOR).** Rekaman `catatan_bidang` diterima bila penulisnya (`perangkat_id`) memegang token tidak dicabut dengan
+  jabatan yang boleh menulis bidang itu; `kontrol_mt` hanya oleh mubaligh untuk dirinya; `nunggoni` oleh pengurus/mubaligh mana pun.
+- **Fitur per jabatan** (HP pengurus hanya menampilkan menu jabatannya; EXE Daerah menu **Kepengurusan**):
+
+| Jabatan | Fitur |
+|---|---|
+| Ketua / Wakil | Ringkasan semua bidang, status setor desa, rekap keaktifan & penguasaan se-daerah, notulen musyawarah, jadwal musyawarah rutin (bulan **ganjil** = bersama, **genap** = PPG unsur muda/i), jumlah kasus BK (tanpa isi), saldo kas |
+| Sekretaris | Database mubaligh & generus per jenjang (lihat), notulen musyawarah, rekap keaktifan bulanan & penguasaan → **teks WA grup**, pengingat ke kelompok yang belum lapor sebelum pengajian mubaligh minggu pertama |
+| Bendahara | Buku kas (rupiah bulat), target tabungan bulanan per desa (bawaan: Sorong 700.000 & Aimas 600.000 untuk konsumsi Mumi Daerah; Fakfak & Kaimana dikembalikan ke desa; tabungan PPG/CKM per desa), konfirmasi dana masuk penggalang dana, laporan ke ketua |
+| Kurikulum | (role kurikulum EXE tetap) + **Reward** peringkat santri terbaik berjenjang (kelompok → desa → daerah, per jenjang), kelompok & desa terbaik |
+| Tenaga Pendidik | Data & penugasan mubaligh/mubalighot (tugasan/setempat) per kelompok, kebutuhan pengajar, program SDM, pantau **Kontrol Keaktifan & Keteladanan MT** |
+| Penggalang Dana | Catat dana masuk (wali/aghniya/lain) → menunggu konfirmasi bendahara → masuk kas |
+| Sarana & Prasarana | Inventaris per kelompok + pengecekan kondisi, standar sarpras, usulan pengadaan ke bendahara |
+| Muda/i & Kepramukaan | Biodata muda/i per jenjang (lihat), 10 group pembinaan (Pembina 1/2, Ketua, Wakil, Wakil MT, Anggota), agenda (pengajian muda/i daerah, LDK, CAI, outbound, kepramukaan …) → catat kehadiran sebagai keaktifan MR/DR/AA/AS |
+| Olahraga & Seni | Agenda program (FORSGI/PERSINAS ASAD) |
+| Kemandirian | Data generus lulus SMP/SMA, tidak sekolah/dropout, bakat & minat; agenda pelatihan; info peluang kerja |
+| Keputrian | Agenda pelatihan/penyuluhan putri (daftar generus hanya putri) |
+| Bimbingan Konseling | Catatan konseling generus/pendidik/orang tua — **terenkripsi untuk BK saja** |
+| Tahfidz | Peserta & target, ujian berpoin (lembar penilaian tahfidz, 2 penguji), progres; kode keaktifan TH |
+| PJ Desa | Pengingat akhir bulan "kejar absensi & laporan" ke MT se-desa, temuan keaktifan < 50 % untuk musyawarah desa, laporan bulanan kelompok |
+| PJ Kelompok | Laporan bulanan/KBM kelompok ke desa (Fase 10), absen |
+| Semua pengurus & mubaligh | "Semua Pengurus & Mubaligh Peduli": catat NUNGGONI diri sendiri (digabung dengan daftar NUNGGONI laporan bulanan) |

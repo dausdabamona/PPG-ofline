@@ -1,4 +1,5 @@
 // Kode Perangkat, token bertanda tangan, dan rantai kepercayaan (§4).
+import { alasanJabatanTidakSah, type BidangRahasia, type Jabatan } from './kepengurusan'
 import {
   bukaSegel,
   dariB64url,
@@ -101,6 +102,16 @@ export interface PayloadToken {
    * yang belum punya pohon wilayah tepercaya bisa memastikan kelompok itu memang di bawah desa penerbit.
    */
   bukti_wilayah?: string
+  /** §17 (Fase 11): jabatan/bidang pengurus PPG (hanya token pengurus bertanda tangan langsung admin daerah). */
+  jabatan?: Jabatan[]
+}
+
+/** §17: satu versi kunci bidang rahasia (keuangan/konseling); `rahasia` = kunci baca. */
+export interface KunciBidang {
+  bidang: BidangRahasia
+  versi: number
+  publik: string
+  rahasia: string
 }
 
 /** Satu versi kunci kelompok setor (X25519). `rahasia` hanya dipegang mubaligh. */
@@ -161,6 +172,8 @@ export interface RahasiaToken {
   kunci_umum_kelompok?: string
   /** Versi kunci umum kelompok (naik saat serah terima / ganti kunci kelompok). Tidak ada = 1. */
   kunci_umum_versi?: number
+  /** §17: kunci bidang rahasia untuk jabatan pembaca (ketua/wakil/bendahara/penggalang dana: keuangan; bk: konseling). */
+  kunci_bidang?: KunciBidang[]
 }
 
 export interface DataKodePerangkat {
@@ -391,6 +404,8 @@ function periksaAkar(p: PayloadToken): HasilPeriksaToken | null {
   if (p.hak.includes('terbit_bawah') && !(p.role === 'admin' && p.tingkat === 'desa')) {
     return tolak('TOKEN_TIDAK_SAH', 'Hak terbit_bawah hanya untuk EXE desa.')
   }
+  const aj = alasanJabatanTidakSah(p.jabatan, p.role, p.tingkat)
+  if (aj) return tolak('TOKEN_TIDAK_SAH', aj)
   return null
 }
 
@@ -410,6 +425,8 @@ function periksaRantai(t: TokenTerurai, opsi: OpsiPeriksaToken, kedalaman: numbe
     return periksaAkar(p)
   }
   if (kedalaman >= MAKS_RANTAI) return tolak('RANTAI_TIDAK_SAH', 'Rantai penerbit token terlalu panjang.')
+  // §17 (J-K2): token berjabatan hanya diterbitkan langsung oleh admin daerah
+  if (p.jabatan !== undefined) return tolak('RANTAI_TIDAK_SAH', 'Token berjabatan PPG hanya diterbitkan EXE Daerah.')
   let pen: TokenTerurai
   try {
     pen = uraiToken(p.penerbit)
