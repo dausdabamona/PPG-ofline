@@ -387,3 +387,35 @@ Android: izin `CAMERA`; intent-filter agar berkas `.ppg` dari WA bisa dibuka den
 - Desktop & mobile: `tsc --noEmit` bersih, `vite build` sukses, vitest untuk komponen/alur utama (jsdom).
 - CI: `.github/workflows/build-apk.yml` (ubuntu, Java 21, Android SDK, `npx cap sync android`, `./gradlew assembleDebug`, unggah APK) dan `.github/workflows/build-exe.yml` (windows-latest, electron-builder, unggah EXE); keduanya menjalankan `npm test` dulu.
 - Setiap fase menambahkan bagian ke `docs/LAPORAN-TAHAP.md`: apa yang dibuat, hasil uji (angka), keputusan otonom baru, sisa masalah.
+
+---
+
+## 14. Versi 3 — Pelaporan berjenjang, kurikulum, mubaligh sederhana (hasil uji Pak Fir, 15 Nov 2026)
+
+Hasil uji Pak Fir: QR pendaftaran tidak berfungsi (kode teks berfungsi); menu mubaligh terlalu banyak; pelaporan harus berjenjang kelompok → desa → daerah; tiap tingkat boleh memakai EXE; kendali penuh di admin daerah; ada jadwal sinkron; perlu role kurikulum.
+
+### 14.1 Keputusan terkunci v3 (dijawab Pak Fir)
+
+| Kode | Keputusan |
+|---|---|
+| V1 | Tingkat **kelompok boleh memakai HP atau EXE**; desa dan daerah memakai EXE. Satu aplikasi EXE untuk semua tingkat; perannya ditentukan kode aktivasi |
+| V2 | **Jadwal setor + pengingat**: admin daerah menetapkan tenggat per tingkat (mis. kelompok→desa tiap Ahad, desa→daerah tiap tanggal 5); aplikasi mengingatkan dan menandai yang terlambat. Tanpa tutup buku |
+| V3 | Kode aktivasi HP pengurus/mubaligh diterbitkan **admin desa** (EXE desa) untuk wilayahnya, atas izin daerah. Daerah tetap melihat dan bisa mencabut semua perangkat |
+| V4 | **Mubaligh memilih materi per pertemuan** dari kurikulum (aplikasi menyarankan materi berikutnya); murid & orang tua melihat **"Materi yang perlu dituntaskan"** |
+| V5 | Role baru **Kurikulum**: bertanggung jawab menetapkan **target capaian materi** (materi wajib tuntas per kategori generus per periode/semester) |
+
+### 14.2 Keputusan teknis v3 (diambil pengarah; agen boleh menyempurnakan dengan mencatat)
+
+- **Hierarki EXE.** EXE punya peran instalasi: `daerah` (akar, = admin lama, memegang kunci induk organisasi), `desa`, `kelompok`, `kurikulum`. EXE baru (bukan daerah) saat pengaturan awal memilih "Aktifkan dengan kode": tampilkan Kode Perangkat EXE → tingkat atas menerbitkan token (daerah → desa/kurikulum; desa → kelompok-EXE) → tempel. Kata sandi lokal tetap melindungi kunci perangkat EXE itu.
+- **Rantai kepercayaan berjenjang.** Token boleh ditandatangani oleh admin daerah ATAU oleh perangkat EXE desa yang tokennya (dari daerah) memiliki hak `terbit_bawah` untuk wilayah desa itu; berlaku juga rantai sampai generus/wali (daerah → desa → mubaligh → generus). `periksaToken` menelusuri rantai sampai kunci daerah, memeriksa wilayah anak ⊆ wilayah penerbit, dan pencabutan di setiap mata rantai.
+- **Alur naik.** HP kelompok menyetor ke **tingkat atas langsungnya** (EXE kelompok bila ada, jika tidak EXE desa): berkas SETOR dienkripsi ke `atas_box_pub` dari token HP. EXE kelompok/desa mengimpor, menggabung, lalu menyusun **SETOR gabungan** ke atas (rekaman asli apa adanya + daftar perangkat & token di bawahnya + konfirmasi), ditandatangani EXE itu. Daerah menerima rekaman dari perangkat mana pun yang berada di bawah wilayah pengirim (aturan wewenang T13 diperluas ke rantai).
+- **Alur turun.** Daerah membuat PAKET untuk tiap EXE desa (seluruh data desa + master + kurikulum + target + jadwal setor + pencabutan); EXE desa menerapkan lalu membuat PAKET untuk EXE kelompok/HP di bawahnya (ditandatangani desa, dikunci per penerima aktif seperti T10). HP memverifikasi tanda tangan penerbit paket lewat rantai.
+- **Jadwal setor.** Master baru `jadwal_setor(id, tingkat_asal 'kelompok'|'desa', pola 'pekanan'|'bulanan', hari 0–6 NULL, tanggal 1–28 NULL, jam)` milik daerah. Kueri `statusSetor(db, wilayahId)` → tenggat berikutnya, setor terakhir, `terlambat` per wilayah bawahan. Ditampilkan di beranda EXE tiap tingkat dan HP pengurus/mubaligh (pengingat).
+- **Kurikulum.** Tabel `target_capaian(id, periode 'YYYY-S1'|'YYYY-S2', kategori_generus, materi_id, urutan)` + `periode_aktif` di meta master. Role `kurikulum` (token dari daerah, EXE) mengelola materi & target lalu menghasilkan berkas `KURIKULUM` (ditandatangani perangkat kurikulum, berantai ke daerah) yang dikirim ke daerah; daerah mengimpornya ke master lalu ikut turun lewat PAKET/MATERI. Admin daerah juga boleh mengelola kurikulum sendiri.
+- **Materi yang perlu dituntaskan.** Kueri `materiPerluDituntaskan(db, generusId)` = target periode aktif untuk kategori generus − materi yang sudah disahkan; beserta persentase capaian. Kueri `saranMateriPertemuan(db, kelompokId, kategori?)` = materi target berikutnya yang paling banyak belum tuntas di kelas itu.
+- **Kelas = pengajian rutin per kategori.** `pengajian` mendapat kolom `kategori_generus` (NULL = semua). Absen pertemuan menampilkan hanya generus aktif dengan kategori itu.
+- **Pertemuan & materi ajar.** Tabel kegiatan `pertemuan(id, kelompok_id, pengajian_id NULL, jadwal_tambahan_id NULL, tanggal, materi_ids_json, catatan)` milik mubaligh/pengurus pencatat; presensi merujuk `pertemuan_id`. Saat absen, mubaligh dapat menandai materi pertemuan **tuntas** per generus → `kemajuan_belajar` sumber mubaligh, langsung disahkan.
+- **Mubaligh sederhana.** Navigasi bawah mubaligh: **Absen** (pilih pertemuan/kelas → pilih materi hari ini dengan saran → tandai hadir → centang yang tuntas) · **Jadwal** · **Materi** (target kurikulum per kelas + progres tiap generus) · **Lainnya** (setoran generus, token, balasan, laporan pekanan WA, setor ke atas, buka berkas). Satu ketukan besar "Setor ke Desa" muncul di Absen bila mendekati tenggat.
+- **Murid & orang tua.** Layar pertama = "Materi yang perlu dituntaskan" (daftar + bilah persentase + jadwal pertemuan berikutnya). Pencatatan mandiri murid tetap ada di menu kedua.
+- **QR.** Ganti pemindai `getUserMedia`+`jsqr` dengan pemindai **native** Capacitor (pilih plugin resmi/terawat yang kompatibel Capacitor 7, mis. `@capacitor/barcode-scanner` atau `@capacitor-mlkit/barcode-scanning`; pilih yang build-nya pasti lolos di CI dan berfungsi offline), minta izin kamera saat runtime, dan pertahankan QR berseri (T38). Tampilan QR: ukuran besar, kontras tinggi, error correction M, latar putih dengan quiet zone. Tetap ada cadangan tempel kode.
+- **Migrasi.** Skema naik versi; database v2 (daerah lama) dimigrasikan otomatis: admin lama = EXE `daerah`, token lama tetap berlaku.
