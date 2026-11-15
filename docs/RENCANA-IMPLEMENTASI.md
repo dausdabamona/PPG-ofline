@@ -663,3 +663,30 @@ Bantemi — kode lama `KMN-BTM`).
 | PJ Desa | Pengingat akhir bulan "kejar absensi & laporan" ke MT se-desa, temuan keaktifan < 50 % untuk musyawarah desa, laporan bulanan kelompok |
 | PJ Kelompok | Laporan bulanan/KBM kelompok ke desa (Fase 10), absen |
 | Semua pengurus & mubaligh | "Semua Pengurus & Mubaligh Peduli": catat NUNGGONI diri sendiri (digabung dengan daftar NUNGGONI laporan bulanan) |
+
+### 17.2 Keputusan teknis otonom (Fase 11)
+
+| Kode | Keputusan | Alasan |
+|---|---|---|
+| J-K1 | Jabatan = **field token** `jabatan` pada role `pengurus` (bukan role baru); tingkat daerah 14 jabatan, desa `pj_desa`, kelompok `pj_kelompok`; multi-jabatan dalam satu token; orang tua sekaligus pengurus memakai dua profil (K13) | Format token & semua alur sinkron pengurus tetap; satu orang banyak jabatan cukup satu token |
+| J-K2 | Token berjabatan **hanya** bertanda tangan langsung admin daerah (EXE Daerah); token berjabatan yang memiliki `penerbit` (EXE desa / Super Admin HP) ditolak `RANTAI_TIDAK_SAH`; jabatan pada role selain pengurus atau tingkat yang salah ditolak `TOKEN_TIDAK_SAH` | Hak bidang (termasuk kunci rahasia) hanya diberikan pusat; Super Admin HP tidak memegang kunci bidang |
+| J-K3 | Semua proker bidang memakai **satu tabel kegiatan `catatan_bidang`** dengan validasi per jenis di core (`alasanIsiCatatan`) dan id tetap bila perlu (kontrol MT `KMT-<perangkat>-<bulan>`) | Satu jalur sinkron/wewenang untuk 21 jenis catatan; mudah menambah jenis |
+| J-K4 | Kunci baca **keuangan**: ketua, wakil ketua, bendahara, **penggalang dana** (perlu melihat dana yang ia catat & status konfirmasi); **konseling**: BK saja. Penulis tanpa kunci baca tetap bisa menulis bila jabatannya berwenang (enkripsi ke kunci publik) | Prinsip kebutuhan minimum; penggalang dana bagian dari tim keuangan |
+| J-K5 | EXE Daerah membuat & menyimpan kunci bidang (dienkripsi kunci induk) sehingga secara teknis adalah akar kepercayaan, tetapi **aplikasi tidak pernah membuka isi konseling** di EXE (`daftarCatatan` di daerah hanya membuka keuangan dengan KunciAdmin); ketua hanya melihat jumlah kasus | Tanpa daerah tidak ada penerbit kunci untuk anggota BK baru; perlindungan isi BK ditegakkan aplikasi + kripto untuk semua perangkat lain |
+| J-K6 | Impor SETOR: `catatan_bidang` diterima bila wilayahnya di cakupan pengirim **dan** penulisnya memegang token (tidak dicabut saat rekaman diubah) yang jabatannya boleh menulis jenis itu; `kontrol_mt` hanya mubaligh untuk kelompoknya dengan id tetap miliknya; `nunggoni` pengurus/mubaligh mana pun; rekaman rahasia wajib terenkripsi, rekaman terbuka tidak boleh membawa ciphertext | Hak bidang ditegakkan di penerima, bukan hanya UI |
+| J-K7 | **Reward**: skor santri = rata-rata (keaktifan semester, TOTAL penguasaan) per jenjang; peringkat per kelompok, desa, daerah (bawaan 3 besar); kelompok/desa terbaik = rata-rata skor santrinya | Proker: "keaktifan & penguasaan materi tertinggi"; rumus sederhana & bisa diubah |
+| J-K8 | **Musyawarah rutin**: bulan ganjil = musyawarah bersama, bulan genap = musyawarah PPG unsur muda/i (ijtihad pusat sebulan sekali, menggantikan "dua bulan sekali") | Proker Ketua bagian "menyesuaikan dengan ijtihad pusat" |
+| J-K9 | **Pengingat**: sekretaris/ketua tanggal 1–7 (sebelum pengajian mubaligh minggu pertama) = kelompok yang belum mengirim laporan bulanan bulan lalu; PJ desa mulai tanggal 25 = kelompok yang belum melapor bulan berjalan ("kejar absensi & laporan") | Proker Sekretaris & PJ Desa |
+| J-K10 | **Tabungan desa**: target per desa & peruntukan (Mumi Daerah / kegiatan PPG & CKM / dikembalikan ke desa) diisi bendahara sebagai catatan; contoh proker Sorong Rp700.000 & Aimas Rp600.000 hanya contoh di uji/panduan, bukan seed (nominal bisa berubah). Rupiah = bilangan bulat | Nominal bisa diatur; tidak mengunci angka di kode |
+| J-K11 | **Tahfidz**: poin per surat dari lembar penilaian (2/3/4/6/8/3, total 170 untuk 51 surat), ujian mencatat surat yang lulus + 2 penguji; peringkat = poin ujian terbaru | Lampiran "Evaluasi Penguasaan Target Tahfidzul Qur'an" |
+| J-K12 | Agenda muda/i/olahraga/kemandirian/keputrian/tahfidz: pemegang jabatan agenda daerah boleh mencatat keaktifan **AA/AS** (selain MS/DS/MR/DR yang sudah boleh untuk pengurus desa/daerah) dari daftar peserta agenda | Proker: agenda menjadi sumber kode keaktifan |
+| J-K13 | HP pengurus berjabatan: navigasi **Beranda · Bidang · (Absen untuk PJ kelompok) · Data · Sinkron**; menu Bidang hanya jabatannya. Pengurus tanpa jabatan tetap navigasi lama | "Menu HP pengurus tetap sederhana" |
+| J-K14 | Data kontrol MT & catatan terbuka (inventaris, agenda, data mubaligh) ikut paket seluruh daerah ke semua pengurus tingkat daerah; HP pengurus bidang lain bisa menerimanya tetapi UI hanya menampilkan menu bidangnya | Sinkron per wilayah tetap sederhana; data rahasia tetap terenkripsi |
+
+### 17.3 Perlu dikonfirmasi PPG Daerah (Fase 11)
+
+1. **Modan** di data lama tercatat di desa berkode **AMS** — di struktur 2025 termasuk Desa Aimas; mohon dipastikan kode desanya sama.
+2. Musyawarah rutin: proker menyebut "dua bulan sekali (bulan ganjil)" lalu ralat "sebulan sekali: ganjil bersama, genap muda/i" → dipakai ralat.
+3. Kunci baca keuangan untuk **penggalang dana** (J-K4) dan **wakil ketua**.
+4. Rumus skor reward (J-K7) dan jumlah juara (3 per jenjang) — proker juga menyebut reward Caberawit A/B & Caberowot.
+5. Nominal tabungan desa Fakfak & Kaimana (kosong di proker) — diisi bendahara.

@@ -413,6 +413,37 @@ Menu bawah: **Beranda · Absen · Data · Rekap · Sinkron**.
 6. **Sinkron** → **Setor ke …** → kirim berkasnya; buka paket baru dari desa lewat **Buka Berkas**.
 7. Pengurus kelompok: **Beranda → Laporan Bulanan (Musyawaroh & NUNGGONI)** — sama seperti 6.8.
 
+### 7A. Pengurus PPG per jabatan/bidang
+
+Admin Daerah menerbitkan token pengurus berjabatan: **Perangkat & Token** → Untuk **Pengurus** → Wilayah (daerah untuk pengurus
+daerah, desa untuk PJ desa, kelompok untuk PJ kelompok) → centang **Jabatan / bidang PPG** (boleh lebih dari satu, mis. Wakil Ketua +
+Tenaga Pendidik) → **Terbitkan token**. Orang tua yang juga pengurus: tambah profil kedua di HP yang sama (bagian 8).
+
+Di HP, menu bawah pengurus berjabatan: **Beranda · Bidang · Data · Sinkron** (PJ kelompok juga **Absen**). Menu **Bidang** hanya
+berisi tugas jabatan Anda:
+
+| Jabatan | Yang dikerjakan di HP |
+|---|---|
+| Ketua / Wakil | **Ringkasan PPG** (keaktifan, kelompok belum lapor, NUNGGONI, jumlah kasus BK, saldo), notulen, rekap; bulan ganjil musyawarah bersama, genap musyawarah muda/i |
+| Sekretaris | Notulen musyawarah, rekap keaktifan → **Bagikan ke grup WA**, database generus per jenjang & mubaligh, pengingat kelompok yang belum lapor (tanggal 1–7) |
+| Bendahara | **Keuangan**: + Buku kas (pemasukan/pengeluaran, rupiah bulat), + Target tabungan desa (mis. Sorong 700.000 & Aimas 600.000 untuk Mumi Daerah), **Konfirmasi** dana masuk dari penggalang dana |
+| Penggalang Dana | + Dana masuk (wali/aghniya/lain) → masuk kas setelah dikonfirmasi bendahara |
+| Kurikulum | **Reward Hasil Belajar**: santri terbaik per jenjang, kelompok & desa terbaik |
+| Tenaga Pendidik | Data mubaligh/mubalighot (tugasan/setempat), kebutuhan pengajar, program SDM, rekap **Kontrol Keaktifan MT** |
+| Sarana & Prasarana | Inventaris per kelompok (kondisi, tanggal cek), usulan pengadaan |
+| Muda/i & Kepramukaan | 10 group pembinaan, agenda (LDK, CAI, pengajian muda/i daerah, …) → **Catat hadir** = keaktifan MR/DR/AA/AS peserta |
+| Olahraga & Seni · Kemandirian · Keputrian | Agenda program; kemandirian juga data lulus/dropout, bakat & minat, info kerja; keputrian hanya generus putri |
+| Bimbingan Konseling | Catatan konseling — **hanya BK yang bisa membaca** (ketua melihat jumlah kasus saja) |
+| Tahfidz | Peserta, **ujian** (centang surat yang lulus, 2 penguji, poin otomatis), peringkat |
+| PJ Desa / PJ Kelompok | Pengingat akhir bulan "kejar absensi & laporan", temuan keaktifan < 50%; laporan KBM bulanan kelompok |
+| Semua | **NUNGGONI** — catat setelah menunggui 1 KBM (Semua Pengurus & Mubaligh Peduli) |
+
+Semua catatan ikut **Setor** seperti biasa. Mubaligh mengisi **Lainnya → Kontrol Keaktifan MT** (sholat subuh/tahajud/dhuha, kolom
+hafalan, tadarus) setiap hari; diperiksa pengajian MT minggu pertama.
+
+Di EXE Daerah/Desa: menu **Kepengurusan** — daftar pengurus berjabatan, ringkasan bidang, keuangan & tabungan desa, reward, kontrol MT,
+tahfidz, catatan bidang. Bila bendahara/BK lama dicabut: **Ganti kunci keuangan/konseling**, lalu **Kirim Paket** seluruh daerah.
+
 ---
 
 ## 8. Satu HP untuk orang tua yang juga pengurus

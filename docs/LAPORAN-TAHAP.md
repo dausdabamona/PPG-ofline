@@ -681,3 +681,45 @@ repo; hanya nama materi + jumlah target (`packages/core/src/data/juknis-2025.ts`
 - Target capaian lama ber-kategori `caberawit` tetap berlaku untuk A/B/C sampai Kurikulum menetapkan target per jenjang baru.
 - Persen raport dihitung dari target terkini; raport lama ikut berubah bila Kurikulum mengubah target kemudian.
 - Keaktifan murid di HP orang tua yang terpisah dari HP murid baru terlihat setelah balasan mubaligh; catatan sholat tidak berpindah HP.
+
+---
+
+## Fase 11 — Struktur & Proker Kepengurusan PPG per jabatan (2026-11-16)
+
+Kontrak: RENCANA §17 (J-K1–J-K14, perlu dikonfirmasi §17.3). Nama pengurus dari dokumen tidak masuk repo.
+
+### Yang dibuat
+- **Core**: `kepengurusan.ts` (16 jabatan, jenis catatan & penulisnya, 10 group pembinaan), `PayloadToken.jabatan` (hanya
+  pengurus, hanya dari EXE Daerah — divalidasi `periksaToken`), skema **v5** (`catatan_bidang` + tabel lokal `kunci_bidang`),
+  `bidang.ts`: simpan/baca catatan dengan validasi per jenis, **enkripsi keuangan & konseling per penerima** (kunci bidang berversi,
+  `gantiKunciBidang`, kunci baru turun lewat paket daerah), ringkasan kas & tabungan desa, konfirmasi dana masuk, ringkasan ketua,
+  musyawarah ganjil/genap, pengingat sekretaris & PJ desa, teks WA rekap keaktifan, reward berjenjang, kontrol keaktifan MT, tahfidz
+  berpoin. Wewenang impor SETOR: penulis catatan harus berjabatan (J-K6); jabatan agenda boleh keaktifan AA/AS.
+- **APK**: pengurus berjabatan → Beranda bidang (pengingat, ringkasan ketua) · **Bidang** (hanya menu jabatannya) · Data · Sinkron;
+  formulir catatan generik untuk semua jenis; Keuangan (kas, tabungan, konfirmasi dana), Reward, Kontrol MT (rekap), Tahfidz (ujian
+  51 surat berpoin), Muda/i (group + agenda → Catat hadir), NUNGGONI; mubaligh: **Kontrol Keaktifan MT** & **NUNGGONI** di Lainnya.
+- **EXE**: Perangkat & Token → Untuk Pengurus → **centang jabatan** (sesuai tingkat wilayah); menu **Kepengurusan** (daerah & desa):
+  daftar pengurus berjabatan, ringkasan bidang, keuangan & tabungan desa (daerah), reward, kontrol MT, tahfidz, catatan bidang (BK
+  hanya jumlah), ganti kunci keuangan/konseling.
+
+### Keamanan
+- Isi keuangan/konseling tidak pernah tersimpan polos di perangkat yang tidak berhak (test: HP sarpras & ketua menerima ciphertext;
+  EXE daerah tidak membuka konseling; database daerah tidak memuat teks konseling). Pemalsuan catatan kas oleh HP sarpras ditolak
+  di daerah. Token mubaligh rakitan berjabatan ditolak.
+
+### Hasil uji
+- `npm test`: core **27 berkas / 198 test**, desktop **8 / 19**, mobile **8 / 16** — semua lulus. Test baru `core/test/kepengurusan.test.ts`
+  (6 skenario, wilayah contoh 4 desa / 11 kelompok termasuk Kaimana–Bantemi `KMN-BTM`), `mobile/test/kepengurusan.test.tsx`, desktop
+  `halaman-lain` §17. `npm run typecheck` bersih, `npm run build` sukses.
+- Uji asap 360×740 ditambah layar 17–20 (Kontrol MT, Beranda bidang, menu Bidang ketua+bendahara, Keuangan): **LULUS**, 0 galat konsol,
+  0 tombol < 44 px.
+
+### Layar yang berubah
+- **APK**: pengurus berjabatan (navigasi baru + menu Bidang), mubaligh Lainnya (+ Kontrol Keaktifan MT, NUNGGONI).
+- **EXE**: Perangkat & Token (jabatan), menu baru **Kepengurusan** (daerah, desa).
+
+### Sisa masalah (jujur)
+- Admin daerah secara teknis memegang kunci konseling (akar kepercayaan, J-K5); perlindungan dari tampilan EXE ditegakkan aplikasi.
+- Pemegang kunci bidang yang dicabut masih bisa membaca catatan **lama** yang sudah ia terima; catatan baru aman setelah ganti kunci.
+- Formulir catatan bidang di EXE belum ada (EXE hanya melihat & merekap; pencatatan bidang dari HP pengurus).
+- Jadwal NUNGGONI per kelompok belum berupa kalender; NUNGGONI dicatat sesudah terlaksana (laporan bulanan + catatan pribadi).
