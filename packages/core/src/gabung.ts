@@ -147,7 +147,7 @@ export function gabungRekaman(db: Db, tabel: NamaTabelSinkron, rekamanMasuk: rea
     }
     // --- kegiatan ---
     let masukMenang: boolean
-    if (tabel === 'kemajuan_belajar') {
+    if (tabel === 'kemajuan_belajar' || tabel === 'keaktifan') {
       if (opsi.dariGenerus && lama.perangkat_id !== rek.perangkat_id) {
         hasil.ditolak.push({ id: rek.id, alasan: 'Generus hanya boleh mengubah catatannya sendiri.' })
         continue

@@ -91,3 +91,8 @@ export { buatBalasan, terapkanBalasan, daftarPenerimaBalasan, type IsiBalasan } 
 export { buatJadwal, terapkanJadwal } from './sinkron/jadwal'
 export { buatMateri, terapkanMateri, berkasMateriTersimpan } from './sinkron/materi'
 export { bukaBerkasApaSaja, imporBanyak, type HasilImporBanyak, type RingkasanBerkas } from './sinkron/index'
+// §16 — juknis pembinaan & evaluasi hasil belajar generus 2025
+export * from './juknis'
+export * from './rekap-juknis'
+export { SEED_JUKNIS_2025, type SeedMateriEvaluasi, type KitabTarget } from './data/juknis-2025'
+export { seedMateriEvaluasi, pecahCaberawitLama } from './skema'

@@ -113,10 +113,22 @@ export function dataWilayah(db: Db, wilayahId: string): RekamanPerTabel {
     jadwal_tambahan: pilih(db, 'jadwal_tambahan', 'kelompok_id', kel),
     // Fase 9: usulan tambah wilayah/pengajian bisa ber-wilayah desa/daerah
     usulan: pilih(db, 'usulan', 'kelompok_id', turunan),
+    // §16: materi evaluasi (master global kecil), lembar kontrol keaktifan, evaluasi semester, laporan bulanan
+    materi_evaluasi: db.kueri<Rekaman>('SELECT * FROM materi_evaluasi'),
+    keaktifan: unik([...pilih(db, 'keaktifan', 'kelompok_id', kel), ...pilih(db, 'keaktifan', 'generus_id', generusIds)]),
+    evaluasi_semester: unik([...pilih(db, 'evaluasi_semester', 'kelompok_id', kel), ...pilih(db, 'evaluasi_semester', 'generus_id', generusIds)]),
+    laporan_bulanan: pilih(db, 'laporan_bulanan', 'kelompok_id', kel),
   }
   const out: RekamanPerTabel = {}
   for (const [t, rows] of Object.entries(r)) if (rows.length) out[t as NamaTabelSinkron] = rekamanKirim(rows)
   return out
+}
+
+/** Isi rekaman PAKET: EXE tidak mengirim tabel yang hanya boleh dari daerah (materi lewat berkas MATERI). */
+function rekamanPaket(db: Db, wilayahId: string, daerah: boolean): RekamanPerTabel {
+  const r = dataWilayah(db, wilayahId)
+  if (!daerah) for (const t of TABEL_HANYA_DAERAH) delete r[t]
+  return r
 }
 
 const ROLE_PENERIMA_PAKET: PerangkatTerdaftar['role'][] = ['pengurus', 'mubaligh', 'admin']
@@ -198,7 +210,7 @@ export function buatPaket(db: Db, wilayahId: string, kunci: KunciPemegang): Berk
   const isi: IsiPaket = {
     kunci_umum: kunciUmum,
     wilayah_id: wilayahId,
-    rekaman: dataWilayah(db, wilayahId),
+    rekaman: rekamanPaket(db, wilayahId, daerah),
     // Fase 9: pencabutan token EXE/Super Admin HP (penerbit) ikut, agar HP menolak token yang terbit sesudahnya
     pencabutan: daftarPencabutan(db, [...new Set([...tokenWilayah.map((p) => p.id), ...daftarPerangkat(db, { role: 'admin' }).map((p) => p.id)])]),
     perangkat: tokenWilayah.map((p) => ({ token: p.token, diterbitkan_oleh: p.diterbitkan_oleh, label: p.label })),
@@ -269,7 +281,10 @@ export function profilBerubah(db: Db, sebelum: Map<string, string>): RingkasanTe
 }
 
 /** Tabel yang tidak boleh dikirim EXE dalam PAKET (materi hanya lewat berkas MATERI bertanda tangan daerah). */
-const TABEL_HANYA_DAERAH: readonly NamaTabelSinkron[] = ['bidang_materi', 'kategori_materi', 'materi']
+const TABEL_HANYA_DAERAH: readonly NamaTabelSinkron[] = ['bidang_materi', 'kategori_materi', 'materi', 'materi_evaluasi']
+
+/** Kegiatan yang ikut generus pindah kelompok (boleh ber-kelompok lama di luar wilayah pengirim). */
+const TABEL_IKUT_GENERUS: readonly NamaTabelSinkron[] = ['kemajuan_belajar', 'penilaian_akhlaq', 'keaktifan', 'evaluasi_semester']
 
 /**
  * HP/EXE menerapkan PAKET: tolak berkas lama (versi & cap waktu ≤ terpasang, per penerbit), buka dengan kunci
@@ -324,7 +339,7 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
           if ((tabel === 'generus' || tabel === 'jamaah' || tabel === 'penugasan_mubaligh') && diLuar(rek.kelompok_id)) return 'Data di luar wilayah pengirim.'
           const info = TABEL_SINKRON[tabel]
           const kol = 'kolomKelompok' in info ? info.kolomKelompok : undefined
-          if (kol && tabel !== 'kemajuan_belajar' && tabel !== 'penilaian_akhlaq' && diLuar(rek[kol])) return 'Data di luar wilayah pengirim.'
+          if (kol && !TABEL_IKUT_GENERUS.includes(tabel) && diLuar(rek[kol])) return 'Data di luar wilayah pengirim.'
           return null
         }
 

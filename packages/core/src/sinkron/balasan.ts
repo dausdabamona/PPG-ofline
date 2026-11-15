@@ -13,6 +13,7 @@ import { ambilKunciTitipan, kunciExeWajib } from '../instalasi'
 import { wilayahMencakupDb } from '../rantai'
 import type { NamaTabelSinkron } from '../skema'
 import { kunciSetorSah, type KunciSetor } from '../token'
+import { PENGATURAN_KURIKULUM } from '../juknis'
 import { sekarangIso, tanggalRingkas } from '../waktu'
 import { perbaruiKunciUmum, potretProfil, profilBerubah, type RingkasanTerapkan } from './paket'
 import { periksaPengirimMubaligh } from './pengirim'
@@ -68,7 +69,11 @@ export function buatBalasan(dbPengirim: Db, perangkatPenerimaId: string): Berkas
     jadwal_tambahan: pilih(dbPengirim, 'jadwal_tambahan', 'kelompok_id', [kelompokId]),
     // v3: target capaian & periode aktif (layar "Materi yang perlu dituntaskan")
     target_capaian: dbPengirim.kueri<Rekaman>('SELECT * FROM target_capaian'),
-    pengaturan: dbPengirim.kueri<Rekaman>('SELECT * FROM pengaturan'),
+    pengaturan: dbPengirim.kueri<Rekaman>(`SELECT * FROM pengaturan WHERE id IN (${tandaTanya(PENGATURAN_KURIKULUM.length)})`, [...PENGATURAN_KURIKULUM]),
+    // §16 (J-T18): lembar kontrol keaktifan, hasil evaluasi semester, daftar materi evaluasi (raport di HP)
+    keaktifan: pilih(dbPengirim, 'keaktifan', 'generus_id', generusIds),
+    evaluasi_semester: pilih(dbPengirim, 'evaluasi_semester', 'generus_id', generusIds),
+    materi_evaluasi: dbPengirim.kueri<Rekaman>('SELECT * FROM materi_evaluasi'),
   }
   const rekaman: RekamanPerTabel = {}
   for (const [t, rows] of Object.entries(r)) if (rows.length) rekaman[t as NamaTabelSinkron] = rekamanKirim(rows)
@@ -183,6 +188,8 @@ function periksaBalasan(saya: string, kelompokId: string, generusIds: Set<string
         case 'riwayat_keanggotaan':
         case 'riwayat_status':
         case 'kemajuan_belajar':
+        case 'keaktifan':
+        case 'evaluasi_semester':
         case 'presensi':
         case 'penilaian_akhlaq':
           return generusIds.has(String(rek.generus_id)) ? null : diluar
@@ -191,9 +198,10 @@ function periksaBalasan(saya: string, kelompokId: string, generusIds: Set<string
         case 'jadwal_tambahan':
           return rek.kelompok_id === kelompokId ? null : 'Jadwal kelompok lain.'
         case 'target_capaian':
+        case 'materi_evaluasi':
           return null
         case 'pengaturan':
-          return rek.id === 'periode_aktif' ? null : 'Pengaturan ini tidak dikirim lewat balasan.'
+          return PENGATURAN_KURIKULUM.includes(rek.id) ? null : 'Pengaturan ini tidak dikirim lewat balasan.'
         default:
           return 'Data ini tidak dikirim lewat balasan mubaligh.'
       }

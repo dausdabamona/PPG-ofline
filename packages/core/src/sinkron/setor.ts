@@ -24,9 +24,11 @@ import {
   type PerangkatTerdaftar,
 } from '../repo/perangkat'
 import { daftarProfil, statusProfil } from '../repo/profil'
-import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, peranInstalasi, seqBerikut, sisipkanRekaman, type Rekaman } from '../repo/umum'
+import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, peranInstalasi, seqBerikut, sisipkanRekaman, uraiJson, type Rekaman } from '../repo/umum'
 import { ambilWilayah, kelompokDalamWilayah } from '../repo/wilayah'
-import { daftarGenerus } from '../repo/generus'
+import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, type KategoriGenerus } from '../repo/generus'
+import { alasanKeaktifanTidakSah, alasanRekamanEvaluasiTidakSah, KODE_DESA_DAERAH, type KodeKeaktifan } from '../juknis'
+import { alasanLaporanBulananTidakSah, idLaporanBulanan } from '../rekap-juknis'
 import { PetaRiwayat } from '../laporan'
 import { DAFTAR_TABEL_SINKRON, TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
 import { adalahTokenSuperHp, periksaToken, uraiToken, type PayloadToken } from '../token'
@@ -214,6 +216,9 @@ export interface RingkasanImporSetor {
   usulanOtomatis?: number
 }
 
+/** Tabel kegiatan per generus: generus harus anggota kelompok rekaman pada tanggal kegiatan (T25, §16). */
+const TABEL_GENERUS = ['presensi', 'kemajuan_belajar', 'penilaian_akhlaq', 'keaktifan', 'evaluasi_semester'] as const
+
 const ROLE_PENYETOR: readonly PayloadToken['role'][] = ['pengurus', 'mubaligh', 'admin']
 
 /**
@@ -297,13 +302,17 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
   // Keanggotaan generus menurut riwayat penerima: kegiatan hanya sah untuk kelompok tempat generus
   // menjadi anggota pada tanggal kegiatan (Fase 1b; mencegah kelompok A mencatat/mengesahkan generus kelompok B).
   const idGenerusMasuk = new Set<string>()
-  for (const t of ['presensi', 'kemajuan_belajar', 'penilaian_akhlaq'] as const) {
+  for (const t of TABEL_GENERUS) {
     for (const r of (isi.rekaman?.[t] ?? []) as Record<string, unknown>[]) if (typeof r?.generus_id === 'string') idGenerusMasuk.add(r.generus_id)
   }
   const petaRiwayat = new PetaRiwayat(db, [...idGenerusMasuk])
-  const generusAda = new Set(daftarGenerus(db, { ids: [...idGenerusMasuk] }).map((g) => g.id))
+  const generusMasuk = daftarGenerus(db, { ids: [...idGenerusMasuk] })
+  const generusAda = new Set(generusMasuk.map((g) => g.id))
+  const jenjangGenerus = new Map(generusMasuk.map((g) => [g.id, g.kategori as string]))
+  // §16 (J-T10): pencatat kegiatan desa/daerah (MS/DS/MR/DR) — token admin/pengurus tingkat desa/daerah
+  const pencatatDesa = new Set(tokenSah.filter((p) => (p.role === 'admin' || p.role === 'pengurus') && p.tingkat !== 'kelompok').map((p) => p.perangkat_id))
   const periksaAnggota = (tabel: NamaTabelSinkron, rek: Rekaman, kel: string): string | null => {
-    if (tabel !== 'presensi' && tabel !== 'kemajuan_belajar' && tabel !== 'penilaian_akhlaq') return null
+    if (!(TABEL_GENERUS as readonly string[]).includes(tabel)) return null
     const gid = String(rek.generus_id ?? '')
     if (!generusAda.has(gid)) return 'Generus tidak dikenal admin.'
     const anggota =
@@ -313,6 +322,15 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     return anggota ? null : 'Generus bukan anggota kelompok ini pada tanggal tersebut.'
   }
   const ditolak: RingkasanImporSetor['ditolak'] = []
+  /** J-T10: keaktifan MS/DS/MR/DR dari perangkat admin/pengurus tingkat desa/daerah (pengirim atau terdaftar di bawahnya). */
+  const bolehCatatDesa = (rek: Rekaman): boolean => {
+    if (!KODE_DESA_DAERAH.includes(String(rek.kode) as KodeKeaktifan)) return false
+    const pid = String(rek.perangkat_id)
+    if (pencatatDesa.has(pid)) return true
+    return daftarPerangkat(db, { perangkatId: pid }).some(
+      (t) => (t.role === 'admin' || t.role === 'pengurus') && t.tingkat !== 'kelompok' && !t.dicabut_pada && dalamCakupan(t.wilayah_id),
+    )
+  }
   const usulanSebelum = db.nilai<number>(`SELECT COUNT(*) FROM usulan WHERE status = 'menunggu'`) ?? 0
 
   return db.transaksi(() => {
@@ -383,8 +401,9 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
             if (!tok.some((t) => !t.dicabut_pada || String(rek.diubah_pada) < t.dicabut_pada)) return 'Rekaman dibuat setelah token perangkatnya dicabut.'
           }
           if (tabel === 'kemajuan_belajar' && rek.status_sah !== 'diajukan' && !kelompokSahkan.has(kel)) return 'Pengirim tidak berhak mengesahkan.'
-        } else if (tabel === 'kemajuan_belajar') {
-          if (rek.status_sah !== 'diajukan' && !kelompokSahkan.has(kel)) return 'Pengirim tidak berhak mengesahkan.'
+          if (tabel === 'keaktifan' && rek.status_sah !== 'diajukan' && !kelompokSahkan.has(kel) && !bolehCatatDesa(rek)) return 'Pengirim tidak berhak mengesahkan.'
+        } else if (tabel === 'kemajuan_belajar' || tabel === 'keaktifan') {
+          if (rek.status_sah !== 'diajukan' && !kelompokSahkan.has(kel) && !(tabel === 'keaktifan' && bolehCatatDesa(rek))) return 'Pengirim tidak berhak mengesahkan.'
           if (rek.perangkat_id !== pengirim && !kelompokSahkan.has(kel)) return 'Rekaman milik perangkat lain.'
         } else if (rek.perangkat_id !== pengirim) {
           return 'Rekaman milik perangkat lain.'
@@ -392,12 +411,30 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         if (tabel === 'usulan' && rek.status !== 'menunggu' && lamaRek?.status !== rek.status) {
           return 'Status usulan hanya diputuskan admin.'
         }
+        // §16 (J-T9/J-T10): nilai evaluasi hanya dari pemegang hak sahkan kelompok itu, dalam batas target & 75 %
+        if (tabel === 'evaluasi_semester') {
+          if (!kelompokSahkan.has(kel)) return 'Pengirim tidak berhak menilai generus kelompok ini.'
+          const a = alasanRekamanEvaluasiTidakSah(db, rek)
+          if (a) return a
+        }
+        if (tabel === 'keaktifan' && !rek.dihapus) {
+          const a = alasanKeaktifanTidakSah(rek, jenjangGenerus.get(String(rek.generus_id)))
+          if (a) return a
+        }
+        if (tabel === 'laporan_bulanan') {
+          if (rek.id !== idLaporanBulanan(kel, String(rek.bulan ?? ''))) return 'Id laporan bulanan tidak sah.'
+          if (!rek.dihapus) {
+            const a = alasanLaporanBulananTidakSah(uraiJson(rek.isi_json, null))
+            if (a) return a
+          }
+        }
         return periksaAnggota(tabel, rek, kel)
       },
     }))
     for (const [t, h] of Object.entries(g.perTabel)) for (const d of h!.ditolak) ditolak.push({ tabel: t, ...d })
     let usulanOtomatis = 0
     if (daerah && superPengirim) usulanOtomatis = setujuiUsulanSuper(db, isi.rekaman?.usulan ?? [], pengirim, ditolak)
+    if (daerah) usulanOtomatis += setujuiUbahJenjang(db, isi.rekaman?.usulan ?? [], ditolak)
 
     let tokenDilaporkan = 0
     const pencabutan = daftarPencabutan(db)
@@ -487,6 +524,35 @@ function setujuiUsulanSuper(db: Db, rekaman: unknown[], pengirim: string, ditola
       n++
     } catch (e) {
       ditolak.push({ tabel: 'usulan', id: u.id, alasan: `Usulan belum bisa disetujui otomatis: ${adalahGalatPpg(e) ? e.pesan : String(e)}` })
+    }
+  }
+  return n
+}
+
+/**
+ * §16 (J-T4): usulan `ubah_generus` yang HANYA mengubah jenjang (kategori), diajukan perangkat ber-hak `sahkan` di kelompok
+ * generus itu (mubaligh / EXE kelompok, token tidak dicabut), disetujui otomatis di daerah.
+ */
+function setujuiUbahJenjang(db: Db, rekaman: unknown[], ditolak: RingkasanImporSetor['ditolak']): number {
+  let n = 0
+  for (const r of rekaman) {
+    const id = (r as Rekaman | null)?.id
+    if (typeof id !== 'string') continue
+    const u = ambilUsulan(db, id)
+    if (!u || u.status !== 'menunggu' || u.jenis !== 'ubah_generus') continue
+    const perubahan = (u.data as { perubahan?: Record<string, unknown> }).perubahan ?? {}
+    if (Object.keys(perubahan).join() !== 'kategori' || !KATEGORI_GENERUS.includes(perubahan.kategori as KategoriGenerus)) continue
+    const g = ambilGenerus(db, String((u.data as { generus_id?: unknown }).generus_id ?? ''))
+    if (!g || g.kelompok_id !== u.kelompok_id) continue
+    const berhak = daftarPerangkat(db, { perangkatId: u.perangkat_id }).some(
+      (t) => !t.dicabut_pada && t.wilayah_id === g.kelompok_id && (t.role === 'mubaligh' || t.role === 'admin') && hakToken(t.token).includes('sahkan'),
+    )
+    if (!berhak) continue
+    try {
+      db.transaksi(() => setujuiUsulan(db, u.id))
+      n++
+    } catch (e) {
+      ditolak.push({ tabel: 'usulan', id: u.id, alasan: `Usulan jenjang belum bisa disetujui otomatis: ${adalahGalatPpg(e) ? e.pesan : String(e)}` })
     }
   }
   return n

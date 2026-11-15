@@ -2,7 +2,8 @@
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, slug, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { bukaSegel, dariB64url, segelKe } from '../crypto'
 import type { Db } from '../db'
-import { gabungRekaman, rekamanKirim, type HasilGabung } from '../gabung'
+import { gabungRekaman, rekamanKirim, tambahkanHasil, type HasilGabung } from '../gabung'
+import { alasanKeaktifanTidakSah } from '../juknis'
 import { GalatPpg } from '../galat'
 import { ambilIdentitas, gabungKunciSetor } from '../perangkat'
 import { ambilGenerus } from '../repo/generus'
@@ -17,8 +18,11 @@ import { bacaBerkasJenis, catatImpor, imporTerdahulu, kunciAdminTerpasang, sidik
 
 export interface IsiBelajar {
   tokens: string[]
-  rekaman: { kemajuan_belajar: Record<string, unknown>[] }
+  rekaman: { kemajuan_belajar: Record<string, unknown>[]; keaktifan?: Record<string, unknown>[] }
 }
+
+/** Tabel yang dibawa BELAJAR: kemajuan murid + lembar kontrol keaktifan mandiri (§16, J-T18). */
+const TABEL_BELAJAR = ['kemajuan_belajar', 'keaktifan'] as const
 
 /** Seq tertinggi yang sudah dikonfirmasi mubaligh kelompok itu untuk HP ini (per kelompok, Fase 1b). */
 export function konfirmasiBelajar(db: Db, kelompokId: string): number {
@@ -35,11 +39,13 @@ export function jumlahBelumDisetorBelajar(db: Db, kelompokId?: string): number {
     : [...new Set(daftarProfil(db, 'generus').filter((p) => !p.dicabut_pada).map((p) => p.wilayah_id))]
   let n = 0
   for (const k of kelompok) {
-    n +=
-      db.nilai<number>(`SELECT COUNT(*) FROM kemajuan_belajar WHERE seq_lokal > ? AND sumber = 'generus' AND kelompok_id = ?`, [
-        konfirmasiBelajar(db, k),
-        k,
-      ]) ?? 0
+    for (const t of TABEL_BELAJAR) {
+      n +=
+        db.nilai<number>(`SELECT COUNT(*) FROM ${t} WHERE seq_lokal > ? AND sumber = 'generus' AND kelompok_id = ?`, [
+          konfirmasiBelajar(db, k),
+          k,
+        ]) ?? 0
+    }
   }
   return n
 }
@@ -72,21 +78,28 @@ export function buatBelajar(db: Db, opsi: { kelompokId?: string } = {}): BerkasK
   if (!terbaru) throw new GalatPpg('KUNCI_TIDAK_ADA', 'Kunci kelompok belum ada. Minta token baru dari mubaligh.')
   const generusIds = profil.flatMap((p) => p.generus_ids)
   const konf = konfirmasiBelajar(db, kelompokId)
-  const rows = db.kueri<Rekaman>(
-    `SELECT * FROM kemajuan_belajar WHERE seq_lokal > ? AND perangkat_id = ? AND kelompok_id = ? AND generus_id IN (${tandaTanya(generusIds.length)}) ORDER BY seq_lokal`,
-    [konf, identitas.id, kelompokId, ...generusIds],
-  )
-  const isi: IsiBelajar = { tokens: profil.map((p) => p.token), rekaman: { kemajuan_belajar: rekamanKirim(rows) } }
+  const ambil = (t: string) =>
+    db.kueri<Rekaman>(
+      `SELECT * FROM ${t} WHERE seq_lokal > ? AND perangkat_id = ? AND kelompok_id = ? AND generus_id IN (${tandaTanya(generusIds.length)}) ORDER BY seq_lokal`,
+      [konf, identitas.id, kelompokId, ...generusIds],
+    )
+  const rowsKemajuan = ambil('kemajuan_belajar')
+  const rowsKeaktifan = ambil('keaktifan')
+  const rows = [...rowsKemajuan, ...rowsKeaktifan]
+  const isi: IsiBelajar = { tokens: profil.map((p) => p.token), rekaman: { kemajuan_belajar: rekamanKirim(rowsKemajuan) } }
+  if (rowsKeaktifan.length) isi.rekaman.keaktifan = rekamanKirim(rowsKeaktifan)
   let urut = Math.max(ambilMetaAngka(db, 'seq'), ...rows.map((r) => Number(r.seq_lokal)))
   // Catatan profil kelompok ini yang sedang tidak boleh menyetor (mis. dibekukan karena mondok) belum terkirim:
   // konfirmasi tidak boleh melewatinya, agar terkirim setelah profil aktif lagi (Fase 1b).
   const tertundaIds = semua.filter((p) => p.wilayah_id === kelompokId && !p.dicabut_pada && !profil.includes(p)).flatMap((p) => p.generus_ids)
   if (tertundaIds.length) {
-    const minTertunda = db.nilai<number | null>(
-      `SELECT MIN(seq_lokal) FROM kemajuan_belajar WHERE seq_lokal > ? AND perangkat_id = ? AND kelompok_id = ? AND generus_id IN (${tandaTanya(tertundaIds.length)})`,
-      [konf, identitas.id, kelompokId, ...tertundaIds],
-    )
-    if (minTertunda) urut = Math.min(urut, minTertunda - 1)
+    for (const t of TABEL_BELAJAR) {
+      const minTertunda = db.nilai<number | null>(
+        `SELECT MIN(seq_lokal) FROM ${t} WHERE seq_lokal > ? AND perangkat_id = ? AND kelompok_id = ? AND generus_id IN (${tandaTanya(tertundaIds.length)})`,
+        [konf, identitas.id, kelompokId, ...tertundaIds],
+      )
+      if (minTertunda) urut = Math.min(urut, minTertunda - 1)
+    }
   }
   const header: HeaderBerkas = {
     jenis: 'BELAJAR',
@@ -188,6 +201,22 @@ export function imporBelajar(dbMubaligh: Db, bytes: Uint8Array, namaBerkas?: str
         return null
       },
     })
+    // §16: lembar kontrol keaktifan mandiri murid (diajukan; disahkan mubaligh)
+    const hasilAktif = gabungRekaman(dbMubaligh, 'keaktifan', Array.isArray(isi.rekaman?.keaktifan) ? isi.rekaman.keaktifan : [], {
+      sumber: 'perangkat',
+      dariGenerus: true,
+      seqLokalBaru: seqBerikut(dbMubaligh),
+      periksa: (rek) => {
+        if (!generusBoleh.has(String(rek.generus_id))) return 'Generus bukan anggota aktif kelompok ini (atau sedang mondok).'
+        if (rek.kelompok_id !== kelompokId) return 'Kelompok rekaman tidak sesuai.'
+        if (rek.perangkat_id !== pengirim) return 'Rekaman bukan milik HP pengirim.'
+        if (rek.sumber !== 'generus' || rek.status_sah !== 'diajukan' || rek.disahkan_oleh || rek.disahkan_pada) {
+          return 'Murid hanya boleh mengajukan, bukan mengesahkan.'
+        }
+        return alasanKeaktifanTidakSah(rek, ambilGenerus(dbMubaligh, String(rek.generus_id))?.kategori)
+      },
+    })
+    tambahkanHasil(hasil, hasilAktif)
     catatSeqDiterima(dbMubaligh, pengirim, Number(b.header.urut ?? 0))
     const ringkasan: RingkasanImporBelajar = {
       jenis: 'BELAJAR',

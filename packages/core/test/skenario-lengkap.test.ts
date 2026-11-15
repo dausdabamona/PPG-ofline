@@ -130,7 +130,8 @@ describe('Skenario lengkap PPG Sorong v2 (§13)', () => {
     g1 = semua.find((g) => g.nama === 'Ahmad Fauzi')!
     g2 = semua.find((g) => g.nama === 'Aisyah Fauzi')!
     g3 = semua.find((g) => g.nama === 'Bilal, Jr')!
-    expect(g2.kategori).toBe('caberawit') // diturunkan dari umur
+    expect(g2.kategori).toBe('caberawit_a') // diturunkan dari umur (J-T3: saran Caberawit A)
+    expect(g2.kategori_saran).toBe(1)
   })
 
   it('3. aktivasi pengurus kelompok & mubaligh, paket & materi pertama', async () => {

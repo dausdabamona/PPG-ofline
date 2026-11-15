@@ -15,10 +15,11 @@ import { adalahAdmin, ambilMetaAngka, aturMeta, peranInstalasi, type Rekaman } f
 import type { NamaTabelSinkron } from '../skema'
 import { periksaToken } from '../token'
 import { sekarangIso, tanggalRingkas } from '../waktu'
+import { PENGATURAN_KURIKULUM } from '../juknis'
 import { bacaBerkasJenis, catatImpor, imporTerdahulu, kunciAdminTerpasang, sidikBerkas } from './umum'
 
 /** Tabel yang dibawa berkas KURIKULUM. */
-export const TABEL_KURIKULUM: readonly NamaTabelSinkron[] = ['bidang_materi', 'kategori_materi', 'materi', 'target_capaian', 'pengaturan']
+export const TABEL_KURIKULUM: readonly NamaTabelSinkron[] = ['bidang_materi', 'kategori_materi', 'materi', 'target_capaian', 'pengaturan', 'materi_evaluasi']
 
 export interface IsiKurikulum {
   tokens: string[]
@@ -107,7 +108,7 @@ export function imporKurikulum(dbDaerah: Db, bytes: Uint8Array, kunciAdmin: Kunc
     const g = gabungSemua(dbDaerah, masuk, (tabel) => ({
       sumber: 'admin',
       seqLokalBaru: 0,
-      periksa: (rek) => (tabel === 'pengaturan' && rek.id !== 'periode_aktif' ? 'Pengaturan ini bukan wewenang kurikulum.' : null),
+      periksa: (rek) => (tabel === 'pengaturan' && !PENGATURAN_KURIKULUM.includes(rek.id) ? 'Pengaturan ini bukan wewenang kurikulum.' : null),
     }))
     const ringkasan: RingkasanImporKurikulum = {
       jenis: 'KURIKULUM',

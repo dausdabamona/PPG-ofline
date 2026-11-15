@@ -3,7 +3,7 @@ import type { Db } from '../db'
 import { GalatPpg } from '../galat'
 import { pastikanAdmin, sisipkanRekaman, tandaTanya, ubahRekaman, hapusRekaman, type RekamanDasar } from './umum'
 import { ambilWilayah, leluhurWilayah } from './wilayah'
-import { KATEGORI_GENERUS, type KategoriGenerus } from './generus'
+import { KATEGORI_SAH, type KategoriGenerus } from './generus'
 
 export interface Pengajian extends RekamanDasar {
   wilayah_id: string
@@ -25,7 +25,7 @@ export function kategoriKelas(p: Pick<Pengajian, 'kategori_generus'> | null | un
 
 function csvKategori(k: readonly string[] | null | undefined): string | null {
   if (!k || !k.length) return null
-  for (const x of k) if (!KATEGORI_GENERUS.includes(x as KategoriGenerus)) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori ${x} tidak dikenal.`)
+  for (const x of k) if (!KATEGORI_SAH.includes(x as KategoriGenerus)) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori ${x} tidak dikenal.`)
   return [...new Set(k)].join(',')
 }
 

@@ -1,6 +1,8 @@
 // Skema database (DDL) + migrasi. Sama untuk EXE admin dan APK.
 import type { Db } from './db'
 import { GalatPpg } from './galat'
+import { sekarangIso, tanggalHariIni, tanggalSah, umurPada } from './waktu'
+import { SEED_JUKNIS_2025 } from './data/juknis-2025'
 
 /** Kolom sinkron wajib pada setiap tabel tersinkron (§6). `seq_lokal` tidak pernah dikirim. */
 export const KOLOM_SINKRON = ['perangkat_id', 'dibuat_pada', 'diubah_pada', 'dihapus', 'versi', 'seq_lokal'] as const
@@ -29,7 +31,8 @@ export const TABEL_SINKRON = {
   jamaah: { jenis: 'master', kolom: ['kelompok_id', 'nama', 'jenis_kelamin', 'tanggal_lahir', 'no_hp', 'status'] },
   generus: {
     jenis: 'master',
-    kolom: ['kelompok_id', 'nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'status', 'wali_nama', 'wali_no_hp'],
+    // v4 (§16): kategori_saran = 1 bila jenjang hasil saran umur (perlu dicek)
+    kolom: ['kelompok_id', 'nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'status', 'wali_nama', 'wali_no_hp', 'kategori_saran'],
   },
   riwayat_keanggotaan: { jenis: 'master', kolom: ['generus_id', 'kelompok_id', 'mulai', 'selesai'] },
   riwayat_status: { jenis: 'master', kolom: ['generus_id', 'status', 'mulai', 'selesai', 'keterangan'] },
@@ -47,6 +50,8 @@ export const TABEL_SINKRON = {
   jadwal_setor: { jenis: 'master', kolom: ['tingkat_asal', 'pola', 'hari', 'tanggal_bulan', 'jam'] },
   target_capaian: { jenis: 'master', kolom: ['periode', 'kategori_generus', 'materi_id', 'urutan'] },
   pengaturan: { jenis: 'master', kolom: ['isi'] },
+  // v4 (§16) — daftar materi evaluasi semester per jenjang (juknis), milik daerah/kurikulum
+  materi_evaluasi: { jenis: 'master', kolom: ['jenjang', 'urutan', 'kode', 'nama', 'cara', 'target', 'satuan', 'rincian_json'] },
   // v3 — pertemuan (kegiatan milik pencatat): materi yang diajarkan pada satu pertemuan kelas
   pertemuan: {
     jenis: 'kegiatan',
@@ -74,6 +79,22 @@ export const TABEL_SINKRON = {
   jadwal_tambahan: {
     jenis: 'kegiatan',
     kolom: ['kelompok_id', 'tanggal', 'jam', 'judul', 'keterangan', 'dibatalkan'],
+    kolomKelompok: 'kelompok_id',
+  },
+  // v4 (§16) — lembar kontrol keaktifan, hasil evaluasi semester, laporan bulanan kelompok
+  keaktifan: {
+    jenis: 'kegiatan',
+    kolom: ['generus_id', 'kelompok_id', 'tanggal', 'kode', 'sumber', 'status_sah', 'disahkan_oleh', 'disahkan_pada', 'keterangan'],
+    kolomKelompok: 'kelompok_id',
+  },
+  evaluasi_semester: {
+    jenis: 'kegiatan',
+    kolom: ['generus_id', 'kelompok_id', 'periode', 'jenjang', 'materi_evaluasi_id', 'dikuasai', 'nilai', 'rincian_json', 'tanggal', 'penguji'],
+    kolomKelompok: 'kelompok_id',
+  },
+  laporan_bulanan: {
+    jenis: 'kegiatan',
+    kolom: ['kelompok_id', 'bulan', 'isi_json'],
     kolomKelompok: 'kelompok_id',
   },
   usulan: {
@@ -104,6 +125,9 @@ const TIPE_KOLOM: Record<string, string> = {
   level: 'INTEGER',
   dibatalkan: 'INTEGER NOT NULL DEFAULT 0',
   tanggal_bulan: 'INTEGER',
+  target: 'INTEGER',
+  dikuasai: 'INTEGER',
+  kategori_saran: 'INTEGER',
 }
 
 /** Bentuk kolom untuk ALTER TABLE (tanpa NOT NULL tanpa default). */
@@ -115,7 +139,11 @@ function tipeKolom(k: string): string {
  * Kolom yang ditambahkan v3 ke tabel lama: diletakkan SETELAH kolom sinkron, agar urutan kolom database baru
  * sama dengan database v2 yang dimigrasikan (ALTER TABLE menambah kolom di akhir).
  */
-const KOLOM_AKHIR: Record<string, readonly string[]> = { pengajian: ['kategori_generus'], presensi: ['pertemuan_id'] }
+const KOLOM_AKHIR: Record<string, readonly string[]> = {
+  pengajian: ['kategori_generus'],
+  presensi: ['pertemuan_id'],
+  generus: ['kategori_saran'],
+}
 
 function ddlTabelSinkron(nama: string, info: InfoTabel): string {
   const akhir = KOLOM_AKHIR[nama] ?? []
@@ -189,8 +217,13 @@ CREATE TABLE IF NOT EXISTS jejak_setor (
 CREATE TABLE IF NOT EXISTS kunci_titipan (kelompok_id TEXT PRIMARY KEY, isi_terenkripsi TEXT NOT NULL);
 `
 
+const DDL_LOKAL_V4 = `
+-- v4 (§16, J-T17): catatan sholat 5 waktu di lembar kontrol — lokal HP, tidak tersinkron, tidak masuk nilai
+CREATE TABLE IF NOT EXISTS catatan_sholat (generus_id TEXT NOT NULL, tanggal TEXT NOT NULL, sholat TEXT NOT NULL, PRIMARY KEY (generus_id, tanggal));
+`
+
 /** Versi skema saat ini. */
-export const VERSI_SKEMA = 3
+export const VERSI_SKEMA = 4
 
 function adaKolom(db: Db, tabel: string, kolom: string): boolean {
   return db.kueri<{ name: string }>(`PRAGMA table_info(${tabel})`).some((k) => k.name === kolom)
@@ -227,7 +260,78 @@ const MIGRASI: ((db: Db) => void)[] = [
     const peran = db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'peran_db'`)
     if (peran === 'admin') db.jalankan(`INSERT OR IGNORE INTO meta (kunci, nilai) VALUES ('peran_instalasi', 'daerah')`)
   },
+  // v4 (§16): juknis pembinaan — tabel keaktifan/evaluasi/laporan bulanan, materi evaluasi, jenjang caberawit A/B/C
+  (db) => {
+    tambahTabelDanKolom(db)
+    db.jalankanSkrip(DDL_LOKAL_V4)
+    db.jalankanSkrip(`
+      CREATE INDEX IF NOT EXISTS idx_keaktifan_generus ON keaktifan(generus_id, tanggal);
+      CREATE INDEX IF NOT EXISTS idx_keaktifan_kelompok ON keaktifan(kelompok_id, tanggal);
+      CREATE INDEX IF NOT EXISTS idx_evaluasi_generus ON evaluasi_semester(generus_id, periode);
+      CREATE INDEX IF NOT EXISTS idx_evaluasi_kelompok ON evaluasi_semester(kelompok_id, periode);`)
+    // J-T2: hanya database daerah (pemilik master) yang memecah caberawit lama → turun lewat PAKET
+    if (db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'peran_db'`) === 'admin') {
+      pecahCaberawitLama(db)
+      seedMateriEvaluasi(db)
+    }
+  },
 ]
+
+/** Id tetap materi evaluasi (§16). */
+export const idMateriEvaluasi = (jenjang: string, kode: string) => `EVL-${jenjang}-${kode}`
+
+/**
+ * Seed daftar materi evaluasi juknis 2025 (daerah). Idempoten: materi yang sudah ada (mungkin sudah disunting Kurikulum)
+ * tidak ditimpa. Kembalikan jumlah yang ditambahkan.
+ */
+export function seedMateriEvaluasi(db: Db): number {
+  const kini = sekarangIso()
+  let n = 0
+  for (const [jenjang, daftar] of Object.entries(SEED_JUKNIS_2025)) {
+    daftar.forEach((m, i) => {
+      const id = idMateriEvaluasi(jenjang, m.kode)
+      if (db.nilai<string>('SELECT id FROM materi_evaluasi WHERE id = ?', [id])) return
+      db.jalankan(
+        `INSERT INTO materi_evaluasi (id, jenjang, urutan, kode, nama, cara, target, satuan, rincian_json, perangkat_id, dibuat_pada, diubah_pada, dihapus, versi, seq_lokal)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ADMIN', ?, ?, 0, 1, 0)`,
+        [id, jenjang, i + 1, m.kode, m.nama, m.cara, m.target, m.satuan, m.rincian ? JSON.stringify(m.rincian) : null, kini, kini],
+      )
+      n++
+    })
+  }
+  return n
+}
+
+function tambahTabelDanKolom(db: Db): void {
+  for (const [n, i] of Object.entries(TABEL_SINKRON)) {
+    db.jalankanSkrip(ddlTabelSinkron(n, i))
+    db.jalankanSkrip(`CREATE INDEX IF NOT EXISTS idx_${n}_seq ON ${n}(seq_lokal);`)
+    for (const k of i.kolom) if (!adaKolom(db, n, k)) db.jalankanSkrip(`ALTER TABLE ${n} ADD COLUMN ${k} ${tipeKolom(k)};`)
+  }
+}
+
+/**
+ * J-T2: generus berkategori lama `caberawit` → saran umur (≤ 9 th Caberawit A, selain itu Caberawit B; tanpa tanggal lahir A),
+ * ditandai `kategori_saran = 1`, versi naik & diubah_pada baru agar menang di semua perangkat.
+ */
+export function pecahCaberawitLama(db: Db, acuan: string = tanggalHariIni()): number {
+  const kini = sekarangIso()
+  const seq = Number(db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'seq'`) ?? 0) + 1
+  const rows = db.kueri<{ id: string; tanggal_lahir: string | null; diubah_pada: string }>(
+    `SELECT id, tanggal_lahir, diubah_pada FROM generus WHERE kategori = 'caberawit'`,
+  )
+  for (const g of rows) {
+    const umur = g.tanggal_lahir && tanggalSah(g.tanggal_lahir) ? umurPada(g.tanggal_lahir, acuan) : null
+    const baru = umur !== null && umur > 9 ? 'caberawit_b' : 'caberawit_a'
+    const ubah = kini > g.diubah_pada ? kini : new Date(new Date(g.diubah_pada).getTime() + 1).toISOString()
+    db.jalankan(
+      `UPDATE generus SET kategori = ?, kategori_saran = 1, versi = versi + 1, diubah_pada = ?, seq_lokal = ? WHERE id = ?`,
+      [baru, ubah, seq, g.id],
+    )
+  }
+  if (rows.length) db.jalankan(`INSERT OR REPLACE INTO meta (kunci, nilai) VALUES ('seq', ?)`, [String(seq)])
+  return rows.length
+}
 
 /** Buat/migrasikan skema hingga VERSI_SKEMA. Idempoten. */
 export function migrasi(db: Db): void {

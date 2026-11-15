@@ -5,8 +5,51 @@ import { tanggalHariIni, tanggalSah, umurPada } from '../waktu'
 import { ambilRekaman, pastikanAdmin, sisipkanRekaman, tandaTanya, ubahRekaman, type RekamanDasar } from './umum'
 import { ambilWilayah } from './wilayah'
 
-export type KategoriGenerus = 'paud' | 'caberawit' | 'praremaja' | 'remaja' | 'pranikah'
-export const KATEGORI_GENERUS: readonly KategoriGenerus[] = ['paud', 'caberawit', 'praremaja', 'remaja', 'pranikah']
+/**
+ * Jenjang generus (§16): PAUD, Caberawit A (SD 1–3), B (SD 4–6 masih Iqro'), C (SD 4–6 sudah Al-Qur'an),
+ * Pra Remaja (Generus 1), Remaja (Generus 2), Pra Nikah (Generus 3). `caberawit` = nilai lama (sebelum juknis 2025),
+ * tetap sah dan cocok dengan Caberawit A/B/C (J-T1), tetapi tidak ditawarkan lagi.
+ */
+export type KategoriGenerus = 'paud' | 'caberawit_a' | 'caberawit_b' | 'caberawit_c' | 'praremaja' | 'remaja' | 'pranikah' | 'caberawit'
+/** Pilihan jenjang (urut). */
+export const KATEGORI_GENERUS: readonly KategoriGenerus[] = ['paud', 'caberawit_a', 'caberawit_b', 'caberawit_c', 'praremaja', 'remaja', 'pranikah']
+/** Semua nilai kategori yang sah (termasuk `caberawit` lama). */
+export const KATEGORI_SAH: readonly KategoriGenerus[] = [...KATEGORI_GENERUS, 'caberawit']
+
+/** Kelompok besar jenjang: caberawit_a/b/c → 'caberawit'. */
+export function jenjangInduk(k: string): string {
+  return k.startsWith('caberawit') ? 'caberawit' : k
+}
+
+/** J-T1: apakah dua kategori cocok (sama; atau salah satunya `caberawit` lama dan yang lain Caberawit A/B/C). */
+export function kategoriCocok(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false
+  if (a === b) return true
+  return (a === 'caberawit' || b === 'caberawit') && jenjangInduk(a) === jenjangInduk(b)
+}
+
+const ALIAS_KATEGORI: Record<string, KategoriGenerus> = {
+  paud: 'paud', prasd: 'paud',
+  caberawita: 'caberawit_a', cba: 'caberawit_a', caberawit1: 'caberawit_a',
+  caberawitb: 'caberawit_b', cbb: 'caberawit_b', caberawit2: 'caberawit_b',
+  caberawitc: 'caberawit_c', cbc: 'caberawit_c', caberowot: 'caberawit_c', caberawit3: 'caberawit_c',
+  caberawit: 'caberawit',
+  praremaja: 'praremaja', generus1: 'praremaja', gen1: 'praremaja', g1: 'praremaja', smp: 'praremaja',
+  remaja: 'remaja', generus2: 'remaja', gen2: 'remaja', g2: 'remaja', sma: 'remaja',
+  pranikah: 'pranikah', generus3: 'pranikah', gen3: 'pranikah', g3: 'pranikah',
+}
+
+/** Teks kategori lapangan (CSV/Excel: "Caberawit A", "CB B", "Generus 1", "pra nikah") → kode jenjang; null bila tidak dikenal. */
+export function normalKategori(teks: string): KategoriGenerus | null {
+  const t = teks.toLowerCase().replace(/(cabe|cb)\s*rawit/g, 'caberawit').replace(/[^a-z0-9]/g, '')
+  return ALIAS_KATEGORI[t] ?? null
+}
+
+/** Jenjang sebelumnya (untuk "sisa target jenjang sebelumnya", J-T15). */
+export function jenjangSebelumnya(k: string): KategoriGenerus | null {
+  const i = KATEGORI_GENERUS.indexOf(k as KategoriGenerus)
+  return i > 0 ? KATEGORI_GENERUS[i - 1]! : null
+}
 
 export type StatusGenerus = 'aktif' | 'mondok' | 'pindah' | 'lulus_menikah' | 'keluar'
 export const STATUS_GENERUS: readonly StatusGenerus[] = ['aktif', 'mondok', 'pindah', 'lulus_menikah', 'keluar']
@@ -18,6 +61,8 @@ export interface Generus extends RekamanDasar {
   tanggal_lahir: string | null
   kategori: KategoriGenerus
   status: StatusGenerus
+  /** v4: 1 = jenjang hasil saran umur, perlu dicek mubaligh/admin. */
+  kategori_saran?: number | null
   wali_nama: string | null
   wali_no_hp: string | null
 }
@@ -45,11 +90,15 @@ export interface DataGenerusBaru {
   id?: string
 }
 
-/** Kategori bawaan menurut umur: <6 paud, 6–12 caberawit, 13–15 praremaja, 16–18 remaja, ≥19 pranikah. */
+/**
+ * Saran jenjang menurut umur (J-T3): <6 PAUD, 6–9 Caberawit A, 10–12 Caberawit B, 13–15 Pra Remaja, 16–18 Remaja,
+ * ≥19 Pra Nikah. Caberawit C tidak pernah disarankan (ditentukan kemampuan baca Al-Qur'an).
+ */
 export function kategoriDariUmur(tanggalLahir: string, acuan: string = tanggalHariIni()): KategoriGenerus {
   const u = umurPada(tanggalLahir, acuan)
   if (u < 6) return 'paud'
-  if (u <= 12) return 'caberawit'
+  if (u <= 9) return 'caberawit_a'
+  if (u <= 12) return 'caberawit_b'
   if (u <= 15) return 'praremaja'
   if (u <= 18) return 'remaja'
   return 'pranikah'
@@ -62,23 +111,29 @@ function pastikanKelompok(db: Db, id: string): void {
 
 /** Validasi data generus baru; kembalikan kategori final. */
 export function validasiGenerus(db: Db, d: DataGenerusBaru): KategoriGenerus {
+  return validasiGenerusRinci(db, d).kategori
+}
+
+function validasiGenerusRinci(db: Db, d: DataGenerusBaru): { kategori: KategoriGenerus; saran: boolean } {
   if (!d.nama?.trim()) throw new GalatPpg('NAMA_KOSONG', 'Nama generus wajib diisi.')
   if (d.jenisKelamin !== 'L' && d.jenisKelamin !== 'P') throw new GalatPpg('JK_TIDAK_SAH', 'Jenis kelamin harus L atau P.')
   if (d.tanggalLahir && !tanggalSah(d.tanggalLahir)) throw new GalatPpg('TANGGAL_TIDAK_SAH', 'Tanggal lahir harus berformat YYYY-MM-DD.')
   pastikanKelompok(db, d.kelompokId)
   let kategori = d.kategori ?? null
+  let saran = false
   if (!kategori) {
     if (!d.tanggalLahir) throw new GalatPpg('KATEGORI_KOSONG', 'Kategori wajib diisi bila tanggal lahir kosong.')
     kategori = kategoriDariUmur(d.tanggalLahir)
+    saran = true
   }
-  if (!KATEGORI_GENERUS.includes(kategori)) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori ${kategori} tidak dikenal.`)
-  return kategori
+  if (!KATEGORI_SAH.includes(kategori)) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori ${kategori} tidak dikenal.`)
+  return { kategori, saran }
 }
 
 /** Tambah generus (admin) + riwayat keanggotaan & status aktif. */
 export function tambahGenerus(db: Db, d: DataGenerusBaru): Generus {
   pastikanAdmin(db)
-  const kategori = validasiGenerus(db, d)
+  const { kategori, saran } = validasiGenerusRinci(db, d)
   const mulai = d.mulai ?? tanggalHariIni()
   return db.transaksi(() => {
     const g = sisipkanRekaman<Generus>(db, 'generus', {
@@ -90,6 +145,7 @@ export function tambahGenerus(db: Db, d: DataGenerusBaru): Generus {
       status: 'aktif',
       wali_nama: d.waliNama?.trim() || null,
       wali_no_hp: d.waliNoHp?.trim() || null,
+      kategori_saran: saran ? 1 : null,
     }, d.id ? { id: d.id } : {})
     sisipkanRekaman(db, 'riwayat_keanggotaan', { generus_id: g.id, kelompok_id: d.kelompokId, mulai, selesai: null })
     sisipkanRekaman(db, 'riwayat_status', { generus_id: g.id, status: 'aktif', mulai, selesai: null, keterangan: null })
@@ -111,9 +167,11 @@ export function ubahGenerus(db: Db, id: string, perubahan: Partial<Record<(typeo
     }
     p[k] = v
   }
-  if (p.kategori !== undefined && !KATEGORI_GENERUS.includes(p.kategori as KategoriGenerus)) {
+  if (p.kategori !== undefined && !KATEGORI_SAH.includes(p.kategori as KategoriGenerus)) {
     throw new GalatPpg('KATEGORI_TIDAK_SAH', 'Kategori tidak dikenal.')
   }
+  // J-T3: jenjang yang ditetapkan eksplisit tidak lagi berstatus "saran umur"
+  if (p.kategori !== undefined) p.kategori_saran = null
   if (p.jenis_kelamin !== undefined && p.jenis_kelamin !== 'L' && p.jenis_kelamin !== 'P') {
     throw new GalatPpg('JK_TIDAK_SAH', 'Jenis kelamin harus L atau P.')
   }

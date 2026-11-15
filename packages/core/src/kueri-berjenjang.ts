@@ -4,7 +4,7 @@ import type { Db } from './db'
 import { profilExe } from './instalasi'
 import { materiSelesaiDisahkan } from './kurikulum'
 import { jadwalPekan, lembarPresensi, ringkasanBerandaAdmin, type AcaraJadwal, type RingkasanBerandaAdmin } from './kueri'
-import { ambilGenerus, daftarGenerus, type Generus, type KategoriGenerus } from './repo/generus'
+import { ambilGenerus, daftarGenerus, kategoriCocok, type Generus, type KategoriGenerus } from './repo/generus'
 import { type KemajuanBelajar } from './repo/kemajuan'
 import { ambilMateri } from './repo/materi'
 import { ambilRekaman, ambilMeta, peranInstalasi, type PeranInstalasi } from './repo/umum'
@@ -130,7 +130,7 @@ function normalKategori(k: string | string[] | null | undefined): string[] | nul
 /** Generus aktif & anggota kelompok pada tanggal, sesuai kategori kelas (null = semua). */
 function generusKelas(db: Db, kelompokId: string, kategori: string[] | null, tanggal: string): Generus[] {
   const ids = new Set(lembarPresensi(db, { kelompokId, tanggal }).map((b) => b.generus_id))
-  return daftarGenerus(db, { kelompokId }).filter((g) => ids.has(g.id) && (!kategori || kategori.includes(g.kategori)))
+  return daftarGenerus(db, { kelompokId }).filter((g) => ids.has(g.id) && (!kategori || kategori.some((k) => kategoriCocok(k, g.kategori))))
 }
 
 export interface SaranMateri {
@@ -165,7 +165,7 @@ export function saranMateriPertemuan(
   const selesai = new Map(murid.map((g) => [g.id, materiSelesaiDisahkan(db, g.id)]))
   for (const m of target) {
     for (const g of murid) {
-      if (g.kategori !== m.kategori_target) continue
+      if (!kategoriCocok(g.kategori, m.kategori_target)) continue
       const s =
         peta.get(m.id) ??
         { materi_id: m.id, nama: m.nama, kategori_nama: m.kategori_nama, bidang_nama: m.bidang_nama, urutan: m.urutan_target, belumTuntas: 0, jumlahGenerus: 0 }
@@ -210,7 +210,7 @@ export function lembarAbsenPertemuan(db: Db, pertemuanId: string): LembarAbsenPe
   const pengajian = p.pengajian_id ? ambilRekaman<Pengajian>(db, 'pengajian', p.pengajian_id) : undefined
   const kat = kategoriKelas(pengajian)
   const baris = lembarPresensi(db, { kelompokId: p.kelompok_id, tanggal: p.tanggal, pengajianId: p.pengajian_id, jadwalTambahanId: p.jadwal_tambahan_id })
-    .filter((b) => !kat || kat.includes(b.kategori))
+    .filter((b) => !kat || kat.some((k) => kategoriCocok(k, b.kategori)))
     .map((b) => {
       const selesai = materiSelesaiDisahkan(db, b.generus_id)
       return { ...b, kategori: b.kategori as KategoriGenerus, tuntas: Object.fromEntries(p.materi_ids.map((m) => [m, selesai.has(m)])) }
@@ -243,10 +243,10 @@ export function progresKelas(db: Db, kelompokId: string, kategori?: string | str
   const materi = target.map((m) => ({ materi_id: m.id, nama: m.nama, kategori_generus: m.kategori_target, urutan: m.urutan_target, jumlahTuntas: 0, jumlahGenerus: 0 }))
   const generus = murid.map((g) => {
     const selesai = materiSelesaiDisahkan(db, g.id)
-    const milik = target.filter((m) => m.kategori_target === g.kategori)
+    const milik = target.filter((m) => kategoriCocok(m.kategori_target, g.kategori))
     const belum = milik.filter((m) => !selesai.has(m.id)).map((m) => m.id)
     for (const m of materi) {
-      if (m.kategori_generus !== g.kategori) continue
+      if (!kategoriCocok(m.kategori_generus, g.kategori)) continue
       m.jumlahGenerus++
       if (selesai.has(m.materi_id)) m.jumlahTuntas++
     }

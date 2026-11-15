@@ -1,4 +1,5 @@
 // Repositori kurikulum: bidang → kategori → materi (master admin).
+import { kategoriCocok } from './generus'
 import type { Db } from '../db'
 import { keB64url } from '../crypto'
 import { GalatPpg } from '../galat'
@@ -150,7 +151,7 @@ export function daftarKategoriMateri(db: Db, bidangId?: string): KategoriMateri[
 /** Apakah materi berlaku untuk kategori generus tertentu. */
 export function materiBerlakuUntuk(m: Pick<Materi, 'kategori_generus'>, kategori: string): boolean {
   if (!m.kategori_generus) return true
-  return m.kategori_generus.split(',').map((x) => x.trim()).includes(kategori)
+  return m.kategori_generus.split(',').some((x) => kategoriCocok(x.trim(), kategori))
 }
 
 /**

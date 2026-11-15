@@ -1,7 +1,7 @@
 // v3 — kurikulum (V5): target capaian per kategori generus per periode, periode aktif, dan jadwal setor (V2).
 import type { Db } from '../db'
 import { GalatPpg } from '../galat'
-import { KATEGORI_GENERUS, type KategoriGenerus } from './generus'
+import { KATEGORI_SAH, kategoriCocok, type KategoriGenerus } from './generus'
 import { ambilMateri, daftarMateri, type MateriLengkap } from './materi'
 import { ambilRekaman, pastikanAdmin, pastikanPengelolaKurikulum, sisipkanRekaman, ubahRekaman, type RekamanDasar } from './umum'
 export { pastikanPengelolaKurikulum }
@@ -60,7 +60,7 @@ export const idTarget = (periode: string, kategori: string, materiId: string) =>
 export function tetapkanTarget(db: Db, o: { periode: string; kategoriGenerus: KategoriGenerus; materiIds: string[] }): TargetCapaian[] {
   pastikanPengelolaKurikulum(db)
   if (!periodeSah(o.periode)) throw new GalatPpg('PERIODE_TIDAK_SAH', 'Periode harus berbentuk YYYY-S1 atau YYYY-S2.')
-  if (!KATEGORI_GENERUS.includes(o.kategoriGenerus)) throw new GalatPpg('KATEGORI_TIDAK_SAH', 'Kategori generus tidak dikenal.')
+  if (!KATEGORI_SAH.includes(o.kategoriGenerus)) throw new GalatPpg('KATEGORI_TIDAK_SAH', 'Kategori generus tidak dikenal.')
   const ids = [...new Set(o.materiIds)]
   for (const mid of ids) {
     const m = ambilMateri(db, mid)
@@ -92,7 +92,7 @@ export function daftarTarget(db: Db, o: { periode?: string; kategoriGenerus?: st
   const materi = new Map(daftarMateri(db).map((m) => [m.id, m]))
   return db
     .kueri<TargetCapaian>('SELECT * FROM target_capaian WHERE periode = ? AND dihapus = 0 ORDER BY kategori_generus, urutan', [periode])
-    .filter((t) => !kat || kat.includes(t.kategori_generus))
+    .filter((t) => !kat || kat.some((k) => kategoriCocok(k, t.kategori_generus)))
     .flatMap((t) => {
       const m = materi.get(t.materi_id)
       return m ? [{ ...m, urutan_target: Number(t.urutan), kategori_target: t.kategori_generus }] : []

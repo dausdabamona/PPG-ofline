@@ -21,7 +21,8 @@ import type { Db } from './db'
 import { adalahGalatPpg, GalatPpg } from './galat'
 import { ulid } from './ids'
 import { seedKurikulum } from './kurikulum'
-import { tambahGenerus, tambahJamaah, ubahGenerus, KATEGORI_GENERUS, type KategoriGenerus, type StatusGenerus } from './repo/generus'
+import { seedMateriEvaluasi } from './skema'
+import { tambahGenerus, tambahJamaah, ubahGenerus, normalKategori, type KategoriGenerus, type StatusGenerus } from './repo/generus'
 import { ambilPerangkat, catatPencabutan, daftarkanToken, daftarPerangkat, type PerangkatTerdaftar } from './repo/perangkat'
 import { adalahAdmin, ambilMeta, ambilRekaman, aturMeta, ID_ADMIN, sisipkanRekaman, ubahRekaman } from './repo/umum'
 import { tambahPengajian } from './repo/pengajian'
@@ -98,6 +99,7 @@ export async function inisialisasiAdmin(db: Db, opsi: { sandi: string; namaOrgan
     aturMeta(db, 'admin_iterasi', ITERASI_PBKDF2)
     aturMeta(db, 'admin_induk_enc', encB64(kunciSandi, kunci.induk))
     seedKurikulum(db)
+    seedMateriEvaluasi(db)
   })
   return kunci
 }
@@ -240,6 +242,7 @@ export async function imporCadanganKunci(db: Db, bytes: Uint8Array, sandiCadanga
       ])
     }
     seedKurikulum(db)
+    seedMateriEvaluasi(db)
   })
   return bukaKunciAdmin(db, sandi)
 }
@@ -601,8 +604,9 @@ export function imporGenerusCsv(db: Db, teksCsv: string): HasilImporCsv {
         if (!jk) throw new GalatPpg('JK_TIDAK_SAH', 'Jenis kelamin harus L atau P.')
         const tl = normalTanggal(b.tanggal_lahir ?? '')
         if (tl === undefined) throw new GalatPpg('TANGGAL_TIDAK_SAH', 'Tanggal lahir tidak dikenali.')
-        const kat = (b.kategori ?? '').trim().toLowerCase()
-        if (kat && !KATEGORI_GENERUS.includes(kat as KategoriGenerus)) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori "${kat}" tidak dikenal.`)
+        const katTeks = (b.kategori ?? '').trim()
+        const kat = katTeks ? normalKategori(katTeks) : ''
+        if (kat === null) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori "${katTeks}" tidak dikenal.`)
         const kel = cariWilayahKode(db, b.kelompok_kode ?? '')
         if (!kel || kel.tingkat !== 'kelompok') throw new GalatPpg('KELOMPOK_TIDAK_SAH', `Kode kelompok "${b.kelompok_kode}" tidak ditemukan.`)
         const mulai = normalTanggal(b.mulai ?? '')
