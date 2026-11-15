@@ -32,7 +32,7 @@ describe('alur mubaligh – generus – wali', () => {
     expect(pfM.teks).toContain(kodeM)
     const tokenM = terbitkanToken(admin.db, admin.kunci, { kodePerangkat: kodeM, role: 'mubaligh', nama: 'Ust. Hasan', wilayahId: admin.k1.id })
     await aktifkan(u, tokenM)
-    await screen.findByRole('heading', { name: /Assalamu'alaikum, Ust\. Hasan/ })
+    await screen.findByText(/Assalamu'alaikum, Ust\. Hasan/)
 
     // paket + materi dari admin lewat Lainnya → Buka Berkas
     const paket = buatPaket(admin.db, admin.k1.id, admin.kunci)
@@ -91,8 +91,8 @@ describe('alur mubaligh – generus – wali', () => {
 
     // --- 3. Setor Data ke admin (melaporkan token) + Kirim Balasan ke semua HP
     await u.click(screen.getByRole('button', { name: 'Kembali' }))
-    await u.click(screen.getByRole('button', { name: /^Setor Data/ }))
-    await u.click(screen.getByRole('button', { name: 'Setor Data' }))
+    await u.click(screen.getByRole('button', { name: /^Setor ke Daerah/ }))
+    await u.click(screen.getByRole('button', { name: 'Setor ke Daerah' }))
     await tungguTeks(/Berkas setoran siap/)
     const setor1 = imporSetor(admin.db, dibagikan(pfM, 'PPG_SETOR_').bytes, admin.kunci)
     expect(setor1.tokenDilaporkan).toBe(3)
@@ -166,8 +166,9 @@ describe('alur mubaligh – generus – wali', () => {
 
     // --- 5. Mubaligh: impor setoran, sahkan Ali (catatan), tolak Budi, laporan WA, balasan
     mulai(pfM)
-    await screen.findByRole('heading', { name: /Assalamu'alaikum, Ust\. Hasan/ }, { timeout: 20000 })
-    await nav(u, 'Setoran')
+    await screen.findByText(/Assalamu'alaikum, Ust\. Hasan/, {}, { timeout: 20000 })
+    await nav(u, 'Lainnya')
+    await u.click(screen.getByRole('button', { name: /^Setoran Generus/ }))
     pfM.antreanBuka.push([belajar])
     await u.click(screen.getByRole('button', { name: 'Buka berkas setoran (bisa banyak)' }))
     await tungguTeks(/Setoran belajar diterima: 2 catatan/)
@@ -179,7 +180,7 @@ describe('alur mubaligh – generus – wali', () => {
     await tungguTeks(/ditolak\./)
     await screen.findByText('Tidak ada setoran yang menunggu disahkan.')
 
-    await nav(u, 'Lainnya')
+    await nav(u, 'Lainnya') // ketuk ulang menu aktif → kembali ke daftar Lainnya
     await u.click(screen.getByRole('button', { name: /^Laporan Pekanan/ }))
     await u.click(await screen.findByRole('button', { name: 'Kirim WA ke wali Ali' }))
     expect(pfM.tautan.at(-1)).toMatch(/^https:\/\/wa\.me\/6281234567890\?text=Assalamu/)
@@ -197,7 +198,7 @@ describe('alur mubaligh – generus – wali', () => {
     // --- 6. Wali: aktivasi, buka balasan, lihat laporan pekanan & kemajuan
     mulai(pfW)
     await aktifkan(u, tokenWali)
-    await screen.findByRole('heading', { level: 1, name: 'Laporan Pekanan' })
+    await screen.findByRole('heading', { level: 1, name: 'Materi yang perlu dituntaskan' })
     await tungguTeks(/Data anak belum ada/)
     await nav(u, 'Berkas')
     pfW.antreanBuka.push([balasanW0, balasanW1, admin.materi])
@@ -222,7 +223,7 @@ describe('alur mubaligh – generus – wali', () => {
     ubahStatus(admin.db, budi.id, 'mondok', tanggalHariIni(), 'Pondok')
     const paket2 = buatPaket(admin.db, admin.k1.id, admin.kunci)
     mulai(pfM)
-    await screen.findByRole('heading', { name: /Assalamu'alaikum/ }, { timeout: 20000 })
+    await screen.findByText(/Assalamu'alaikum/, {}, { timeout: 20000 })
     await nav(u, 'Lainnya')
     await u.click(screen.getByRole('button', { name: /^Buka Berkas/ }))
     pfM.antreanBuka.push([paket2])

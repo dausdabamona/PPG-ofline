@@ -1,11 +1,14 @@
 // Layar sebelum masuk: beri nama HP, Kode Perangkat (QR + kirim WA), aktifkan token (tempel/pindai), pilih profil (PIN).
 import { useMemo, useState } from 'react'
-import { aktifkanProfil, daftarProfil, inisialisasiPerangkat, kodePerangkatSaya, pilihProfil, statusProfil, type Db } from '@ppg/core'
+import { adalahGalatPpg, aktifkanProfil, daftarProfil, inisialisasiPerangkat, kodePerangkatSaya, pilihProfil, statusProfil, type Db } from '@ppg/core'
 import type { JenisToast } from '../konteks'
 import type { BerkasMasuk, Platform } from '../platform'
 import { PemindaiQr, QrBerseri } from '../komponen/qr'
-import { AreaTeks, Isian, Kartu, Lencana, Modal, Tombol } from '../komponen/ui'
+import { AreaTeks, Isian, Kartu, Lencana, Modal, Spanduk, Tombol } from '../komponen/ui'
 import { label, LABEL_ROLE, pesanGalat } from '../utils/label'
+
+/** Pesan bila kode aktivasi untuk EXE (admin desa/kelompok, kurikulum) ditempel/dipindai di HP. */
+export const PESAN_TOKEN_EXE = 'Kode ini untuk aplikasi laptop (EXE), bukan untuk HP.'
 
 type FnToast = (j: JenisToast, p: string) => void
 
@@ -49,16 +52,23 @@ export function LayarAwal(p: {
   const [mode, setMode] = useState<'kode' | 'pindai' | 'tempel'>('kode')
   const [token, setToken] = useState('')
   const [pin, setPin] = useState('')
+  const [untukExe, setUntukExe] = useState(false)
 
   const aktifkan = async () => {
     const t = token.trim()
     if (pin && !/^\d{4}$/.test(pin)) return p.toast('galat', 'PIN harus 4 angka.')
+    setUntukExe(false)
     try {
       const prof = await aktifkanProfil(p.db, t, pin ? { pin } : {})
       pilihProfil(p.db, prof.id, pin || undefined)
       p.toast('sukses', `Profil ${prof.nama} (${label(LABEL_ROLE, prof.role)}) siap dipakai.`)
       p.selesai()
     } catch (e) {
+      if (adalahGalatPpg(e) && e.kode === 'TOKEN_UNTUK_EXE') {
+        setUntukExe(true)
+        p.toast('galat', PESAN_TOKEN_EXE)
+        return
+      }
       p.toast('galat', pesanGalat(e))
     }
   }
@@ -105,9 +115,17 @@ export function LayarAwal(p: {
       </Kartu>
 
       <Kartu judul="2. Masukkan token">
+        {untukExe ? (
+          <Spanduk jenis="peringatan">
+            <b>{PESAN_TOKEN_EXE}</b> Kode aktivasi Admin Desa, Admin Kelompok, dan Kurikulum ditempel di aplikasi PPG Sorong di laptop
+            (menu “Aktifkan dengan kode”). Untuk HP, mintalah token pengurus/mubaligh dari admin desa, atau token generus/orang tua dari
+            mubaligh.
+          </Spanduk>
+        ) : null}
         {mode === 'pindai' ? (
           <PemindaiQr
             awalan="PPGT1."
+            pemindai={p.platform.pemindai}
             labelTempel="Atau tempel token di sini"
             batal={() => setMode('kode')}
             dapat={(t) => {

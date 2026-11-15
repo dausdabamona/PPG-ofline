@@ -301,3 +301,20 @@ export function MenuDaftar(p: { item: { teks: string; ket?: string; ikon?: strin
     </ul>
   )
 }
+
+/** Bilah persentase capaian (mis. materi tuntas). */
+export function BilahPersen(p: { persen: number; label: string; kecil?: boolean }) {
+  const n = Math.max(0, Math.min(100, p.persen))
+  return (
+    <div
+      className={`bilah-persen${p.kecil ? ' bilah-kecil' : ''}`}
+      role="progressbar"
+      aria-label={p.label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(n)}
+    >
+      <span style={{ width: `${n}%` }} />
+    </div>
+  )
+}

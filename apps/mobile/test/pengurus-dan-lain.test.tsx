@@ -28,15 +28,18 @@ describe('pengurus', () => {
     await tungguTeks(/Data dari admin berhasil dibuka/)
     await waitFor(() => expect(document.querySelector('.angka strong')?.textContent).toBe('3'))
 
-    // presensi: semua hadir lalu Citra alpa
-    await nav(u, 'Presensi')
+    // absen: pertemuan rutin, tanpa materi, semua hadir lalu Citra alpa (pengurus tidak bisa menandai tuntas)
+    await nav(u, 'Absen')
+    await u.click(await screen.findByRole('radio', { name: /Pengajian Caberawit/ }))
+    await u.click(await screen.findByRole('button', { name: /^Lanjut/ }))
     await screen.findByRole('heading', { name: '3 generus' })
-    await u.selectOptions(screen.getByLabelText('Pertemuan'), within(screen.getByLabelText('Pertemuan')).getByRole('option', { name: /Pengajian Caberawit/ }))
     await u.click(screen.getByRole('button', { name: 'Semua hadir' }))
     await u.click(within(screen.getByRole('radiogroup', { name: 'Kehadiran Citra' })).getByRole('radio', { name: 'Alpa' }))
-    await u.click(screen.getByRole('button', { name: 'Simpan presensi (3)' }))
-    await tungguTeks(/Presensi 3 generus tersimpan/)
-    await waitFor(() => expect(document.querySelector('.indikator-setor')?.textContent).toMatch(/Ada 3 data belum disetor/))
+    expect(screen.queryByRole('checkbox', { name: /^Tuntas/ })).toBeNull()
+    await u.click(screen.getByRole('button', { name: 'Simpan absen (3)' }))
+    await tungguTeks(/Absen tersimpan: 3 generus/)
+    await nav(u, 'Data')
+    await waitFor(() => expect(document.querySelector('.indikator-setor')?.textContent).toMatch(/Ada 4 data belum disetor/))
 
     // usulan generus baru
     await nav(u, 'Data')
@@ -56,7 +59,7 @@ describe('pengurus', () => {
 
     // setor → admin impor
     await nav(u, 'Sinkron')
-    await u.click(screen.getByRole('button', { name: 'Setor Data' }))
+    await u.click(screen.getByRole('button', { name: 'Setor ke Daerah' }))
     await tungguTeks(/Berkas setoran siap/)
     const r = imporSetor(admin.db, dibagikan(pf, 'PPG_SETOR_').bytes, admin.kunci)
     expect(r.perTabel.presensi?.ditambah).toBe(3)
@@ -125,8 +128,9 @@ describe('mubaligh — fitur lain', () => {
     await u.click(screen.getByRole('button', { name: 'Buka Berkas' }))
     await tungguTeks(/Daftar materi berhasil dibuka/)
 
-    // Simak Langsung untuk Citra
-    await nav(u, 'Simak')
+    // Simak Langsung untuk Citra (Lainnya → Simak Langsung)
+    await u.click(screen.getByRole('button', { name: 'Kembali' }))
+    await u.click(screen.getByRole('button', { name: /^Simak Langsung/ }))
     await u.selectOptions(await screen.findByLabelText('Generus'), admin.g[2]!.id)
     const pilihMateri = (await screen.findByLabelText('Materi')) as HTMLSelectElement
     await u.selectOptions(pilihMateri, pilihMateri.options[1]!.value)
@@ -135,22 +139,21 @@ describe('mubaligh — fitur lain', () => {
     await u.click(screen.getByRole('button', { name: 'Simpan & sahkan' }))
     await tungguTeks(/tercatat dan disahkan/)
 
-    // Jadwal tambahan + bagikan ke grup WA
-    await nav(u, 'Lainnya')
-    await u.click(screen.getByRole('button', { name: /^Jadwal Tambahan/ }))
+    // Jadwal tambahan + bagikan ke grup WA (menu Jadwal)
+    await nav(u, 'Jadwal')
     await u.type(screen.getByLabelText('Judul kegiatan'), "Muroja'ah bersama")
     await u.type(screen.getByLabelText('Jam'), '19:30')
     await u.click(screen.getByRole('button', { name: 'Simpan jadwal' }))
     await tungguTeks(/Jadwal tersimpan/)
-    await screen.findByText("Muroja'ah bersama")
+    expect((await screen.findAllByText("Muroja'ah bersama")).length).toBe(2) // jadwal pekan + daftar tambahan
     await u.click(screen.getByRole('button', { name: 'Bagikan ke grup WA' }))
     await tungguTeks(/Berkas jadwal siap/)
     const jadwal = dibagikan(pf, 'PPG_JADWAL_')
     expect(bacaHeader(jadwal.bytes).jenis).toBe('JADWAL')
 
     // Usulan ubah status (mondok) & pindah kelompok (kelompok lain dikenal dari paket)
-    await u.click(screen.getByRole('button', { name: 'Kembali' }))
-    await nav(u, 'Generus')
+    await nav(u, 'Lainnya')
+    await u.click(screen.getByRole('button', { name: /^Generus/ }))
     await u.click(await screen.findByRole('button', { name: /Ali/ }))
     await u.click(await screen.findByRole('button', { name: 'Ajukan ubah status (mondok/aktif/…)' }))
     let d = await screen.findByRole('dialog', { name: 'Ubah status: Ali' })
@@ -166,7 +169,7 @@ describe('mubaligh — fitur lain', () => {
 
     // Setor Akhir
     await nav(u, 'Lainnya')
-    await u.click(screen.getByRole('button', { name: /^Setor Data/ }))
+    await u.click(screen.getByRole('button', { name: /^Setor ke Daerah/ }))
     await u.click(screen.getByText('Pilihan lain'))
     await u.click(screen.getByRole('button', { name: 'Setor Akhir' }))
     await u.click(within(await screen.findByRole('dialog', { name: 'Setor Akhir' })).getByRole('button', { name: 'Buat Setor Akhir' }))
@@ -175,6 +178,7 @@ describe('mubaligh — fitur lain', () => {
     expect(r.usulanBaru).toBe(2)
     expect(r.perTabel.kemajuan_belajar?.ditambah).toBe(1)
     expect(r.perTabel.jadwal_tambahan?.ditambah).toBe(1)
+    expect(r.perTabel.presensi?.ditambah ?? 0).toBe(0)
     await jeda()
   })
 })

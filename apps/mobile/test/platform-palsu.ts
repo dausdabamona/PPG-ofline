@@ -1,7 +1,7 @@
 // Platform palsu untuk uji jsdom: database di memori, antrean berkas "dipilih", catatan berkas/teks/tautan "dibagikan".
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import type { BerkasKirim, BerkasMasuk, Platform } from '../src/platform'
+import { KELAS_PEMINDAI_NATIVE, type BerkasKirim, type BerkasMasuk, type IzinKamera, type PemindaiNative, type Platform } from '../src/platform'
 
 const require = createRequire(import.meta.url)
 const wasm = readFileSync(require.resolve('sql.js/dist/sql-wasm.wasm'))
@@ -24,12 +24,58 @@ export interface PlatformPalsu extends Platform {
   tekanKembali: () => boolean
 }
 
-export function buatPlatformPalsu(awal: Uint8Array | null = null): PlatformPalsu {
+/** Pemindai native palsu: uji mengatur jawaban izin dan "mengarahkan kamera" ke isi QR dengan `pindai`. */
+export interface PemindaiPalsu extends PemindaiNative {
+  /** Jawaban dialog izin kamera berikutnya. */
+  izin: IzinKamera
+  dimintaIzin: number
+  aktif: boolean
+  jumlahMulai: number
+  bukaPengaturanKe: number
+  /** Kamera "melihat" QR berisi teks ini (diabaikan bila pemindai tidak aktif). */
+  pindai: (teks: string) => void
+}
+
+export function buatPemindaiPalsu(): PemindaiPalsu {
+  let hasil: ((t: string) => void) | null = null
+  const pm: PemindaiPalsu = {
+    izin: 'diizinkan',
+    dimintaIzin: 0,
+    aktif: false,
+    jumlahMulai: 0,
+    bukaPengaturanKe: 0,
+    async mintaIzin() {
+      pm.dimintaIzin++
+      return pm.izin
+    },
+    async mulai(fn) {
+      hasil = fn
+      pm.aktif = true
+      pm.jumlahMulai++
+      document.documentElement.classList.add(KELAS_PEMINDAI_NATIVE)
+    },
+    async berhenti() {
+      hasil = null
+      pm.aktif = false
+      document.documentElement.classList.remove(KELAS_PEMINDAI_NATIVE)
+    },
+    async bukaPengaturan() {
+      pm.bukaPengaturanKe++
+    },
+    pindai(t) {
+      if (pm.aktif && hasil) hasil(t)
+    },
+  }
+  return pm
+}
+
+export function buatPlatformPalsu(awal: Uint8Array | null = null, opsi: { pemindai?: PemindaiPalsu } = {}): PlatformPalsu & { pemindai?: PemindaiPalsu } {
   const latar = new Set<() => void>()
   const masuk = new Set<(b: BerkasMasuk) => void>()
   const kembali = new Set<() => boolean>()
-  const p: PlatformPalsu = {
-    jenis: 'web',
+  const p: PlatformPalsu & { pemindai?: PemindaiPalsu } = {
+    jenis: opsi.pemindai ? 'native' : 'web',
+    pemindai: opsi.pemindai,
     db: awal,
     jumlahSimpan: 0,
     antreanBuka: [],

@@ -1,4 +1,4 @@
-// Layar peran Generus: Materiku · Catat Kemajuan · Jadwal · Setor (Setor Belajar, Buka Berkas).
+// Layar peran Generus: Target (Materi yang perlu dituntaskan) · Materiku · Catat Kemajuan · Jadwal · Setor (Setor Belajar, Buka Berkas).
 import { useState } from 'react'
 import { buatBelajar, catatKemajuan, infoSinkronHp, jadwalPekan, jumlahBelumDisetorBelajar, statusProfil, tambahHari, tanggalHariIni, type MateriGenerus } from '@ppg/core'
 import { useApp, useData } from '../konteks'
@@ -6,6 +6,7 @@ import type { PropHalaman } from '../kerangka'
 import { cariMateri, DaftarMateri, FormKemajuan, keDataKemajuan, KEMAJUAN_KOSONG, PemilihMateri, RincianMateri, useMateriGenerus, type IsianKemajuan } from '../komponen/materi'
 import { JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, Modal, Tombol } from '../komponen/ui'
 import { tanggalTeks, waktuTeks } from '../utils/label'
+import { MateriPerluDituntaskan } from '../komponen/tuntas'
 import { KartuBukaBerkas } from './bersama'
 
 function useGenerusSaya(): string | undefined {
@@ -34,6 +35,25 @@ function IsiCatat(p: { materiId: string; tipe: string | undefined; selesai?: () 
       >
         Simpan catatan
       </Tombol>
+    </>
+  )
+}
+
+/** Layar pertama murid: materi yang perlu dituntaskan semester ini. */
+export function TargetGenerus(p: PropHalaman) {
+  const { profil } = useApp()
+  const gid = useGenerusSaya()
+  return (
+    <>
+      <JudulHalaman judul="Materi yang perlu dituntaskan" keterangan={profil.nama} />
+      {gid ? (
+        <MateriPerluDituntaskan generusId={gid} teksKosong="Data belum ada. Buka berkas balasan atau materi dari mubaligh di menu Setor." />
+      ) : null}
+      <div className="tumpuk">
+        <Tombol penuh varian="kedua" onClick={() => p.pergi('catat')}>
+          Catat yang sudah kupelajari
+        </Tombol>
+      </div>
     </>
   )
 }

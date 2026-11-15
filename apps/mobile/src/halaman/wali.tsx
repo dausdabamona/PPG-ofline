@@ -1,10 +1,11 @@
-// Layar peran Wali (orang tua): Laporan Pekanan tiap anak · Kemajuan · Kehadiran · Buka Berkas.
+// Layar peran Wali (orang tua): Target (Materi yang perlu dituntaskan) · Laporan Pekanan tiap anak · Kemajuan · Kehadiran · Buka Berkas.
 import { useState, type ReactNode } from 'react'
 import { daftarPresensi, generusProfil, laporanPekanan, tambahHari, tanggalHariIni, type MateriGenerus } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { DaftarMateri, RincianMateri, useMateriGenerus } from '../komponen/materi'
 import { Angka, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, Segmen, Tombol } from '../komponen/ui'
 import { label, LABEL_PRESENSI, tanggalTeks } from '../utils/label'
+import { MateriPerluDituntaskan } from '../komponen/tuntas'
 import { KartuBukaBerkas } from './bersama'
 
 /** Pilih anak (bila wali punya lebih dari satu anak). */
@@ -19,6 +20,19 @@ function useAnak(): { anak: { id: string; nama: string }[]; gid: string; setGid:
 }
 
 const BELUM_ADA = 'Data anak belum ada di HP ini. Buka berkas balasan dari mubaligh di menu Berkas.'
+
+/** Layar pertama orang tua: materi yang perlu dituntaskan anak (pilih anak bila lebih dari satu). */
+export function TargetWali() {
+  const { anak, gid, pemilih } = useAnak()
+  return (
+    <>
+      <JudulHalaman judul="Materi yang perlu dituntaskan" />
+      {!anak.length ? <Kosong teks={BELUM_ADA} /> : null}
+      {pemilih}
+      {gid ? <MateriPerluDituntaskan key={gid} generusId={gid} teksKosong={BELUM_ADA} anak /> : null}
+    </>
+  )
+}
 
 export function LaporanWali() {
   const { db } = useApp()

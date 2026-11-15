@@ -15,7 +15,42 @@ export const LABEL_STATUS_GENERUS: Record<string, string> = {
   lulus_menikah: 'Lulus/Menikah',
   keluar: 'Keluar',
 }
-export const LABEL_ROLE: Record<string, string> = { pengurus: 'Pengurus', mubaligh: 'Mubaligh', generus: 'Generus', wali: 'Wali (orang tua)' }
+export const LABEL_ROLE: Record<string, string> = {
+  pengurus: 'Pengurus',
+  mubaligh: 'Mubaligh',
+  generus: 'Generus',
+  wali: 'Wali (orang tua)',
+  admin: 'Admin (laptop)',
+  kurikulum: 'Kurikulum (laptop)',
+}
+/** Status materi target (layar "Materi yang perlu dituntaskan"). */
+export const LABEL_STATUS_TARGET: Record<string, string> = {
+  belum: 'Belum',
+  diajukan: 'Menunggu disimak',
+  ditolak: 'Perlu diulang',
+  sedang: 'Sedang belajar',
+  tuntas: 'Tuntas',
+}
+export const WARNA_STATUS_TARGET: Record<string, 'abu' | 'kuning' | 'merah' | 'teal' | 'hijau'> = {
+  belum: 'abu',
+  diajukan: 'kuning',
+  ditolak: 'merah',
+  sedang: 'teal',
+  tuntas: 'hijau',
+}
+
+/** '2026-S1' → 'Semester 1 · 2026/2027 (Juli–Desember 2026)' (V-T10: S1 = Jul–Des, S2 = Jan–Jun tahun berikutnya). */
+export function labelPeriode(periode: string | null | undefined): string {
+  const m = /^(\d{4})-S([12])$/.exec(periode ?? '')
+  if (!m) return periode ?? '—'
+  const t = Number(m[1])
+  return m[2] === '1' ? `Semester 1 · ${t}/${t + 1} (Juli–Desember ${t})` : `Semester 2 · ${t}/${t + 1} (Januari–Juni ${t + 1})`
+}
+
+/** Persen dengan koma desimal (37.5 → '37,5'). */
+export function persenTeks(n: number): string {
+  return `${String(Math.round(n * 10) / 10).replace('.', ',')}%`
+}
 export const LABEL_STATUS_TOKEN: Record<string, string> = { aktif: 'Aktif', dibekukan: 'Dibekukan', dicabut: 'Dicabut', kedaluwarsa: 'Habis masa' }
 export const LABEL_PRESENSI: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa' }
 export const LABEL_STATUS_MATERI: Record<string, string> = {

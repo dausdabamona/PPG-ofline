@@ -365,3 +365,89 @@ satu kueri kecil ditambahkan ke core (`rekapCapaian`, dengan test).
 - Nama EXE di kepala belum ada sebelum paket pertama dibuka (wilayah belum dikenal) — tampil "Admin Desa" saja.
 - Panduan pengguna (`docs/PANDUAN-PENGGUNA.md`) belum diperbarui untuk alur v3 (aktivasi EXE desa/kelompok/kurikulum, jadwal setor, absen).
 - APK (QR native, layar mubaligh sederhana, "Materi yang perlu dituntaskan") belum dikerjakan di fase ini.
+
+---
+
+## Fase 7 — APK v3: QR native, mubaligh sederhana, materi yang perlu dituntaskan (`apps/mobile`, 2026-11-15)
+
+Menindaklanjuti hasil uji Pak Fir di HP sungguhan (pindai QR pendaftaran tidak berfungsi; menu mubaligh terlalu banyak) sesuai §14
+memakai API core v3. Core tidak diubah.
+
+### Yang dibuat
+- **Pemindai QR native** (`src/platform.ts` → `PemindaiNative`; `src/komponen/qr.tsx`): `@capacitor-mlkit/barcode-scanning` ~7.5.0
+  (`startScan`, model ML Kit dibundel → tanpa internet). Izin kamera diminta saat menekan Pindai; bila ditolak: pesan ramah,
+  **Coba lagi**, **Buka Pengaturan**, dan kotak tempel. Kamera tampil di belakang lapisan pemindai (latar aplikasi tembus pandang),
+  setiap QR yang terbaca masuk pengumpul QR berseri ("2 dari 7 bagian QR terbaca") sampai lengkap, lalu kamera berhenti sendiri.
+  Tombol kembali Android/Batal menghentikan kamera. Peramban & uji memakai kamera web lama (getUserMedia + jsQR). Dipakai di layar
+  awal (Pindai QR Token) dan Terbitkan Token (Pindai QR Kode Perangkat). Android: plugin tersinkron (`capacitor.settings.gradle`,
+  `capacitor.build.gradle`), meta-data `com.google.mlkit.vision.DEPENDENCIES` di manifest; minSdk tetap 23.
+- **Tampilan QR**: koreksi galat M, zona tenang 4 modul, hitam di atas putih murni, ≥ 280 px, tombol **Layar penuh** (putih penuh +
+  ajakan menaikkan kecerahan); bagian QR berseri ≤ 600 karakter (QR ≤ 97 modul) → token generus = 7 QR bergantian.
+- **Mubaligh**: navigasi bawah **Absen · Jadwal · Materi · Lainnya**.
+  - *Absen* (`src/halaman/absen.tsx`, dipakai juga pengurus): kartu pengingat setor → pilih pertemuan (kelas per kategori, jadwal
+    tambahan, atau pertemuan lain) → **Materi hari ini** (saran "N dari M generus belum tuntas", "Pakai saran pertama", pilih dari
+    target kurikulum periode aktif) → daftar generus kelas itu (`lembarAbsenPertemuan`) dengan Hadir/Izin/Sakit/Alpa, **Semua hadir**,
+    centang **Tuntas** per generus per materi (hanya yang hadir; yang sudah tuntas tampil ✓) → **Simpan absen**
+    (`bukaPertemuan` / `absenPertemuan` / `tandaiTuntas`).
+  - *Jadwal*: jadwal pekan (rutin + tambahan) + tambah jadwal tambahan + Bagikan ke grup WA.
+  - *Materi*: target periode aktif per kelas (kategori) — rata-rata capaian, jumlah tuntas tiap materi, capaian tiap generus
+    (`progresKelas`), rincian materi yang belum tuntas per generus.
+  - *Lainnya*: Setoran Generus (sahkan/tolak; jumlah menunggu), Simak Langsung, Generus, Terbitkan Token, Kirim Balasan, Laporan
+    Pekanan (WA), **Setor ke {Desa/Kelompok/Daerah}** (`tujuanSetor`, + Setor Akhir), Buka Berkas.
+- **Pengingat tenggat setor** (`pengingatSetor`): kartu "Setor ke …" di atas Absen (mubaligh & pengurus) dan Beranda pengurus — tenggat
+  berikutnya, merah bila terlambat, kuning bila < 24 jam, tombol besar **Setor sekarang** (langsung membuat berkas & membuka lembar
+  bagikan WA).
+- **Pengurus**: Beranda (pengingat) · **Absen** (menggantikan Presensi; tanpa centang tuntas karena tidak ber-hak sahkan) · Data · Rekap ·
+  Sinkron (**Setor ke** tujuan yang benar, info "belum dipastikan sampai daerah").
+- **Murid (generus)**: layar pertama **Target — "Materi yang perlu dituntaskan"** (`materiPerluDituntaskan`): periode, persen + bilah,
+  "1 dari 3 materi tuntas", daftar berurut dengan status (Belum/Menunggu disimak/Perlu diulang/Sedang belajar), daftar ✓ Sudah tuntas,
+  dan **Pertemuan berikutnya**; Materiku · Catat · Jadwal · Setor tetap.
+- **Orang tua (wali)**: layar pertama sama, pilih anak bila > 1; **Laporan** pekanan di tab kedua; Kemajuan · Kehadiran · Berkas tetap.
+- **Kode EXE di HP**: token `admin`/`kurikulum` → toast + spanduk **"Kode ini untuk aplikasi laptop (EXE), bukan untuk HP."** dengan
+  penjelasan.
+- Mengetuk ulang menu bawah yang aktif kembali ke awal menu itu. Tema teal–ivory, logo, tombol ≥ 44 px tetap.
+
+### Hasil uji
+- `npm test`: core **21 berkas / 144 test**, desktop **6 / 15**, mobile **5 / 11** — **170 test lulus**, 0 gagal (Fase 6: 165).
+  `npm run typecheck` bersih (3 workspace); `npm run build` sukses (JS utama 936 KB / 309 KB gzip; plugin pemindai dimuat hanya di APK);
+  `npx cap sync android` berhasil (4 plugin: barcode-scanning, app, filesystem, share). Dependensi baru tercatat di `package-lock.json`
+  (`npm ci` aman).
+- `test/apk-v3.test.tsx` (jsdom, UI sungguhan, platform & **pemindai native palsu**):
+  1. mubaligh: menu tepat 4; pengingat "Setoran terlambat" (jadwal setor dari paket, belum pernah setor); pilih Kelas Caberawit → saran
+     "3 dari 3 generus belum tuntas" → pakai saran + tambah materi ke-2 dari target → 3 generus (praremaja tidak tampil) → Semua hadir,
+     Budi alpa (tuntas nonaktif), Ali tuntas 2 materi, Citra 1 → "Absen tersimpan: 3 generus, 3 materi tuntas" → Materi: Ali 2/3 66,7 %,
+     rincian Budi = 3 materi belum tuntas → **Setor sekarang** → daerah menerima 3 presensi, 1 pertemuan, 3 kemajuan → pengingat hilang;
+     menu Lainnya lengkap; Pindai QR Kode Perangkat lewat pemindai native.
+  2. murid & wali: "1 dari 3 materi tuntas", 33,3 %, bilah 33, urutan materi, ✓ sudah tuntas, pertemuan berikutnya; tab Catat tetap;
+     wali 2 anak (Budi 0/3, Ali 1/3), tab kedua Laporan Pekanan.
+  3. QR berseri via pemindai native: izin ditolak → Buka Pengaturan → Coba lagi → tombol kembali menghentikan kamera → pindai lagi:
+     bagian acak + ganda + QR asing ("QR ini bukan token", hitungan tetap) → lengkap, kamera berhenti, token terisi → aktif.
+  4. token admin desa & kurikulum di HP → spanduk "Kode ini untuk aplikasi laptop (EXE)".
+- `test/qr-seri.test.ts`: setiap bagian token ±3,7 KB dirender **komponen GambarQr** (ECC M, ≤ 97 modul, zona tenang 4, latar putih),
+  SVG-nya diubah ke gambar 3 px/modul lalu didekode jsQR dan tersusun utuh.
+- Uji lama disesuaikan ke navigasi baru (Presensi → Absen, Setor Data → Setor ke Daerah, Simak/Setoran di Lainnya, wali mulai di Target).
+- **Chrome headless 360×740** (`uji-peramban/uji-asap.mjs`, CSP produksi): sambut → QR Kode Perangkat ≥ 280 px → kode EXE ditolak
+  dengan pesan → aktivasi mubaligh → paket + materi → Absen (terlambat, kelas, saran, semua hadir, tuntas) → Materi kelas → QR berseri
+  7 bagian ≥ 280 px + layar penuh → Setor sekarang (berkas `PPG_SETOR_` terunduh, pengingat hilang) → cadangan terenkripsi → profil
+  generus di HP yang sama: "1 dari 3 materi tuntas" → muat ulang → Pilih Profil → Absen. **0 galat konsol, 0 tombol < 44 px.**
+
+### Keputusan otonom baru (V-T26–V-T31 di rencana)
+- **V-T26** pemindai native `@capacitor-mlkit/barcode-scanning` (minSdk 23, offline, satu sesi untuk semua bagian QR); bukan
+  `@capacitor/barcode-scanner` (minSdk 26, Kotlin/Compose, sekali pindai per panggilan).
+- **V-T27** QR HP: ECC M, zona tenang 4, ≥ 280 px, layar penuh, bagian ≤ 600 karakter; QR asing tidak menghapus bagian terkumpul.
+- **V-T28** alur Absen (pertemuan dibuat saat Lanjut; tuntas hanya untuk profil ber-hak sahkan).
+- **V-T29** navigasi v3 tiap peran; ketuk ulang menu aktif = kembali ke awal.
+- **V-T30** kartu pengingat & "Setor sekarang" langsung membuat berkas; nama tujuan dari `tujuanSetor`.
+- **V-T31** pesan token EXE di HP.
+
+### Sisa masalah (jujur)
+- **Gradle belum dijalankan di sini** (Google Maven & Maven Central tidak terjangkau dari lingkungan ini). Plugin hanya Java, AGP
+  8.7.2, minSdk 23, CameraX 1.1.0 + ML Kit 17.3.0 bawaan plugin — periksa log workflow `build-apk.yml` pertama. Bila gagal karena
+  versi dependensi, atur `androidxCamera*Version`/`mlkitBarcodeScanningVersion` di `android/variables.gradle`.
+- **Pemindai native belum diuji dengan kamera HP sungguhan** (uji memakai pemindai palsu): tampilan kamera di belakang WebView,
+  dialog izin, Buka Pengaturan, dan kecepatan membaca QR berseri 7 bagian dari layar HP lain perlu dicoba Pak Fir. Cadangan tempel
+  kode tetap ada di setiap layar pindai.
+- APK bertambah besar karena model ML Kit dibundel (perkiraan beberapa MB) — sepadan dengan pemindaian tanpa internet.
+- Kecerahan layar tidak dinaikkan otomatis (perlu plugin tambahan); layar penuh hanya mengajak pengguna menaikkan kecerahan.
+- Pertemuan dibuat saat "Lanjut" walau absen belum disimpan (pertemuan tanpa presensi ikut tersetor; tidak memengaruhi rekap).
+- `docs/PANDUAN-PENGGUNA.md` belum diperbarui untuk menu HP v3 (Absen, Target, Setor ke Desa) dan EXE v3.

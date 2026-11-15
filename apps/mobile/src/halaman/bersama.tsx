@@ -1,4 +1,4 @@
-// Bagian yang dipakai beberapa peran: Buka Berkas, Presensi, Setor Data, usulan (generus baru, ubah status, pindah).
+// Bagian yang dipakai beberapa peran: Buka Berkas, pilih kelompok, Setor ke tingkat atas, usulan (generus baru, ubah status, pindah).
 import { useEffect, useMemo, useState } from 'react'
 import {
   ajukanUsulan,
@@ -7,19 +7,16 @@ import {
   daftarUsulan,
   daftarWilayah,
   infoSinkronHp,
-  jadwalPekan,
   kelompokDalamWilayah,
-  lembarPresensi,
-  catatPresensiMassal,
   setorAkhir,
   tanggalHariIni,
+  tujuanSetor,
   KATEGORI_GENERUS,
   type Generus,
-  type StatusPresensi,
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
-import { Isian, KeadaanData, Kartu, Konfirmasi, Lencana, Modal, Pilihan, Segmen, Tombol, AreaTeks, JudulHalaman } from '../komponen/ui'
-import { label, LABEL_JENIS_USULAN, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_USULAN, tanggalTeks, waktuTeks } from '../utils/label'
+import { Isian, KeadaanData, Kartu, Konfirmasi, Lencana, Modal, Pilihan, Segmen, Tombol, AreaTeks } from '../komponen/ui'
+import { label, LABEL_JENIS_USULAN, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_USULAN, waktuTeks } from '../utils/label'
 
 /** Kartu "Buka Berkas" universal (PAKET, BALASAN, JADWAL, MATERI, BELAJAR). */
 export function KartuBukaBerkas(p: { keterangan?: string }) {
@@ -59,112 +56,14 @@ export function PilihKelompok(p: { nilai: string; ubah: (v: string) => void }) {
   return <Pilihan label="Kelompok" nilai={p.nilai} ubah={p.ubah} pilihan={kel.map((k) => ({ nilai: k.id, teks: k.nama }))} />
 }
 
-const PILIHAN_PRESENSI: { nilai: StatusPresensi; teks: string }[] = [
-  { nilai: 'hadir', teks: 'Hadir' },
-  { nilai: 'izin', teks: 'Izin' },
-  { nilai: 'sakit', teks: 'Sakit' },
-  { nilai: 'alpa', teks: 'Alpa' },
-]
-
-/** Presensi satu pertemuan (pengurus & mubaligh). */
-export function HalamanPresensi(p: { kembali?: () => void }) {
-  const { db, profil, aksi } = useApp()
-  const kelSaya = useKelompokSaya()
-  const [kelompokId, setKelompokId] = useState(profil.tingkat === 'kelompok' ? profil.wilayah_id : '')
-  const kel = kelompokId || kelSaya[0]?.id || ''
-  const [tanggal, setTanggal] = useState(tanggalHariIni())
-  const [pertemuan, setPertemuan] = useState('')
-  const [isian, setIsian] = useState<Record<string, StatusPresensi>>({})
-
-  const acara = useData(() => (kel ? jadwalPekan(db, kel, tanggal).acara.filter((a) => a.tanggal === tanggal && !a.dibatalkan) : []), [kel, tanggal])
-  const pengajianId = pertemuan.startsWith('r:') ? pertemuan.slice(2) : null
-  const jadwalTambahanId = pertemuan.startsWith('t:') ? pertemuan.slice(2) : null
-  const lembar = useData(() => (kel ? lembarPresensi(db, { kelompokId: kel, tanggal, pengajianId, jadwalTambahanId }) : []), [kel, tanggal, pertemuan])
-
-  // isi awal dari catatan yang sudah ada setiap kali pertemuan berganti
-  const kunciLembar = `${kel}|${tanggal}|${pertemuan}`
-  useEffect(() => {
-    const awal: Record<string, StatusPresensi> = {}
-    for (const b of lembar.data ?? []) if (b.status) awal[b.generus_id] = b.status
-    setIsian(awal)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kunciLembar])
-
-  const terisi = Object.keys(isian).length
-  return (
-    <>
-      <JudulHalaman judul="Presensi" keterangan="Tandai kehadiran generus pada satu pertemuan." kembali={p.kembali} />
-      <Kartu>
-        <PilihKelompok nilai={kel} ubah={setKelompokId} />
-        <Isian label="Tanggal" type="date" nilai={tanggal} ubah={(v) => v && setTanggal(v)} />
-        <Pilihan
-          label="Pertemuan"
-          nilai={pertemuan}
-          ubah={setPertemuan}
-          kosong="Pertemuan lain / umum"
-          pilihan={(acara.data ?? []).map((a) => ({
-            nilai: a.jenis === 'rutin' ? `r:${a.pengajian_id}` : `t:${a.jadwal_tambahan_id}`,
-            teks: `${a.jam ? `${a.jam} · ` : ''}${a.judul}${a.jenis === 'tambahan' ? ' (tambahan)' : ''}`,
-          }))}
-        />
-      </Kartu>
-      <KeadaanData hasil={lembar} kosong={(d) => d.length === 0} teksKosong="Belum ada generus aktif di kelompok ini. Buka berkas data dari admin dulu.">
-        {(d) => (
-          <Kartu
-            judul={`${d.length} generus`}
-            aksi={
-              <Tombol kecil varian="kedua" onClick={() => setIsian(Object.fromEntries(d.map((b) => [b.generus_id, 'hadir' as StatusPresensi])))}>
-                Semua hadir
-              </Tombol>
-            }
-          >
-            <ul className="daftar-presensi">
-              {d.map((b) => (
-                <li key={b.generus_id}>
-                  <span className="nama">{b.nama}</span>
-                  <Segmen
-                    kecil
-                    label={`Kehadiran ${b.nama}`}
-                    nilai={isian[b.generus_id] ?? null}
-                    ubah={(v) => setIsian((s) => ({ ...s, [b.generus_id]: v }))}
-                    pilihan={PILIHAN_PRESENSI}
-                  />
-                </li>
-              ))}
-            </ul>
-            <Tombol
-              penuh
-              disabled={!terisi}
-              onClick={() =>
-                aksi(
-                  () =>
-                    catatPresensiMassal(db, {
-                      kelompokId: kel,
-                      tanggal,
-                      pengajianId,
-                      jadwalTambahanId,
-                      daftar: Object.entries(isian).map(([generusId, status]) => ({ generusId, status })),
-                    }),
-                  (r) => `Presensi ${r.length} generus tersimpan (${tanggalTeks(tanggal)}).`,
-                )
-              }
-            >
-              Simpan presensi ({terisi})
-            </Tombol>
-          </Kartu>
-        )}
-      </KeadaanData>
-    </>
-  )
-}
-
-/** Setor Data ke admin (pengurus & mubaligh) + Setor Akhir (mubaligh). */
+/** Setor ke tingkat atas (desa/kelompok/daerah sesuai token, `tujuanSetor`) + Setor Akhir (mubaligh). */
 export function KartuSetorData(p: { setorAkhir?: boolean }) {
   const { db, kirimBerkas, aksi } = useApp()
   const info = useData(() => infoSinkronHp(db), [])
+  const tujuan = useData(() => tujuanSetor(db)?.nama ?? 'Daerah', []).data ?? 'Daerah'
   const [tanyaAkhir, setTanyaAkhir] = useState(false)
   return (
-    <Kartu judul="Setor Data ke Admin">
+    <Kartu judul={`Setor ke ${tujuan}`}>
       <KeadaanData hasil={info}>
         {(i) => (
           <>
@@ -177,26 +76,32 @@ export function KartuSetorData(p: { setorAkhir?: boolean }) {
                 'Semua data sudah disetor.'
               )}
               <br />
-              <small>Setor terakhir: {waktuTeks(i.terakhirSetor)} · Data admin terakhir: {waktuTeks(i.terakhirPaket)}</small>
+              <small>Setor terakhir: {waktuTeks(i.terakhirSetor)} · Data dari atas terakhir: {waktuTeks(i.terakhirPaket)}</small>
+              {i.belumSampaiDaerah ? (
+                <>
+                  <br />
+                  <small>{i.belumSampaiDaerah} data sudah disetor tetapi belum dipastikan sampai daerah.</small>
+                </>
+              ) : null}
             </p>
             <Tombol
               penuh
               onClick={async () => {
                 const b = await aksi(() => buatSetor(db))
-                if (b) await kirimBerkas(b, 'Berkas setoran siap. Kirim ke admin lewat WA.')
+                if (b) await kirimBerkas(b, `Berkas setoran siap. Kirim ke ${tujuan} lewat WA.`)
               }}
             >
-              Setor Data
+              Setor ke {tujuan}
             </Tombol>
             <details className="lanjutan">
               <summary>Pilihan lain</summary>
-              <p>Bila admin meminta, kirim ulang semua data yang pernah dicatat di HP ini.</p>
+              <p>Bila admin {tujuan} meminta, kirim ulang semua data yang pernah dicatat di HP ini.</p>
               <Tombol
                 penuh
                 varian="kedua"
                 onClick={async () => {
                   const b = await aksi(() => buatSetor(db, { semua: true }))
-                  if (b) await kirimBerkas(b, 'Berkas berisi semua data siap dikirim ke admin.')
+                  if (b) await kirimBerkas(b, `Berkas berisi semua data siap dikirim ke ${tujuan}.`)
                 }}
               >
                 Kirim ulang semua data
@@ -216,14 +121,14 @@ export function KartuSetorData(p: { setorAkhir?: boolean }) {
       {tanyaAkhir ? (
         <Konfirmasi
           judul="Setor Akhir"
-          pesan="Berkas ini menandai semua data Anda sudah diserahkan ke admin sebelum serah terima. Lanjutkan?"
+          pesan={`Berkas ini menandai semua data Anda sudah diserahkan ke ${tujuan} sebelum serah terima. Lanjutkan?`}
           ya="Buat Setor Akhir"
           bahaya
           batal={() => setTanyaAkhir(false)}
           setuju={async () => {
             setTanyaAkhir(false)
             const b = await aksi(() => setorAkhir(db))
-            if (b) await kirimBerkas(b, 'Berkas Setor Akhir siap. Kirim ke admin lewat WA.')
+            if (b) await kirimBerkas(b, `Berkas Setor Akhir siap. Kirim ke ${tujuan} lewat WA.`)
           }}
         />
       ) : null}

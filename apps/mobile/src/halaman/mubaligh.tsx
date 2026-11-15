@@ -1,5 +1,6 @@
-// Layar peran Mubaligh: Beranda · Setoran Generus · Simak Langsung · Generus · Lainnya
-// (Presensi, Terbitkan Token, Jadwal Tambahan, Laporan Pekanan, Kirim Balasan, Setor Data/Setor Akhir, Buka Berkas).
+// Layar peran Mubaligh (v3, disederhanakan): Absen · Jadwal · Materi · Lainnya
+// (Setoran generus, Simak Langsung, Generus, Terbitkan Token, Kirim Balasan, Laporan Pekanan WA, Setor ke Desa/Kelompok,
+// Buka Berkas). Absen ada di halaman/absen.tsx (dipakai juga pengurus).
 import { useMemo, useState } from 'react'
 import {
   batalkanJadwalTambahan,
@@ -12,7 +13,7 @@ import {
   daftarPerangkatRinci,
   laporanWaKelompok,
   namaHari,
-  ringkasanKelompok,
+  progresKelas,
   sahkan,
   simakLangsung,
   tambahJadwalTambahan,
@@ -23,47 +24,14 @@ import {
   type KemajuanRinci,
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
-import type { PropHalaman } from '../kerangka'
 import { PemindaiQr, QrBerseri } from '../komponen/qr'
 import { cariMateri, FormKemajuan, keDataKemajuan, KEMAJUAN_KOSONG, PemilihMateri, useMateriGenerus, type IsianKemajuan } from '../komponen/materi'
-import { Angka, AreaTeks, Isian, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, MenuDaftar, Modal, Pilihan, Segmen, Tombol } from '../komponen/ui'
-import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_TOKEN, LABEL_ROLE, tanggalTeks } from '../utils/label'
-import { DaftarUsulan, FormGenerusBaru, FormUsulanGenerus, HalamanPresensi, KartuBukaBerkas, KartuSetorData } from './bersama'
+import { AreaTeks, BilahPersen, Isian, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, MenuDaftar, Modal, Pilihan, Segmen, Tombol } from '../komponen/ui'
+import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_TOKEN, LABEL_ROLE, labelPeriode, persenTeks, tanggalTeks } from '../utils/label'
+import { DaftarUsulan, FormGenerusBaru, FormUsulanGenerus, KartuBukaBerkas, KartuSetorData } from './bersama'
+import { useTujuanSetor } from './absen'
+import { JadwalGenerus } from './generus'
 import { KartuGenerus } from './pengurus'
-
-export function BerandaMubaligh(p: PropHalaman) {
-  const { db, profil } = useApp()
-  const r = useData(() => ringkasanKelompok(db, profil.wilayah_id), [profil.id])
-  return (
-    <>
-      <JudulHalaman judul={`Assalamu'alaikum, ${profil.nama}`} keterangan="Mubaligh" />
-      <KeadaanData hasil={r}>
-        {(x) => (
-          <Kartu judul={x.kelompok ? `Kelompok ${x.kelompok.nama}` : 'Kelompok Anda'}>
-            {!x.kelompok ? <p>Data kelompok belum ada. Buka berkas data dari admin di menu Lainnya → Buka Berkas.</p> : null}
-            <div className="baris-angka">
-              <Angka nilai={x.generusAktif} teks="Generus aktif" />
-              <Angka nilai={x.generusMondok} teks="Mondok" warna="kuning" />
-              <Angka nilai={x.kemajuanDiajukan} teks="Menunggu disahkan" warna={x.kemajuanDiajukan ? 'merah' : 'hijau'} />
-              <Angka nilai={x.usulanMenunggu} teks="Usulan ke admin" warna="abu" />
-            </div>
-          </Kartu>
-        )}
-      </KeadaanData>
-      <div className="tumpuk">
-        <Tombol penuh onClick={() => p.pergi('setoran')}>
-          Setoran Generus
-        </Tombol>
-        <Tombol penuh varian="kedua" onClick={() => p.pergi('simak')}>
-          Simak Langsung
-        </Tombol>
-        <Tombol penuh varian="kedua" onClick={() => p.pergi('lainnya')}>
-          Presensi, Token, Jadwal, Laporan…
-        </Tombol>
-      </div>
-    </>
-  )
-}
 
 // ---------------- Setoran Generus ----------------
 
@@ -100,7 +68,7 @@ function ItemDiajukan(p: { k: KemajuanRinci }) {
   )
 }
 
-export function SetoranGenerus() {
+export function SetoranGenerus(p: { kembali?: () => void }) {
   const { db, profil, platform, bukaBerkas } = useApp()
   const daftar = useData(() => daftarDiajukanRinci(db, profil.wilayah_id), [profil.id])
   const perGenerus = useMemo(() => {
@@ -114,7 +82,7 @@ export function SetoranGenerus() {
   }, [daftar.data])
   return (
     <>
-      <JudulHalaman judul="Setoran Generus" keterangan="Buka berkas setoran dari HP generus, lalu sahkan atau tolak." />
+      <JudulHalaman judul="Setoran Generus" keterangan="Buka berkas setoran dari HP generus, lalu sahkan atau tolak." kembali={p.kembali} />
       <Kartu>
         <Tombol
           penuh
@@ -147,7 +115,7 @@ export function SetoranGenerus() {
 
 // ---------------- Simak Langsung ----------------
 
-export function SimakLangsung() {
+export function SimakLangsung(p: { kembali?: () => void }) {
   const { db, profil, aksi } = useApp()
   const generus = useData(() => cariGenerus(db, { kelompokId: profil.wilayah_id, status: 'aktif' }), [profil.id])
   const [gid, setGid] = useState('')
@@ -157,7 +125,7 @@ export function SimakLangsung() {
   const m = cariMateri(materi.data, materiId)
   return (
     <>
-      <JudulHalaman judul="Simak Langsung" keterangan="Untuk generus tanpa HP: catatan langsung disahkan." />
+      <JudulHalaman judul="Simak Langsung" keterangan="Untuk generus tanpa HP: catatan langsung disahkan." kembali={p.kembali} />
       <KeadaanData hasil={generus} kosong={(d) => d.length === 0} teksKosong="Belum ada generus aktif. Buka berkas data dari admin.">
         {(d) => (
           <Kartu>
@@ -202,7 +170,7 @@ export function SimakLangsung() {
 
 // ---------------- Generus ----------------
 
-export function GenerusMubaligh() {
+export function GenerusMubaligh(p: { kembali?: () => void }) {
   const { db, profil } = useApp()
   const [cari, setCari] = useState('')
   const [detail, setDetail] = useState<GenerusRinci | null>(null)
@@ -211,7 +179,7 @@ export function GenerusMubaligh() {
   const materi = useMateriGenerus(detail?.id)
   return (
     <>
-      <JudulHalaman judul="Generus" keterangan="Perubahan data diajukan ke admin sebagai usulan." />
+      <JudulHalaman judul="Generus" keterangan="Perubahan data diajukan ke admin sebagai usulan." kembali={p.kembali} />
       <Kartu>
         <Isian label="Cari nama" nilai={cari} ubah={setCari} placeholder="Ketik nama…" />
         <Tombol penuh varian="kedua" onClick={() => setForm('baru')}>
@@ -271,20 +239,24 @@ export function GenerusMubaligh() {
 
 // ---------------- Lainnya ----------------
 
-type Sub = 'menu' | 'presensi' | 'token' | 'jadwal' | 'laporan' | 'balasan' | 'setor' | 'berkas'
+type Sub = 'menu' | 'setoran' | 'simak' | 'generus' | 'token' | 'laporan' | 'balasan' | 'setor' | 'berkas'
 
 export function LainnyaMubaligh() {
+  const { db, profil } = useApp()
   const [sub, setSub] = useState<Sub>('menu')
+  const tujuan = useTujuanSetor()
+  const menunggu = useData(() => daftarDiajukanRinci(db, profil.wilayah_id).length, [profil.id]).data ?? 0
   const kembali = () => setSub('menu')
-  if (sub === 'presensi') return <HalamanPresensi kembali={kembali} />
+  if (sub === 'setoran') return <SetoranGenerus kembali={kembali} />
+  if (sub === 'simak') return <SimakLangsung kembali={kembali} />
+  if (sub === 'generus') return <GenerusMubaligh kembali={kembali} />
   if (sub === 'token') return <TerbitkanToken kembali={kembali} />
-  if (sub === 'jadwal') return <JadwalTambahan kembali={kembali} />
   if (sub === 'laporan') return <LaporanPekananMubaligh kembali={kembali} />
   if (sub === 'balasan') return <KirimBalasan kembali={kembali} />
   if (sub === 'setor')
     return (
       <>
-        <JudulHalaman judul="Setor Data" kembali={kembali} />
+        <JudulHalaman judul={`Setor ke ${tujuan}`} kembali={kembali} />
         <KartuSetorData setorAkhir />
       </>
     )
@@ -292,7 +264,7 @@ export function LainnyaMubaligh() {
     return (
       <>
         <JudulHalaman judul="Buka Berkas" kembali={kembali} />
-        <KartuBukaBerkas keterangan="Buka berkas data dari admin, materi, atau setoran belajar generus." />
+        <KartuBukaBerkas keterangan="Buka berkas data dari desa/daerah, materi, atau setoran belajar generus." />
       </>
     )
   return (
@@ -300,15 +272,121 @@ export function LainnyaMubaligh() {
       <JudulHalaman judul="Lainnya" />
       <MenuDaftar
         item={[
-          { teks: 'Presensi', ket: 'Kehadiran pengajian', ikon: '✓', buka: () => setSub('presensi') },
+          { teks: 'Setoran Generus', ket: menunggu ? `${menunggu} menunggu disahkan` : 'Buka setoran belajar, lalu sahkan', ikon: '⇩', buka: () => setSub('setoran') },
+          { teks: 'Simak Langsung', ket: 'Untuk generus tanpa HP', ikon: '♪', buka: () => setSub('simak') },
+          { teks: 'Generus', ket: 'Data & usulan perubahan', ikon: '☺', buka: () => setSub('generus') },
           { teks: 'Terbitkan Token', ket: 'Untuk HP generus / orang tua', ikon: '⚿', buka: () => setSub('token') },
-          { teks: 'Jadwal Tambahan', ket: 'Buat & bagikan ke grup WA', ikon: '◷', buka: () => setSub('jadwal') },
-          { teks: 'Laporan Pekanan', ket: 'Kirim WA ke orang tua', ikon: '▤', buka: () => setSub('laporan') },
           { teks: 'Kirim Balasan', ket: 'Hasil pengesahan ke HP generus/wali', ikon: '↩', buka: () => setSub('balasan') },
-          { teks: 'Setor Data', ket: 'Kirim catatan ke admin; Setor Akhir', ikon: '⇧', buka: () => setSub('setor') },
-          { teks: 'Buka Berkas', ket: 'Berkas dari admin atau generus', ikon: '⇩', buka: () => setSub('berkas') },
+          { teks: 'Laporan Pekanan', ket: 'Kirim WA ke orang tua', ikon: '▤', buka: () => setSub('laporan') },
+          { teks: `Setor ke ${tujuan}`, ket: 'Kirim catatan; Setor Akhir', ikon: '⇧', buka: () => setSub('setor') },
+          { teks: 'Buka Berkas', ket: 'Berkas dari desa/daerah atau generus', ikon: '⇩', buka: () => setSub('berkas') },
         ]}
       />
+    </>
+  )
+}
+
+// ---------------- Jadwal ----------------
+
+/** Jadwal kelompok (rutin + tambahan) dan formulir jadwal tambahan + bagikan ke grup WA. */
+export function JadwalMubaligh() {
+  return (
+    <>
+      <JadwalGenerus />
+      <JadwalTambahan />
+    </>
+  )
+}
+
+// ---------------- Materi (progres kelas) ----------------
+
+/** Target kurikulum periode aktif per kelas (kategori generus) dengan progres tiap generus. */
+export function MateriKelas() {
+  const { db, profil } = useApp()
+  const kategori = useData(
+    () => [...new Set(cariGenerus(db, { kelompokId: profil.wilayah_id, status: 'aktif' }).map((g) => g.kategori as string))].sort(),
+    [profil.id],
+  ).data ?? []
+  const [pilih, setPilih] = useState('')
+  const kat = kategori.includes(pilih) ? pilih : kategori[0] ?? ''
+  const progres = useData(() => (kat ? progresKelas(db, profil.wilayah_id, kat) : null), [profil.id, kat])
+  const [rinci, setRinci] = useState<string | null>(null)
+  const namaMateri = new Map((progres.data?.materi ?? []).map((m) => [m.materi_id, m.nama]))
+  const g = progres.data?.generus.find((x) => x.generus_id === rinci)
+  return (
+    <>
+      <JudulHalaman judul="Materi" keterangan="Target kurikulum tiap kelas dan capaian generus." />
+      {!kategori.length ? <Kosong teks="Belum ada generus aktif. Buka berkas data dari desa/daerah (Lainnya → Buka Berkas)." /> : null}
+      {kategori.length > 1 ? (
+        <Segmen label="Kelas" nilai={kat} ubah={setPilih} pilihan={kategori.map((k) => ({ nilai: k, teks: label(LABEL_KATEGORI, k) }))} />
+      ) : null}
+      {kat ? (
+        <KeadaanData hasil={progres} kosong={(d) => !d}>
+          {(d) =>
+            !d!.materi.length ? (
+              <Kosong teks={`Target kurikulum kelas ${label(LABEL_KATEGORI, kat)} untuk ${labelPeriode(d!.periode)} belum ada. Buka berkas materi terbaru dari daerah.`} />
+            ) : (
+              <>
+                <Kartu judul={`Kelas ${label(LABEL_KATEGORI, kat)}`}>
+                  <p className="keterangan">{labelPeriode(d!.periode)}</p>
+                  <div className="capaian-besar">
+                    <strong>{persenTeks(d!.rataRata)}</strong>
+                    <span>rata-rata capaian {d!.generus.length} generus</span>
+                  </div>
+                  <BilahPersen persen={d!.rataRata} label={`Rata-rata capaian kelas ${label(LABEL_KATEGORI, kat)}`} />
+                </Kartu>
+                <Kartu judul={`Target materi (${d!.materi.length})`}>
+                  {d!.materi.map((m) => (
+                    <div key={m.materi_id} className="baris-progres">
+                      <div className="atas">
+                        <span>
+                          {m.urutan}. {m.nama}
+                        </span>
+                        <small>
+                          {m.jumlahTuntas}/{m.jumlahGenerus} tuntas
+                        </small>
+                      </div>
+                      <BilahPersen kecil persen={m.jumlahGenerus ? (m.jumlahTuntas / m.jumlahGenerus) * 100 : 0} label={`Tuntas ${m.nama}`} />
+                    </div>
+                  ))}
+                </Kartu>
+                <Kartu judul="Capaian tiap generus">
+                  {d!.generus.map((x) => (
+                    <button key={x.generus_id} type="button" className="baris-progres" onClick={() => setRinci(x.generus_id)} aria-label={`Rincian capaian ${x.nama}`}>
+                      <span className="atas">
+                        <span>{x.nama}</span>
+                        <small>
+                          {x.tuntas}/{x.total} · <b>{persenTeks(x.persen)}</b>
+                        </small>
+                      </span>
+                      <BilahPersen kecil persen={x.persen} label={`Capaian ${x.nama}`} />
+                    </button>
+                  ))}
+                </Kartu>
+              </>
+            )
+          }
+        </KeadaanData>
+      ) : null}
+      {g ? (
+        <Modal judul={`Capaian ${g.nama}`} tutup={() => setRinci(null)}>
+          <p>
+            {g.tuntas} dari {g.total} materi tuntas ({persenTeks(g.persen)}).
+          </p>
+          {g.belum.length ? (
+            <>
+              <h3>Belum tuntas</h3>
+              <ol>
+                {g.belum.map((id) => (
+                  <li key={id}>{namaMateri.get(id) ?? id}</li>
+                ))}
+              </ol>
+            </>
+          ) : (
+            <p>Semua target sudah tuntas.</p>
+          )}
+        </Modal>
+      ) : null}
     </>
   )
 }
@@ -381,6 +459,7 @@ function TerbitkanToken(p: { kembali: () => void }) {
             {pindai ? (
               <PemindaiQr
                 awalan="PPGD1."
+                pemindai={platform.pemindai}
                 labelTempel="Atau tempel Kode Perangkat"
                 batal={() => setPindai(false)}
                 dapat={(t) => {
@@ -469,7 +548,7 @@ function TerbitkanToken(p: { kembali: () => void }) {
   )
 }
 
-function JadwalTambahan(p: { kembali: () => void }) {
+function JadwalTambahan() {
   const { db, profil, aksi, kirimBerkas } = useApp()
   const hariIni = tanggalHariIni()
   const daftar = useData(() => daftarJadwalTambahan(db, profil.wilayah_id, { mulai: hariIni, termasukBatal: true }), [profil.id])
@@ -479,8 +558,8 @@ function JadwalTambahan(p: { kembali: () => void }) {
   const [ket, setKet] = useState('')
   return (
     <>
-      <JudulHalaman judul="Jadwal Tambahan" keterangan="Kegiatan di luar jadwal rutin, dibagikan ke grup WA kelompok." kembali={p.kembali} />
-      <Kartu judul="Tambah jadwal">
+      <Kartu judul="Tambah jadwal tambahan">
+        <p className="keterangan">Kegiatan di luar jadwal rutin, dibagikan ke grup WA kelompok.</p>
         <Isian label="Judul kegiatan" nilai={judul} ubah={setJudul} placeholder="mis. Muroja'ah bersama" />
         <div className="baris-dua">
           <Isian label="Tanggal" type="date" nilai={tanggal} ubah={(v) => v && setTanggal(v)} />
@@ -505,7 +584,7 @@ function JadwalTambahan(p: { kembali: () => void }) {
         </Tombol>
       </Kartu>
       <Kartu
-        judul="Jadwal mendatang"
+        judul="Jadwal tambahan mendatang"
         aksi={
           <Tombol
             kecil

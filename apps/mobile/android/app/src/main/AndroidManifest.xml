@@ -56,12 +56,16 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- @capacitor-mlkit/barcode-scanning (sesuai petunjuk plugin). Aplikasi hanya memakai startScan dengan model
+             ML Kit yang dibundel di APK (tanpa internet); modul Google "barcode_ui" ini tidak dipakai. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Kamera untuk memindai QR token / Kode Perangkat (getUserMedia di WebView) -->
+    <!-- Kamera untuk memindai QR token / Kode Perangkat (pemindai native ML Kit; izin diminta saat memindai) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />

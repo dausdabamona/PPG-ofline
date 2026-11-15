@@ -1,4 +1,4 @@
-// Layar peran Pengurus: Beranda · Presensi · Data · Rekap · Sinkron.
+// Layar peran Pengurus: Beranda (pengingat setor) · Absen · Data · Rekap · Sinkron (Setor ke Desa/Kelompok, Buka Berkas).
 import { useState } from 'react'
 import { ambilWilayah, cariGenerus, rekapKemajuan, rekapPresensi, tambahHari, tanggalHariIni, type GenerusRinci } from '@ppg/core'
 import { useApp, useData } from '../konteks'
@@ -6,6 +6,7 @@ import type { PropHalaman } from '../kerangka'
 import { Angka, Isian, JudulHalaman, KeadaanData, Kartu, Lencana, Modal, Tombol } from '../komponen/ui'
 import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, tanggalTeks } from '../utils/label'
 import { DaftarUsulan, FormGenerusBaru, KartuBukaBerkas, KartuSetorData, PilihKelompok, useKelompokSaya } from './bersama'
+import { KartuPengingatSetor } from './absen'
 
 export function BerandaPengurus(p: PropHalaman) {
   const { db, profil } = useApp()
@@ -20,6 +21,7 @@ export function BerandaPengurus(p: PropHalaman) {
   return (
     <>
       <JudulHalaman judul={`Assalamu'alaikum, ${profil.nama}`} keterangan="Pengurus" />
+      <KartuPengingatSetor />
       <KeadaanData hasil={ringkas}>
         {(r) => (
           <Kartu judul={r.wilayah}>
@@ -27,16 +29,16 @@ export function BerandaPengurus(p: PropHalaman) {
               <Angka nilai={r.aktif} teks="Generus aktif" />
               <Angka nilai={r.mondok} teks="Sedang mondok" warna="kuning" />
             </div>
-            {r.aktif + r.mondok === 0 ? <p>Data generus belum ada. Buka berkas data dari admin.</p> : null}
+            {r.aktif + r.mondok === 0 ? <p>Data generus belum ada. Buka berkas data dari desa/daerah.</p> : null}
           </Kartu>
         )}
       </KeadaanData>
       <div className="tumpuk">
-        <Tombol penuh onClick={() => p.pergi('presensi')}>
-          Isi Presensi
+        <Tombol penuh onClick={() => p.pergi('absen')}>
+          Isi Absen
         </Tombol>
         <Tombol penuh varian="kedua" onClick={() => p.pergi('sinkron')}>
-          Setor Data / Buka Berkas
+          Setor / Buka Berkas
         </Tombol>
       </div>
     </>
@@ -209,9 +211,9 @@ export function RekapPengurus() {
 export function SinkronPengurus() {
   return (
     <>
-      <JudulHalaman judul="Sinkron" keterangan="Kirim catatan ke admin dan buka berkas dari admin." />
+      <JudulHalaman judul="Sinkron" keterangan="Kirim catatan ke tingkat atas dan buka berkas yang diterima." />
       <KartuSetorData />
-      <KartuBukaBerkas keterangan="Buka berkas data dari admin (PAKET) atau berkas materi." />
+      <KartuBukaBerkas keterangan="Buka berkas data dari desa/daerah atau berkas materi." />
     </>
   )
 }

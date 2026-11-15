@@ -12,6 +12,24 @@ export interface BerkasKirim {
   bytes: Uint8Array
 }
 
+/** Hasil meminta izin kamera untuk pemindai native. */
+export type IzinKamera = 'diizinkan' | 'ditolak'
+
+/**
+ * Pemindai QR native (APK): kamera tampil di belakang WebView, setiap QR yang terbaca dikirim ke `hasil`
+ * berulang-ulang (termasuk bagian QR berseri yang berganti) sampai `berhenti` dipanggil. Bekerja tanpa internet
+ * (model ML Kit dibundel di APK).
+ */
+export interface PemindaiNative {
+  /** Periksa lalu minta izin kamera saat itu juga (dialog izin Android). */
+  mintaIzin(): Promise<IzinKamera>
+  /** Mulai memindai; `hasil` dipanggil untuk setiap isi QR yang terbaca. */
+  mulai(hasil: (teks: string) => void, galat: (pesan: string) => void): Promise<void>
+  berhenti(): Promise<void>
+  /** Buka pengaturan aplikasi (bila izin kamera ditolak permanen). */
+  bukaPengaturan(): Promise<void>
+}
+
 export interface Platform {
   /** 'native' = APK (Capacitor), 'web' = peramban. */
   jenis: 'native' | 'web'
@@ -39,7 +57,12 @@ export interface Platform {
    * bila false, aplikasi diperkecil (bukan ditutup) agar data tetap aman. Peramban: tidak ada.
    */
   saatTombolKembali(fn: () => boolean): () => void
+  /** Pemindai QR native. Tidak ada (peramban/uji) → pemindai kamera web (getUserMedia + jsQR). */
+  pemindai?: PemindaiNative
 }
+
+/** Kelas pada <html> selama pemindai native aktif: latar dibuat tembus pandang agar kamera terlihat. */
+export const KELAS_PEMINDAI_NATIVE = 'pemindai-native'
 
 const KUNCI_DB = 'ppg-hp-db'
 
@@ -173,6 +196,48 @@ export function platformWeb(urlWasm: string): Platform {
   }
 }
 
+/** Pemindai native lewat @capacitor-mlkit/barcode-scanning (startScan = model ML Kit dibundel, tanpa unduhan). */
+async function pemindaiMlkit(): Promise<PemindaiNative> {
+  const { BarcodeScanner, BarcodeFormat } = await import('@capacitor-mlkit/barcode-scanning')
+  let pendengar: { remove: () => Promise<void> }[] = []
+  const lepasSemua = async () => {
+    const l = pendengar
+    pendengar = []
+    await Promise.all(l.map((h) => h.remove().catch(() => undefined)))
+  }
+  const boleh = (s: string) => s === 'granted' || s === 'limited'
+  return {
+    async mintaIzin() {
+      let s = (await BarcodeScanner.checkPermissions()).camera
+      if (!boleh(s)) s = (await BarcodeScanner.requestPermissions()).camera
+      return boleh(s) ? 'diizinkan' : 'ditolak'
+    },
+    async mulai(hasil, galat) {
+      await lepasSemua()
+      document.documentElement.classList.add(KELAS_PEMINDAI_NATIVE)
+      pendengar.push(
+        await BarcodeScanner.addListener('barcodesScanned', (e) => {
+          for (const b of e.barcodes) if (b.rawValue) hasil(b.rawValue)
+        }),
+      )
+      pendengar.push(await BarcodeScanner.addListener('scanError', (e) => galat(e.message)))
+      try {
+        await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode] })
+      } catch (e) {
+        document.documentElement.classList.remove(KELAS_PEMINDAI_NATIVE)
+        await lepasSemua()
+        throw e
+      }
+    },
+    async berhenti() {
+      document.documentElement.classList.remove(KELAS_PEMINDAI_NATIVE)
+      await lepasSemua()
+      await BarcodeScanner.stopScan().catch(() => undefined)
+    },
+    bukaPengaturan: () => BarcodeScanner.openSettings(),
+  }
+}
+
 /**
  * Platform APK (Capacitor): berkas keluar ditulis ke folder Cache lalu dibagikan (Share → WA);
  * berkas masuk dari intent VIEW/SEND (`appUrlOpen` / `getLaunchUrl`) dibaca dengan Filesystem.
@@ -184,6 +249,7 @@ export async function platformNative(urlWasm: string): Promise<Platform> {
     import('@capacitor/app'),
   ])
   const web = platformWeb(urlWasm)
+  const pemindai = await pemindaiMlkit()
 
   const tulisCache = async (nama: string, bytes: Uint8Array) => {
     const r = await Filesystem.writeFile({ path: nama, data: keB64(bytes), directory: Directory.Cache, recursive: true })
@@ -199,6 +265,7 @@ export async function platformNative(urlWasm: string): Promise<Platform> {
   return {
     ...web,
     jenis: 'native',
+    pemindai,
     saatLatarBelakang(fn) {
       const h = App.addListener('appStateChange', (s) => {
         if (!s.isActive) fn()
