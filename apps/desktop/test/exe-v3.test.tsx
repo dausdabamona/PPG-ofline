@@ -162,10 +162,10 @@ describe('EXE v3 — satu EXE untuk semua tingkat', () => {
     let dlg = await screen.findByRole('dialog')
     await pilihOpsi(u, 'Wilayah', /Klasaman 2/, dlg)
     await u.type(within(dlg).getByLabelText('Nama pengajian'), 'Kelas Caberawit')
-    await u.click(within(dlg).getByRole('checkbox', { name: 'Caberawit' }))
+    await u.click(within(dlg).getByRole('checkbox', { name: 'Caberawit A' }))
     await u.click(within(dlg).getByRole('button', { name: 'Simpan' }))
     const barisKelas = (await screen.findByText('Kelas Caberawit')).closest('tr')!
-    expect(within(barisKelas).getByText('Caberawit')).toBeTruthy()
+    expect(within(barisKelas).getByText('Caberawit A')).toBeTruthy()
 
     await buka(u, 'Perangkat & Token')
     await u.click(screen.getByLabelText('Kode Perangkat'))
@@ -285,7 +285,7 @@ describe('EXE v3 — satu EXE untuk semua tingkat', () => {
     expect(daftarPresensi(dbD, { kelompokIds: [w.ids.A2] })).toHaveLength(3)
     expect(daftarPerangkat(dbD).some((p) => p.nama === 'Ust. Ahmad')).toBe(true)
     expect(daftarUsulan(dbD).map((x) => (JSON.parse(x.data_json) as { nama?: string }).nama)).toContain('Zaid')
-    expect(kategoriKelas(daftarPengajian(dbD).find((p) => p.nama === 'Kelas Caberawit'))).toEqual(['caberawit'])
+    expect(kategoriKelas(daftarPengajian(dbD).find((p) => p.nama === 'Kelas Caberawit'))).toEqual(['caberawit_a'])
   })
 
   it('kurikulum membuat target & berkas Kurikulum; daerah mengimpornya', async () => {
@@ -308,7 +308,7 @@ describe('EXE v3 — satu EXE untuk semua tingkat', () => {
 
     await buka(u, 'Target Capaian')
     const periode = periodeAktif(await bukaDb(pfK.db!))
-    await screen.findByText(`Target Caberawit — ${periode}`)
+    await screen.findByText(`Target Caberawit A — ${periode}`)
     await screen.findByText('Belum ada materi target. Tambahkan dari daftar materi di bawah, atau salin dari periode lain.')
     await pilihOpsi(u, 'Kategori materi', /Hafalan Surat/)
     const tersedia = screen.getByRole('table', { name: 'Materi tersedia' })
@@ -323,17 +323,17 @@ describe('EXE v3 — satu EXE untuk semua tingkat', () => {
     expect(within(screen.getByRole('table', { name: 'Daftar target' })).getAllByRole('row')[1]!.querySelectorAll('td')[1]!.textContent).toBe(nama2)
     expect(screen.getByText('Belum disimpan')).toBeTruthy()
     await u.click(screen.getByRole('button', { name: 'Simpan target' }))
-    await screen.findByText(new RegExp(`Target Caberawit ${periode} disimpan \\(2 materi\\)`))
+    await screen.findByText(new RegExp(`Target Caberawit A ${periode} disimpan \\(2 materi\\)`))
     // salin ke periode berikutnya
     const select = screen.getByLabelText('Periode') as HTMLSelectElement
     const idx = [...select.options].findIndex((o) => o.value === periode)
     const berikut = select.options[idx + 1]!.value
     await u.selectOptions(select, berikut)
-    await screen.findByText(`Target Caberawit — ${berikut}`)
+    await screen.findByText(`Target Caberawit A — ${berikut}`)
     await pilihOpsi(u, 'Salin dari periode', new RegExp(periode))
     await u.click(screen.getByRole('button', { name: 'Salin' }))
     await u.click(screen.getByRole('button', { name: 'Simpan target' }))
-    await screen.findByText(new RegExp(`Target Caberawit ${berikut} disimpan \\(2 materi\\)`))
+    await screen.findByText(new RegExp(`Target Caberawit A ${berikut} disimpan \\(2 materi\\)`))
     await u.click(screen.getByRole('button', { name: 'Jadikan periode aktif' }))
     await screen.findAllByText('Periode aktif')
 
@@ -352,7 +352,7 @@ describe('EXE v3 — satu EXE untuk semua tingkat', () => {
     expect(screen.getByText('Kurikulum')).toBeTruthy()
     expect(screen.getByText(/Dari/).textContent).toMatch(/Tim Kurikulum/)
     await buka(u, 'Target Capaian')
-    await screen.findByText(`Target Caberawit — ${berikut}`)
+    await screen.findByText(`Target Caberawit A — ${berikut}`)
     expect(within(screen.getByRole('table', { name: 'Daftar target' })).getAllByRole('row')).toHaveLength(3)
     const dbD = await dbDari(pfD)
     expect(periodeAktif(dbD)).toBe(berikut)

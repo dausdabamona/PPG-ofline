@@ -165,7 +165,12 @@ function TabGenerus() {
                         <td>{g.nama}</td>
                         <td>{g.jenis_kelamin}</td>
                         <td>{tanggalLokal(g.tanggal_lahir)}</td>
-                        <td>{label(LABEL_KATEGORI, g.kategori)}</td>
+                        <td>
+                          {label(LABEL_KATEGORI, g.kategori)}
+                          {g.kategori === 'caberawit' || g.kategori_saran ? (
+                            <Lencana warna="kuning">{g.kategori === 'caberawit' ? 'tetapkan A/B/C' : 'saran umur — cek'}</Lencana>
+                          ) : null}
+                        </td>
                         <td>{g.kelompok_nama}</td>
                         <td>
                           <Lencana warna={warnaStatus(g.status)}>{label(LABEL_STATUS_GENERUS, g.status)}</Lencana>

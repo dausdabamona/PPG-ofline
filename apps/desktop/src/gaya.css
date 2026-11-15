@@ -804,3 +804,23 @@ img.merek-logo { display: block; background: none; object-fit: contain; }
   padding: 0.3rem 0.5rem;
   background: #fff;
 }
+
+/* §16 — rekap juknis & cetak */
+.tab-jenjang { flex-wrap: wrap; }
+.tabel-rekap th.vertikal { height: 170px; vertical-align: bottom; padding: 4px 2px; min-width: 40px; }
+.tabel-rekap th.vertikal span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; font-size: 0.78rem; }
+.tabel td.angka { text-align: right; font-variant-numeric: tabular-nums; }
+.tabel tr.baris-total td { border-top: 2px solid var(--teal, #0f766e); }
+.aksi-baris { display: inline-flex; gap: 8px; }
+.baris-isian { margin-bottom: 8px; }
+.lembar-rapor { background: #fff; padding: 24px; border-radius: 12px; }
+.lembar-rapor h2 { text-align: center; margin-top: 0; }
+@media print {
+  .bilah-samping, .tidak-cetak, .kepala-halaman .aksi, nav { display: none !important; }
+  .tata-letak { display: block !important; }
+  .isi-utama { margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  .kartu { box-shadow: none !important; border: none !important; }
+  .gulir { overflow: visible !important; }
+  body { background: #fff !important; }
+  .tabel-rekap { font-size: 9pt; }
+}

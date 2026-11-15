@@ -32,7 +32,7 @@ async function pilihOpsi(u: UserEvent, labelSelect: string, pola: RegExp, wadah:
 }
 
 async function buka(u: UserEvent, menu: string) {
-  await u.click(within(screen.getByRole('navigation', { name: 'Menu utama' })).getByRole('button', { name: new RegExp(menu) }))
+  await u.click(within(screen.getByRole('navigation', { name: 'Menu utama' })).getByRole('button', { name: new RegExp(`^.?${menu}$`) }))
   await screen.findByRole('heading', { level: 1, name: menu })
 }
 

@@ -44,7 +44,7 @@ async function pilihOpsi(u: UserEvent, labelSelect: string, pola: RegExp, wadah:
 }
 
 async function buka(u: UserEvent, menu: string) {
-  await u.click(within(screen.getByRole('navigation', { name: 'Menu utama' })).getByRole('button', { name: new RegExp(menu) }))
+  await u.click(within(screen.getByRole('navigation', { name: 'Menu utama' })).getByRole('button', { name: new RegExp(`^.?${menu}$`) }))
   await screen.findByRole('heading', { level: 1, name: menu })
 }
 
@@ -238,5 +238,35 @@ describe('halaman lain', () => {
     await masuk(u, simpanDb(w.db), { batasDiamMs: 150 })
     await screen.findByRole('button', { name: 'Masuk' }, { timeout: 5000 })
     await screen.findByText(/dikunci otomatis/)
+  })
+})
+
+describe('§16 juknis (Fase 10)', () => {
+  it('Evaluasi & Keaktifan: rekap penguasaan per jenjang + ekspor Excel; Materi Evaluasi: target diubah', async () => {
+    const w = await dunia()
+    const u = userEvent.setup()
+    const pf = await masuk(u, simpanDb(w.db))
+    // Ahmad lahir 2015 → saran umur Caberawit B (J-T3), ditandai perlu dicek
+    await buka(u, 'Generus & Jamaah')
+    await screen.findByText('saran umur — cek')
+    await buka(u, 'Evaluasi & Keaktifan')
+    await pilihOpsi(u, 'Wilayah', /Klasaman 1/)
+    await u.click(screen.getByRole('tab', { name: 'Caberawit B' }))
+    const tabel = await screen.findByRole('table', { name: 'Rekap penguasaan materi' })
+    expect(within(tabel).getByText('Ahmad')).toBeTruthy()
+    expect(within(tabel).getAllByRole('columnheader').length).toBe(14 + 3) // No, Nama, 14 materi, TOTAL
+    await u.click(screen.getByRole('button', { name: 'Ekspor Excel' }))
+    await waitFor(() => expect(pf.tersimpan.some((b) => b.nama.startsWith('Rekap_Penguasaan_') && b.nama.endsWith('.xlsx'))).toBe(true))
+    await u.click(screen.getByRole('tab', { name: 'Laporan Bulanan' }))
+    await screen.findByRole('table', { name: 'Laporan bulanan' })
+    await buka(u, 'Materi Evaluasi')
+    await u.click(screen.getByRole('tab', { name: 'Remaja (Generus 2)' }))
+    const baris = (await screen.findByText('Keilmuan sesuai GBMTPG')).closest('tr')!
+    expect(within(baris).getByText('Belum ditetapkan')).toBeTruthy()
+    await u.click(within(baris).getByRole('button', { name: 'Ubah' }))
+    const dlg = await screen.findByRole('dialog')
+    await u.type(within(dlg).getByLabelText(/Target/), '18')
+    await u.click(within(dlg).getByRole('button', { name: 'Simpan' }))
+    await waitFor(() => expect(within((screen.getByText('Keilmuan sesuai GBMTPG')).closest('tr')!).getByText(/18 materi/)).toBeTruthy())
   })
 })

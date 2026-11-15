@@ -116,8 +116,8 @@ describe('APK v3 — mubaligh', () => {
 
     // Materi: target periode aktif per kelas + progres tiap generus
     await nav(u, 'Materi')
-    await screen.findByRole('heading', { name: 'Kelas Caberawit' })
-    expect(within(screen.getByRole('radiogroup', { name: 'Kelas' })).getAllByRole('radio').map((r) => r.textContent)).toEqual(['Caberawit', 'Praremaja'])
+    await screen.findByRole('heading', { name: 'Kelas Caberawit (perlu ditetapkan)' })
+    expect(within(screen.getByRole('radiogroup', { name: 'Kelas' })).getAllByRole('radio').map((r) => r.textContent)).toEqual(['Caberawit (perlu ditetapkan)', 'Pra Remaja (G1)'])
     expect(screen.getByRole('button', { name: 'Rincian capaian Ali' }).textContent).toMatch(/2\/3.*66,7%/)
     expect(screen.getByRole('button', { name: 'Rincian capaian Citra' }).textContent).toMatch(/1\/3/)
     await u.click(screen.getByRole('button', { name: 'Rincian capaian Budi' }))

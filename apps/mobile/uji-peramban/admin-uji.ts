@@ -24,7 +24,8 @@ export async function siapkan() {
   const k1 = tambahWilayah(db, { tingkat: 'kelompok', nama: 'Klasaman 1', kode: 'K1', indukId: ds.id })
   tambahWilayah(db, { tingkat: 'kelompok', nama: 'Klasaman 2', kode: 'K2', indukId: ds.id })
   for (const [i, nama] of ['Ahmad', 'Aisyah', 'Bilal', 'Fatimah'].entries()) {
-    tambahGenerus(db, { kelompokId: k1.id, nama, jenisKelamin: i % 2 ? 'P' : 'L', kategori: 'caberawit', mulai: '2026-01-01', waliNama: 'Pak Fauzi', waliNoHp: '081234567890' })
+    // §16: Ahmad sudah Caberawit C (juknis); lainnya masih "caberawit" lama (perlu ditetapkan)
+    tambahGenerus(db, { kelompokId: k1.id, nama, jenisKelamin: i % 2 ? 'P' : 'L', kategori: i === 0 ? 'caberawit_c' : 'caberawit', mulai: '2026-01-01', waliNama: 'Pak Fauzi', waliNoHp: '081234567890' })
   }
   tambahGenerus(db, { kelompokId: k1.id, nama: 'Zaid', jenisKelamin: 'L', kategori: 'praremaja', mulai: '2026-01-01' })
   const dow = new Date(`${tanggalHariIni()}T00:00:00`).getDay()
