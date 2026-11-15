@@ -124,7 +124,8 @@ export function pastikanProfilBolehMencatat(p: Profil): void {
  * Dipakai oleh fungsi pencatatan kegiatan di HP.
  */
 export function cariProfilPencatat(db: Db, kelompokId: string, role: Role[], hak: Hak = 'catat'): Profil {
-  const kandidat = daftarProfil(db, role).filter((p) => p.hak.includes(hak) && wilayahMencakup(db, p.wilayah_id, kelompokId))
+  // profil tingkat daerah (Super Admin HP, pengurus daerah) mencakup seluruh wilayah, termasuk yang belum ada di pohon lokal
+  const kandidat = daftarProfil(db, role).filter((p) => p.hak.includes(hak) && (p.tingkat === 'daerah' || wilayahMencakup(db, p.wilayah_id, kelompokId)))
   if (kandidat.length === 0) {
     throw new GalatPpg('TIDAK_BERWENANG', 'Tidak ada profil di HP ini yang berwenang untuk kelompok tersebut.')
   }

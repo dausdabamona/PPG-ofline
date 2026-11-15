@@ -1,6 +1,8 @@
 // SETOR: HP pengurus/mubaligh → tingkat atas langsung (EXE kelompok/desa, atau admin daerah untuk token lama);
 // v3: EXE desa/kelompok juga menyusun SETOR GABUNGAN ke atas (rekaman asli apa adanya + token & konfirmasi di bawahnya).
-import type { KunciAdmin } from '../admin'
+import { setujuiUsulan, type KunciAdmin } from '../admin'
+import { adalahGalatPpg } from '../galat'
+import { ambilUsulan } from '../repo/usulan'
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, slug, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { bukaSegel, dariB64url, segelKe } from '../crypto'
 import type { Db } from '../db'
@@ -27,7 +29,7 @@ import { ambilWilayah, kelompokDalamWilayah } from '../repo/wilayah'
 import { daftarGenerus } from '../repo/generus'
 import { PetaRiwayat } from '../laporan'
 import { DAFTAR_TABEL_SINKRON, TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
-import { periksaToken, uraiToken, type PayloadToken } from '../token'
+import { adalahTokenSuperHp, periksaToken, uraiToken, type PayloadToken } from '../token'
 import { sekarangIso, tanggalHariIni, tanggalRingkas } from '../waktu'
 import { bacaBerkasJenis, catatImpor, imporTerdahulu, kunciAdminTerpasang, sidikBerkas } from './umum'
 
@@ -148,6 +150,9 @@ export function tujuanSetor(db: Db): { perangkatId: string; nama: string; tingka
   if (!tp.atas_perangkat_id) return { perangkatId: 'ADMIN', nama: 'Daerah', tingkat: 'daerah' }
   const atas = daftarPerangkat(db, { perangkatId: tp.atas_perangkat_id, role: 'admin' })[0]
   const penerbit = tp.penerbit ? uraiToken(tp.penerbit).payload : undefined
+  // Fase 9: HP yang didaftarkan Super Admin HP menyetor ke HP Super Admin itu
+  const atasSuper = atas?.tingkat === 'daerah' ? atas.nama : penerbit?.perangkat_id === tp.atas_perangkat_id && penerbit.tingkat === 'daerah' ? penerbit.nama : null
+  if (atasSuper !== null) return { perangkatId: tp.atas_perangkat_id, nama: `Super Admin ${atasSuper}`.trim(), tingkat: 'daerah' }
   let wilayahId: string | undefined
   let tingkat: 'desa' | 'kelompok' = 'desa'
   if (atas) {
@@ -183,6 +188,8 @@ export interface RingkasanImporSetor {
   perangkatBawah: number
   /** v3: catatan pencabutan dari EXE pengirim yang diterima. */
   pencabutanDiterima: number
+  /** Fase 9: usulan Super Admin HP yang langsung disetujui daerah. */
+  usulanOtomatis?: number
 }
 
 const ROLE_PENYETOR: readonly PayloadToken['role'][] = ['pengurus', 'mubaligh', 'admin']
@@ -199,8 +206,8 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
   if (!daerah && !exe) throw new GalatPpg('BUKAN_DB_ADMIN', 'Setoran hanya bisa diimpor di aplikasi admin (EXE daerah/desa/kelompok).')
   if (daerah === adalahKunciExe(kunci)) throw new GalatPpg('KUNCI_SALAH', 'Kunci tidak cocok dengan instalasi ini.')
   const peran = peranInstalasi(db)
-  if (exe && peran !== 'desa' && peran !== 'kelompok') {
-    throw new GalatPpg('BUKAN_PENERIMA_SETOR', 'EXE ini tidak menerima setoran (hanya EXE daerah, desa, atau kelompok).')
+  if (exe && peran !== 'desa' && peran !== 'kelompok' && peran !== 'super_hp') {
+    throw new GalatPpg('BUKAN_PENERIMA_SETOR', 'EXE ini tidak menerima setoran (hanya EXE daerah, desa, kelompok, atau Super Admin HP).')
   }
   const b = bacaBerkasJenis(db, bytes, 'SETOR')
   const orgId = daerah ? (kunci as KunciAdmin).orgId : ambilMeta(db, 'org_id')
@@ -212,7 +219,7 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
       'BUKAN_PENERIMA_SETOR',
       tujuan === 'ADMIN'
         ? 'Setoran ini ditujukan langsung ke daerah. Kirim ke admin daerah.'
-        : 'Setoran ini ditujukan ke tingkat lain (EXE kelompok/desa pengirim). Kirim ke tujuan yang benar.',
+        : 'Setoran ini ditujukan ke tingkat lain (EXE kelompok/desa atau Super Admin HP yang mendaftarkan HP itu). Kirim ke tujuan yang benar.',
     )
   }
   const sidik = sidikBerkas(bytes)
@@ -253,6 +260,8 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     throw new GalatPpg('PENGIRIM_TIDAK_SAH', `Setoran ditolak: ${alasanTolak[0] ?? 'tanda tangan atau token pengirim tidak sah.'}`)
   }
   const gabungan = tokenSah.some((p) => p.role === 'admin')
+  // Fase 9: pengirim Super Admin HP (admin tingkat daerah) — usulannya disetujui otomatis di daerah
+  const superPengirim = tokenSah.some((p) => adalahTokenSuperHp(p))
   const idTokenPengirim = new Set(tokenSah.map((p) => p.token_id))
   const dalamCakupan = (wilayahId: string) => tokenSah.some((p) => mencakup(p.wilayah_id, wilayahId) === true)
   const kelompokBoleh = new Set<string>()
@@ -298,7 +307,9 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
           ditolak.push({ tabel: 'perangkat', id: '?', alasan: h.sah ? '' : h.alasan })
           continue
         }
-        if (p.role === 'kurikulum' || idTokenPengirim.has(p.token_id)) continue
+        if (idTokenPengirim.has(p.token_id)) continue
+        // kurikulum hanya dicatat bila diterbitkan pengirim (Fase 9: Super Admin HP menerbitkan EXE kurikulum)
+        if (p.role === 'kurikulum' && !idRantaiPenerbit(t.token).some((id) => idTokenPengirim.has(id))) continue
         if (!dalamCakupan(p.wilayah_id)) {
           ditolak.push({ tabel: 'perangkat', id: p.token_id, alasan: 'Token di luar wilayah pengirim.' })
           continue
@@ -339,7 +350,10 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         if (info.jenis !== 'kegiatan') return null
         const kol = 'kolomKelompok' in info ? info.kolomKelompok : undefined
         const kel = kol ? String(rek[kol] ?? '') : ''
-        if (!kelompokBoleh.has(kel)) return 'Data di luar wilayah pengirim.'
+        // Fase 9: usulan boleh untuk wilayah desa/daerah (tambah wilayah/pengajian) — cukup di dalam cakupan pengirim
+        if (tabel === 'usulan' ? !kelompokBoleh.has(kel) && !(gabungan && (dalamCakupan(kel) || superPengirim)) : !kelompokBoleh.has(kel)) {
+          return 'Data di luar wilayah pengirim.'
+        }
         if (gabungan) {
           if (rek.perangkat_id !== pengirim) {
             const tok = tokenBawah.get(String(rek.perangkat_id))
@@ -360,6 +374,8 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
       },
     }))
     for (const [t, h] of Object.entries(g.perTabel)) for (const d of h!.ditolak) ditolak.push({ tabel: t, ...d })
+    let usulanOtomatis = 0
+    if (daerah && superPengirim) usulanOtomatis = setujuiUsulanSuper(db, isi.rekaman?.usulan ?? [], pengirim, ditolak)
 
     let tokenDilaporkan = 0
     const pencabutan = daftarPencabutan(db)
@@ -417,6 +433,7 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
       perTabel: g.perTabel,
       total: g.total,
       usulanBaru: Math.max(0, usulanSesudah - usulanSebelum),
+      usulanOtomatis,
       tokenDilaporkan,
       ditolak,
       gabungan,
@@ -426,6 +443,35 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     catatImpor(db, b.header, ringkasan, sidik, namaBerkas)
     return ringkasan
   })
+}
+
+/**
+ * Fase 9: usulan dari Super Admin HP (token akar tertanda daerah, bisa dicabut daerah) langsung disetujui di daerah —
+ * master tetap hanya ditulis daerah (K5), id rekaman baru = id yang sudah dipakai HP (mis. generus untuk token wali).
+ * Usulan yang gagal diterapkan tetap menunggu (dicatat di `ditolak` sebagai keterangan).
+ */
+function setujuiUsulanSuper(db: Db, rekaman: unknown[], pengirim: string, ditolak: RingkasanImporSetor['ditolak']): number {
+  let n = 0
+  const urutan: Record<string, number> = { tambah_wilayah: 0, tambah_pengajian: 1, tambah_generus: 2 }
+  const daftar = rekaman
+    .filter((r): r is Rekaman => !!r && typeof (r as Rekaman).id === 'string' && (r as Rekaman).perangkat_id === pengirim)
+    .map((r) => ambilUsulan(db, r.id))
+    .filter((u): u is NonNullable<typeof u> => !!u && u.status === 'menunggu' && u.perangkat_id === pengirim)
+    // wilayah baru dulu (desa sebelum kelompok), lalu pengajian, generus, dan perubahan lain
+    .sort((a, b) => (urutan[a.jenis] ?? 3) - (urutan[b.jenis] ?? 3) || tingkatUsulan(a.data) - tingkatUsulan(b.data) || a.dibuat_pada.localeCompare(b.dibuat_pada))
+  for (const u of daftar) {
+    try {
+      db.transaksi(() => setujuiUsulan(db, u.id))
+      n++
+    } catch (e) {
+      ditolak.push({ tabel: 'usulan', id: u.id, alasan: `Usulan belum bisa disetujui otomatis: ${adalahGalatPpg(e) ? e.pesan : String(e)}` })
+    }
+  }
+  return n
+}
+
+function tingkatUsulan(d: Record<string, unknown>): number {
+  return d.tingkat === 'desa' ? 0 : d.tingkat === 'kelompok' ? 1 : 2
 }
 
 /** Daerah: penugasan mubaligh untuk token mubaligh yang diterbitkan EXE desa (dilaporkan lewat SETOR gabungan). */

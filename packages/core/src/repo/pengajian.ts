@@ -48,6 +48,8 @@ export function tambahPengajian(
     tempat?: string | null
     /** v3: kelas — kategori generus yang diajar (kosong = semua). */
     kategoriGenerus?: KategoriGenerus[] | null
+    /** Fase 9: id tetap (usulan Super Admin HP). */
+    id?: string
   },
 ): Pengajian {
   pastikanAdmin(db)
@@ -62,7 +64,7 @@ export function tambahPengajian(
     jam: d.jam ?? null,
     tempat: d.tempat ?? null,
     kategori_generus: csvKategori(d.kategoriGenerus),
-  })
+  }, d.id ? { id: d.id } : {})
 }
 
 /** Ubah pengajian (admin). */

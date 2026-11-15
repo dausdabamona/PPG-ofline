@@ -18,16 +18,21 @@ const INDUK_DARI: Record<Tingkat, Tingkat | null> = { daerah: null, desa: 'daera
 /** Tambah wilayah (admin). Desa wajib berinduk daerah; kelompok wajib berinduk desa. */
 export function tambahWilayah(
   db: Db,
-  data: { tingkat: Tingkat; nama: string; kode?: string | null; indukId?: string | null },
+  data: { tingkat: Tingkat; nama: string; kode?: string | null; indukId?: string | null; id?: string },
 ): Wilayah {
   pastikanAdmin(db)
   validasiWilayah(db, data.tingkat, data.nama, data.kode ?? null, data.indukId ?? null)
-  return sisipkanRekaman<Wilayah>(db, 'wilayah', {
-    tingkat: data.tingkat,
-    nama: data.nama.trim(),
-    kode: data.kode?.trim() || null,
-    induk_id: data.indukId ?? null,
-  })
+  return sisipkanRekaman<Wilayah>(
+    db,
+    'wilayah',
+    {
+      tingkat: data.tingkat,
+      nama: data.nama.trim(),
+      kode: data.kode?.trim() || null,
+      induk_id: data.indukId ?? null,
+    },
+    data.id ? { id: data.id } : {},
+  )
 }
 
 function validasiWilayah(db: Db, tingkat: Tingkat, nama: string, kode: string | null, indukId: string | null, kecuali?: string): void {

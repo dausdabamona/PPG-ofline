@@ -41,6 +41,8 @@ export interface DataGenerusBaru {
   waliNoHp?: string | null
   /** Tanggal mulai keanggotaan & status aktif (bawaan: hari ini). */
   mulai?: string
+  /** Id tetap (Fase 9: id usulan Super Admin HP); bawaan ULID baru. */
+  id?: string
 }
 
 /** Kategori bawaan menurut umur: <6 paud, 6–12 caberawit, 13–15 praremaja, 16–18 remaja, ≥19 pranikah. */
@@ -88,7 +90,7 @@ export function tambahGenerus(db: Db, d: DataGenerusBaru): Generus {
       status: 'aktif',
       wali_nama: d.waliNama?.trim() || null,
       wali_no_hp: d.waliNoHp?.trim() || null,
-    })
+    }, d.id ? { id: d.id } : {})
     sisipkanRekaman(db, 'riwayat_keanggotaan', { generus_id: g.id, kelompok_id: d.kelompokId, mulai, selesai: null })
     sisipkanRekaman(db, 'riwayat_status', { generus_id: g.id, status: 'aktif', mulai, selesai: null, keterangan: null })
     return g

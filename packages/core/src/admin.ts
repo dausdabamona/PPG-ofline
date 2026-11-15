@@ -23,15 +23,17 @@ import { ulid } from './ids'
 import { seedKurikulum } from './kurikulum'
 import { tambahGenerus, tambahJamaah, ubahGenerus, KATEGORI_GENERUS, type KategoriGenerus, type StatusGenerus } from './repo/generus'
 import { ambilPerangkat, catatPencabutan, daftarkanToken, daftarPerangkat, type PerangkatTerdaftar } from './repo/perangkat'
-import { adalahAdmin, ambilMeta, aturMeta, ID_ADMIN, sisipkanRekaman, ubahRekaman } from './repo/umum'
+import { adalahAdmin, ambilMeta, ambilRekaman, aturMeta, ID_ADMIN, sisipkanRekaman, ubahRekaman } from './repo/umum'
+import { tambahPengajian } from './repo/pengajian'
 import { ambilUsulan } from './repo/usulan'
-import { ambilWilayah, cariWilayahKode, kelompokDalamWilayah } from './repo/wilayah'
+import { ambilWilayah, cariWilayahKode, kelompokDalamWilayah, tambahWilayah, type Tingkat } from './repo/wilayah'
 import { pindahKelompok, ubahStatus } from './siklus'
 import { idRantaiPenerbit } from './rantai'
 import { daftarProfil } from './repo/profil'
 import {
   bacaKodePerangkat,
   HAK,
+  HAK_SUPER_HP,
   hakBawaan,
   tandaTanganiKunciSetor,
   tandaTanganiToken,
@@ -346,16 +348,20 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
   if (!w || w.dihapus) throw new GalatPpg('WILAYAH_TIDAK_SAH', 'Wilayah tidak ditemukan.')
   if (o.tingkat && o.tingkat !== w.tingkat) throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Tingkat tidak sesuai dengan wilayah yang dipilih.')
   if (o.role === 'mubaligh' && w.tingkat !== 'kelompok') throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Mubaligh ditugaskan untuk satu kelompok.')
-  if (o.role === 'admin' && w.tingkat === 'daerah') throw new GalatPpg('TINGKAT_TIDAK_SAH', 'EXE admin untuk tingkat desa atau kelompok (daerah memakai EXE ini sendiri).')
+  // Fase 9: role admin tingkat daerah = Super Admin HP (pendaftaran seluruh daerah dari HP)
   if (o.role === 'kurikulum' && w.tingkat !== 'daerah') throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Token kurikulum untuk wilayah daerah.')
   if (!o.nama?.trim()) throw new GalatPpg('NAMA_KOSONG', 'Nama pemegang token wajib diisi.')
-  const hak = [...new Set(o.hak ?? hakBawaan(o.role, w.tingkat))]
+  const superHp = o.role === 'admin' && w.tingkat === 'daerah'
+  const hak = [...new Set(o.hak ?? (superHp ? HAK_SUPER_HP : hakBawaan(o.role, w.tingkat)))]
+  if (superHp && !(hak.includes('terbit_bawah') && hak.every((h) => HAK_SUPER_HP.includes(h)))) {
+    throw new GalatPpg('HAK_TIDAK_SAH', 'Super Admin HP berhak catat, lihat, dan menerbitkan kode aktivasi.')
+  }
   if (!hak.every((h) => HAK.includes(h))) throw new GalatPpg('HAK_TIDAK_SAH', 'Hak tidak dikenal.')
   if (o.role === 'pengurus' && (hak.includes('terbit_generus') || hak.includes('setor_belajar'))) {
     throw new GalatPpg('HAK_TIDAK_SAH', 'Hak terbit_generus/setor_belajar tidak untuk pengurus.')
   }
-  if (hak.includes('terbit_bawah') && !(o.role === 'admin' && w.tingkat === 'desa')) {
-    throw new GalatPpg('HAK_TIDAK_SAH', 'Hak terbit_bawah hanya untuk EXE desa.')
+  if (hak.includes('terbit_bawah') && !(o.role === 'admin' && (w.tingkat === 'desa' || w.tingkat === 'daerah'))) {
+    throw new GalatPpg('HAK_TIDAK_SAH', 'Hak terbit_bawah hanya untuk EXE desa dan Super Admin HP.')
   }
   if (o.role === 'kurikulum' && hak.some((h) => h !== 'lihat')) throw new GalatPpg('HAK_TIDAK_SAH', 'Token kurikulum hanya berhak lihat.')
   if (o.role === 'admin' && hak.some((h) => h === 'terbit_generus' || h === 'setor_belajar')) {
@@ -461,7 +467,14 @@ export function setujuiUsulan(db: Db, usulanId: string): { usulanId: string; has
     let hasilId: string | undefined
     switch (u.jenis) {
       case 'tambah_generus':
+        // Fase 9: id yang sudah dipakai pengusul (Super Admin HP menerbitkan token wali untuk anak baru) dipertahankan
+        if (typeof d.id === 'string' && ambilRekaman(db, 'generus', d.id)) {
+          hasilId = d.id
+          break
+        }
         hasilId = tambahGenerus(db, {
+          id: typeof d.id === 'string' ? d.id : undefined,
+          mulai: typeof d.mulai === 'string' && tanggalSah(d.mulai) ? d.mulai : undefined,
           kelompokId: u.kelompok_id,
           nama: String(d.nama),
           jenisKelamin: d.jenis_kelamin as 'L' | 'P',
@@ -474,6 +487,37 @@ export function setujuiUsulan(db: Db, usulanId: string): { usulanId: string; has
       case 'ubah_generus':
         hasilId = ubahGenerus(db, String(d.generus_id), d.perubahan ?? {}).id
         break
+      case 'tambah_wilayah':
+        if (typeof d.id === 'string' && ambilRekaman(db, 'wilayah', d.id)) {
+          hasilId = d.id
+          break
+        }
+        hasilId = tambahWilayah(db, {
+          id: typeof d.id === 'string' ? d.id : undefined,
+          tingkat: d.tingkat as Tingkat,
+          nama: String(d.nama ?? ''),
+          kode: d.kode ?? null,
+          indukId: u.kelompok_id,
+        }).id
+        break
+      case 'tambah_pengajian': {
+        if (typeof d.id === 'string' && ambilRekaman(db, 'pengajian', d.id)) {
+          hasilId = d.id
+          break
+        }
+        const x = u.data as Record<string, unknown>
+        hasilId = tambahPengajian(db, {
+          id: typeof d.id === 'string' ? d.id : undefined,
+          wilayahId: u.kelompok_id,
+          nama: String(x.nama ?? ''),
+          jenis: (x.jenis as string | null | undefined) ?? null,
+          hari: typeof x.hari === 'number' ? x.hari : null,
+          jam: (x.jam as string | null | undefined) ?? null,
+          tempat: (x.tempat as string | null | undefined) ?? null,
+          kategoriGenerus: Array.isArray(x.kategori_generus) ? (x.kategori_generus as KategoriGenerus[]) : null,
+        }).id
+        break
+      }
       case 'tambah_jamaah':
         hasilId = tambahJamaah(db, {
           kelompokId: u.kelompok_id,

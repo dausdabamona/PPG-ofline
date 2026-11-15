@@ -53,7 +53,7 @@ function bukaBerkasExe(db: Db, bytes: Uint8Array, jenis: JenisBerkas, namaBerkas
   const peran = peranInstalasi(db)
   switch (jenis) {
     case 'SETOR':
-      if (peran !== 'desa' && peran !== 'kelompok') throw new GalatPpg('BERKAS_SALAH_TUJUAN', 'EXE ini tidak menerima setoran.')
+      if (peran !== 'desa' && peran !== 'kelompok' && peran !== 'super_hp') throw new GalatPpg('BERKAS_SALAH_TUJUAN', 'EXE ini tidak menerima setoran.')
       return { jenis, ringkasan: imporSetor(db, bytes, kunciExeWajib(db), namaBerkas) }
     case 'PAKET':
       kunciExeWajib(db)
@@ -63,7 +63,12 @@ function bukaBerkasExe(db: Db, bytes: Uint8Array, jenis: JenisBerkas, namaBerkas
     case 'KURIKULUM':
       throw new GalatPpg('BERKAS_UNTUK_ADMIN', 'Berkas kurikulum ini untuk admin daerah.')
     default:
-      throw new GalatPpg('BERKAS_UNTUK_HP', 'Berkas ini dibuka di HP (generus/wali/mubaligh), bukan di aplikasi EXE.')
+      throw new GalatPpg(
+        'BERKAS_UNTUK_HP',
+        peran === 'super_hp'
+          ? 'Berkas ini dibuka di profil HP biasa (generus/wali/mubaligh), bukan di Super Admin HP.'
+          : 'Berkas ini dibuka di HP (generus/wali/mubaligh), bukan di aplikasi EXE.',
+      )
   }
 }
 

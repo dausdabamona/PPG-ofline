@@ -111,7 +111,8 @@ export function dataWilayah(db: Db, wilayahId: string): RekamanPerTabel {
     kemajuan_belajar: unik([...pilih(db, 'kemajuan_belajar', 'kelompok_id', kel), ...pilih(db, 'kemajuan_belajar', 'generus_id', generusIds)]),
     penilaian_akhlaq: unik([...pilih(db, 'penilaian_akhlaq', 'kelompok_id', kel), ...pilih(db, 'penilaian_akhlaq', 'generus_id', generusIds)]),
     jadwal_tambahan: pilih(db, 'jadwal_tambahan', 'kelompok_id', kel),
-    usulan: pilih(db, 'usulan', 'kelompok_id', kel),
+    // Fase 9: usulan tambah wilayah/pengajian bisa ber-wilayah desa/daerah
+    usulan: pilih(db, 'usulan', 'kelompok_id', turunan),
   }
   const out: RekamanPerTabel = {}
   for (const [t, rows] of Object.entries(r)) if (rows.length) out[t as NamaTabelSinkron] = rekamanKirim(rows)
@@ -198,7 +199,8 @@ export function buatPaket(db: Db, wilayahId: string, kunci: KunciPemegang): Berk
     kunci_umum: kunciUmum,
     wilayah_id: wilayahId,
     rekaman: dataWilayah(db, wilayahId),
-    pencabutan: daftarPencabutan(db, tokenWilayah.map((p) => p.id)),
+    // Fase 9: pencabutan token EXE/Super Admin HP (penerbit) ikut, agar HP menolak token yang terbit sesudahnya
+    pencabutan: daftarPencabutan(db, [...new Set([...tokenWilayah.map((p) => p.id), ...daftarPerangkat(db, { role: 'admin' }).map((p) => p.id)])]),
     perangkat: tokenWilayah.map((p) => ({ token: p.token, diterbitkan_oleh: p.diterbitkan_oleh, label: p.label })),
     konfirmasi,
     kunci_setor: kunciSetor,

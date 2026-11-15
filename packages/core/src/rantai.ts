@@ -28,11 +28,11 @@ export function wilayahMencakupDb(db: Db): (atasId: string, bawahId: string) => 
 
 /**
  * Fase 8: apakah perangkat ini wajib menuntut `bukti_wilayah` pada token terbitan EXE desa. Hanya EXE daerah dan EXE desa
- * yang pohon wilayahnya berasal langsung dari daerah; HP dan EXE kelompok (pohon dari paket desa, atau belum ada) wajib.
+ * (dan Super Admin HP, Fase 9) yang pohon wilayahnya berasal langsung dari daerah; HP dan EXE kelompok (pohon dari paket desa, atau belum ada) wajib.
  */
 export function wajibBuktiWilayahDb(db: Db): boolean {
   const peran = peranInstalasi(db)
-  return peran !== 'daerah' && peran !== 'desa'
+  return peran !== 'daerah' && peran !== 'desa' && peran !== 'super_hp'
 }
 
 /** Opsi `periksaToken` dari database: kunci admin daerah terpasang, pencabutan, pohon wilayah, kewajiban bukti wilayah. */

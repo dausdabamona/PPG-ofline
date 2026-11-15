@@ -43,15 +43,18 @@ export function adalahExe(db: Db): boolean {
   return ambilMeta(db, 'peran_db') === 'exe'
 }
 
-/** Peran instalasi (v3): 'daerah' (admin lama), 'desa', 'kelompok', 'kurikulum', 'hp', atau null (EXE belum diaktifkan / DB kosong). */
-export type PeranInstalasi = 'daerah' | 'desa' | 'kelompok' | 'kurikulum' | 'hp'
+/**
+ * Peran instalasi (v3): 'daerah' (admin lama), 'desa', 'kelompok', 'kurikulum', 'hp', atau null (EXE belum diaktifkan / DB kosong).
+ * Fase 9: 'super_hp' = database Super Admin HP (instalasi jenis EXE di dalam APK, token admin tingkat daerah).
+ */
+export type PeranInstalasi = 'daerah' | 'desa' | 'kelompok' | 'kurikulum' | 'hp' | 'super_hp'
 export function peranInstalasi(db: Db): PeranInstalasi | null {
   const peran = ambilMeta(db, 'peran_db')
   if (peran === 'admin') return 'daerah'
   if (peran === 'hp') return 'hp'
   if (peran === 'exe') {
     const p = ambilMeta(db, 'peran_instalasi')
-    return p === 'desa' || p === 'kelompok' || p === 'kurikulum' ? p : null
+    return p === 'desa' || p === 'kelompok' || p === 'kurikulum' || p === 'super_hp' ? p : null
   }
   return null
 }

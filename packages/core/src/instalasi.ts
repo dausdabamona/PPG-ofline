@@ -36,9 +36,14 @@ import { daftarProfil, pastikanProfilBolehMencatat, type Profil } from './repo/p
 import { adalahExe, ambilMeta, aturMeta, peranInstalasi, type PeranInstalasi } from './repo/umum'
 import { ambilWilayah, kelompokDalamWilayah } from './repo/wilayah'
 import {
+  adalahTokenSuperHp,
   bacaKodePerangkat,
   buktiWilayahSah,
+  HAK_BAWAAN,
   HAK_DARI_DESA,
+  HAK_DARI_SUPER,
+  kunciSetorSah,
+  ROLE_EXE,
   hakBawaan,
   tandaTanganiToken,
   uraiToken,
@@ -183,12 +188,23 @@ export async function gantiSandiExe(db: Db, sandiLama: string, sandiBaru: string
  * Peran instalasi ditentukan token: role `admin` tingkat desa/kelompok, atau `kurikulum`.
  * Token baru untuk peran & wilayah yang sama = perpanjangan.
  */
-export async function aktifkanExe(db: Db, kunci: KunciExe, teksToken: string): Promise<Profil> {
+export async function aktifkanExe(db: Db, kunci: KunciExe, teksToken: string, o: { superHp?: boolean } = {}): Promise<Profil> {
   if (!adalahExe(db)) throw new GalatPpg('BUKAN_DB_EXE', 'Database ini bukan instalasi EXE desa/kelompok/kurikulum.')
   pasang(db, kunci, ambilIdentitas(db).label, ambilIdentitas(db).dibuatPada)
   const p = uraiToken(teksToken).payload
+  const tokenSuper = adalahTokenSuperHp(p)
+  // Fase 9: token Super Admin HP hanya untuk instalasi Super Admin di APK, dan sebaliknya
+  if (o.superHp && !tokenSuper) {
+    throw new GalatPpg(
+      ROLE_EXE.includes(p.role) ? 'TOKEN_UNTUK_EXE' : 'TOKEN_BUKAN_SUPER_HP',
+      ROLE_EXE.includes(p.role)
+        ? 'Kode aktivasi ini untuk aplikasi laptop (EXE), bukan untuk Super Admin HP.'
+        : 'Kode ini bukan kode Super Admin HP. Tempel di layar aktivasi HP biasa (Kode Perangkat → Masukkan token).',
+    )
+  }
+  if (!o.superHp && tokenSuper) throw new GalatPpg('TOKEN_UNTUK_SUPER_HP', 'Kode aktivasi ini untuk Super Admin HP (aplikasi PPG Sorong di HP), bukan untuk laptop.')
   if (p.role !== 'admin' && p.role !== 'kurikulum') throw new GalatPpg('TOKEN_UNTUK_HP', 'Kode aktivasi ini untuk HP, bukan untuk aplikasi EXE.')
-  const peran: PeranInstalasi = p.role === 'kurikulum' ? 'kurikulum' : (p.tingkat as 'desa' | 'kelompok')
+  const peran: PeranInstalasi = tokenSuper ? 'super_hp' : p.role === 'kurikulum' ? 'kurikulum' : (p.tingkat as 'desa' | 'kelompok')
   const lama = peranInstalasi(db)
   const wilayahLama = ambilMeta(db, 'wilayah_instalasi')
   if (lama && (lama !== peran || wilayahLama !== p.wilayah_id)) {
@@ -260,18 +276,30 @@ export function ambilKunciTitipan(db: Db, kunci: KunciExe, kelompokId: string): 
 
 export interface OpsiTerbitTokenBawah {
   kodePerangkat: string
-  /** pengurus/mubaligh untuk HP; `admin` = EXE kelompok. */
-  role: 'pengurus' | 'mubaligh' | 'admin'
+  /**
+   * pengurus/mubaligh untuk HP; `admin` = EXE kelompok (EXE desa) atau EXE desa/kelompok (Super Admin HP).
+   * Fase 9 — Super Admin HP juga: `kurikulum` (EXE kurikulum), `generus` (murid), `wali` (orang tua).
+   */
+  role: 'pengurus' | 'mubaligh' | 'admin' | 'kurikulum' | 'generus' | 'wali'
   nama: string
   wilayahId: string
   hak?: Hak[]
   berlakuHari?: number
+  /** generus/wali: anak (generus) yang dipegang token — boleh generus yang baru diusulkan HP ini (Fase 9). */
+  generusIds?: string[]
+  /**
+   * Fase 9 (Super Admin HP, token pengurus/mubaligh): tujuan SETOR HP itu. `saya` (bawaan) = Super Admin HP ini;
+   * `daerah` = langsung ke EXE Daerah.
+   */
+  setorKe?: 'saya' | 'daerah'
 }
 
 /**
  * EXE desa (hak `terbit_bawah`) menerbitkan token pengurus/mubaligh (HP) atau EXE kelompok untuk wilayahnya (V3).
  * Wilayah token wajib di dalam wilayah desa ini. Token HP membawa `atas_box_pub`: EXE kelompok aktif di kelompok itu
  * (bila ada), selain itu EXE desa ini — tujuan SETOR HP tersebut.
+ * Fase 9: Super Admin HP (admin tingkat daerah) menerbitkan semua peran di seluruh daerah — pengurus, mubaligh, murid,
+ * orang tua, EXE desa/kelompok/kurikulum — kecuali Super Admin HP lain.
  */
 export function terbitkanTokenBawah(db: Db, kunci: KunciExe, o: OpsiTerbitTokenBawah): string {
   const saya = profilExe(db)
@@ -279,43 +307,66 @@ export function terbitkanTokenBawah(db: Db, kunci: KunciExe, o: OpsiTerbitTokenB
   if (saya.role !== 'admin' || !saya.hak.includes('terbit_bawah')) {
     throw new GalatPpg('TIDAK_BERWENANG', 'EXE ini tidak berhak menerbitkan kode aktivasi (hanya EXE desa).')
   }
-  const boleh = HAK_DARI_DESA[o.role]
-  if (!boleh) throw new GalatPpg('ROLE_TIDAK_SAH', 'EXE desa menerbitkan token pengurus, mubaligh, atau EXE kelompok.')
+  const tp = uraiToken(saya.token).payload
+  const superHp = adalahTokenSuperHp(tp)
+  const boleh = superHp ? (o.role === 'generus' || o.role === 'wali' ? HAK_BAWAAN[o.role] : HAK_DARI_SUPER[o.role]) : HAK_DARI_DESA[o.role]
+  if (!boleh) {
+    throw new GalatPpg(
+      'ROLE_TIDAK_SAH',
+      superHp ? 'Super Admin HP tidak menerbitkan peran ini.' : 'EXE desa menerbitkan token pengurus, mubaligh, atau EXE kelompok.',
+    )
+  }
   const w = ambilWilayah(db, o.wilayahId)
   if (!w || w.dihapus) throw new GalatPpg('WILAYAH_TIDAK_SAH', 'Wilayah tidak ditemukan. Terapkan paket terbaru dari daerah.')
   if (wilayahMencakupDb(db)(saya.wilayah_id, w.id) !== true) {
     throw new GalatPpg('DI_LUAR_WILAYAH', 'Wilayah ini di luar desa Anda. Kode aktivasinya diterbitkan oleh desa yang bersangkutan atau daerah.')
   }
-  if ((o.role === 'mubaligh' || o.role === 'admin') && w.tingkat !== 'kelompok') {
-    throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Mubaligh dan EXE kelompok ditugaskan untuk satu kelompok.')
+  const delegasi = o.role === 'generus' || o.role === 'wali'
+  if ((o.role === 'mubaligh' || delegasi) && w.tingkat !== 'kelompok') {
+    throw new GalatPpg('TINGKAT_TIDAK_SAH', delegasi ? 'Murid dan orang tua terdaftar di satu kelompok.' : 'Mubaligh ditugaskan untuk satu kelompok.')
   }
+  if (o.role === 'admin' && (superHp ? w.tingkat === 'daerah' : w.tingkat !== 'kelompok')) {
+    throw new GalatPpg('TINGKAT_TIDAK_SAH', superHp ? 'EXE admin untuk satu desa atau satu kelompok (Super Admin HP hanya diterbitkan EXE Daerah).' : 'Mubaligh dan EXE kelompok ditugaskan untuk satu kelompok.')
+  }
+  if (o.role === 'kurikulum' && w.id !== saya.wilayah_id) throw new GalatPpg('TINGKAT_TIDAK_SAH', 'EXE kurikulum untuk wilayah daerah.')
   if (!o.nama?.trim()) throw new GalatPpg('NAMA_KOSONG', 'Nama pemegang token wajib diisi.')
   const tingkat = w.tingkat
-  const hak = [...new Set(o.hak ?? (o.role === 'admin' ? hakBawaan('admin', 'kelompok') : hakBawaan(o.role, tingkat)))]
-  if (!hak.every((h) => boleh.includes(h))) throw new GalatPpg('HAK_TIDAK_SAH', 'Hak tersebut tidak boleh diberikan EXE desa.')
+  const hakAwal = o.hak ?? (delegasi ? HAK_BAWAAN[o.role] : o.role === 'admin' ? hakBawaan('admin', tingkat) : hakBawaan(o.role, tingkat))
+  const hak = [...new Set(hakAwal)]
+  if (!hak.every((h) => boleh.includes(h))) throw new GalatPpg('HAK_TIDAK_SAH', superHp ? 'Hak tersebut tidak boleh diberikan Super Admin HP.' : 'Hak tersebut tidak boleh diberikan EXE desa.')
+  if (o.role === 'admin' && hak.includes('terbit_bawah') && tingkat !== 'desa') throw new GalatPpg('HAK_TIDAK_SAH', 'Hak menerbitkan kode aktivasi hanya untuk EXE desa.')
+  if (o.role === 'admin' && hak.includes('sahkan') && tingkat !== 'kelompok') throw new GalatPpg('HAK_TIDAK_SAH', 'Hak mengesahkan hanya untuk EXE kelompok.')
   const kode = bacaKodePerangkat(o.kodePerangkat)
   if (o.role === 'mubaligh') {
     const lain = daftarPerangkat(db, { perangkatId: kode.perangkat_id, role: 'mubaligh', aktifSaja: true }).filter((p) => p.wilayah_id !== w.id)
     if (lain.length) throw new GalatPpg('SATU_MUBALIGH_SATU_KELOMPOK', 'HP ini sudah memegang token mubaligh kelompok lain (K12).')
   }
+  const generusIds = delegasi ? periksaGenerusToken(db, o.role as 'generus' | 'wali', w.id, o.generusIds ?? []) : undefined
   const berlakuHari = o.berlakuHari ?? 365
   if (!(berlakuHari > 0 && berlakuHari <= 3650)) throw new GalatPpg('MASA_BERLAKU_TIDAK_SAH', 'Masa berlaku 1–3650 hari.')
   const rahasia: RahasiaToken = {}
-  if (tingkat === 'kelompok') {
+  if (tingkat === 'kelompok' && o.role !== 'admin') {
     const t = ambilKunciTitipan(db, kunci, w.id)
     if (o.role === 'mubaligh') {
       if (!t?.setor.length) throw new GalatPpg('KUNCI_TIDAK_ADA', 'Kunci kelompok belum diterima dari daerah. Terapkan paket terbaru dari daerah.')
       rahasia.kunci_kelompok_setor = t.setor
+    }
+    if (delegasi) {
+      // murid/orang tua hanya memegang kunci setor PUBLIK terbaru bertanda tangan daerah (T22)
+      const sah = gabungKunciSetor(t?.setor).filter((k) => kunciSetorSah(k, { orgId: tp.org_id, kelompokId: w.id, adminSignPub: tp.admin_sign_pub }))
+      const terbaru = sah[sah.length - 1]
+      if (!terbaru) throw new GalatPpg('KUNCI_TIDAK_ADA', 'Kunci kelompok belum diterima dari daerah. Buka paket terbaru dari daerah dulu.')
+      rahasia.kunci_kelompok_setor = [{ versi: terbaru.versi, publik: terbaru.publik, tt: terbaru.tt }]
     }
     if (t?.umum) {
       rahasia.kunci_umum_kelompok = t.umum.kunci
       rahasia.kunci_umum_versi = t.umum.versi
     }
   }
-  const tp = uraiToken(saya.token).payload
-  // Fase 8: bukti daerah bahwa kelompok ini di bawah desa penerbit (diperiksa HP/EXE kelompok tanpa pohon wilayah)
+  // Fase 8: bukti daerah bahwa kelompok ini di bawah desa penerbit (diperiksa HP/EXE kelompok tanpa pohon wilayah).
+  // Fase 9: Super Admin HP berwilayah daerah (akar) — semua wilayah ada di dalamnya, tidak perlu bukti.
   let bukti: string | undefined
-  if (w.id !== saya.wilayah_id) {
+  if (w.id !== saya.wilayah_id && !superHp) {
     bukti = ambilMeta(db, `bukti_wilayah:${w.id}`)
     if (!bukti || !buktiWilayahSah(bukti, { orgId: tp.org_id, anakId: w.id, indukId: saya.wilayah_id, adminSignPub: tp.admin_sign_pub })) {
       throw new GalatPpg('BUKTI_WILAYAH_TIDAK_ADA', 'Data kelompok ini belum lengkap dari daerah. Buka paket terbaru dari daerah dulu.')
@@ -340,18 +391,84 @@ export function terbitkanTokenBawah(db: Db, kunci: KunciExe, o: OpsiTerbitTokenB
     berlaku_sampai: tambahHariIso(terbit, berlakuHari),
     penerbit: saya.token,
   }
+  if (generusIds) payload.generus_ids = generusIds
   if (bukti) payload.bukti_wilayah = bukti
-  // tujuan SETOR: EXE kelompok aktif (untuk HP di kelompok itu), selain itu EXE desa ini
-  const exeKelompok =
-    o.role !== 'admin' && tingkat === 'kelompok'
-      ? daftarPerangkat(db, { role: 'admin', wilayahIds: [w.id], aktifSaja: true }).find((p) => p.perangkat_id !== kode.perangkat_id)
-      : undefined
-  payload.atas_box_pub = exeKelompok?.box_pub ?? keB64url(kunci.kotak.publik)
-  payload.atas_perangkat_id = exeKelompok?.perangkat_id ?? kunci.perangkatId
+  // Tujuan SETOR. EXE desa: EXE kelompok aktif (untuk HP di kelompok itu), selain itu EXE desa ini.
+  // Super Admin HP: HP pengurus/mubaligh → Super Admin HP ini (atau langsung daerah); EXE, murid, orang tua → tanpa atas.
+  if (!superHp || ((o.role === 'pengurus' || o.role === 'mubaligh') && o.setorKe !== 'daerah')) {
+    const exeKelompok =
+      o.role !== 'admin' && tingkat === 'kelompok' && !superHp
+        ? daftarPerangkat(db, { role: 'admin', wilayahIds: [w.id], aktifSaja: true }).find((p) => p.perangkat_id !== kode.perangkat_id)
+        : undefined
+    payload.atas_box_pub = exeKelompok?.box_pub ?? keB64url(kunci.kotak.publik)
+    payload.atas_perangkat_id = exeKelompok?.perangkat_id ?? kunci.perangkatId
+  }
   if (Object.keys(rahasia).length) payload.rahasia = keB64url(segelKe(dariB64url(kode.box_pub), keUtf8(JSON.stringify(rahasia))))
   const teks = tandaTanganiToken(payload, kunci.tandaTangan.rahasia)
   daftarkanToken(db, payload, teks, { label: kode.label, diterbitkanOleh: saya.token_id })
   return teks
+}
+
+/**
+ * Fase 9: generus yang boleh dipegang token murid/orang tua terbitan Super Admin HP — generus master di kelompok itu
+ * (aktif/mondok), atau generus yang baru diusulkan HP ini (`tambah_generus` menunggu) untuk kelompok itu.
+ */
+function periksaGenerusToken(db: Db, role: 'generus' | 'wali', kelompokId: string, ids: string[]): string[] {
+  const unik = [...new Set(ids)]
+  if (role === 'generus' && unik.length !== 1) throw new GalatPpg('GENERUS_TIDAK_SAH', 'Token murid untuk tepat satu anak.')
+  if (role === 'wali' && unik.length < 1) throw new GalatPpg('GENERUS_TIDAK_SAH', 'Pilih minimal satu anak untuk orang tua.')
+  const pilihan = new Map(generusPilihanToken(db, kelompokId).map((g) => [g.id, g]))
+  for (const id of unik) {
+    const g = pilihan.get(id)
+    if (!g) throw new GalatPpg('GENERUS_TIDAK_SAH', 'Anak tidak ditemukan di kelompok ini. Tambahkan dulu di menu Generus.')
+    if (role === 'generus' && g.status === 'mondok') throw new GalatPpg('GENERUS_MONDOK', `${g.nama} sedang mondok.`)
+  }
+  return unik
+}
+
+/** Generus yang bisa dipilih untuk token murid/orang tua di satu kelompok (Fase 9): master aktif/mondok + usulan baru. */
+export interface GenerusPilihan {
+  id: string
+  nama: string
+  kategori: string | null
+  status: string
+  wali_nama: string | null
+  wali_no_hp: string | null
+  /** true = masih usulan (menunggu disetujui daerah lewat setoran). */
+  usulan: boolean
+}
+
+export function generusPilihanToken(db: Db, kelompokId: string): GenerusPilihan[] {
+  const hasil: GenerusPilihan[] = db
+    .kueri<{ id: string; nama: string; kategori: string | null; status: string; wali_nama: string | null; wali_no_hp: string | null }>(
+      `SELECT id, nama, kategori, status, wali_nama, wali_no_hp FROM generus WHERE kelompok_id = ? AND dihapus = 0 AND status IN ('aktif', 'mondok') ORDER BY nama`,
+      [kelompokId],
+    )
+    .map((g) => ({ ...g, usulan: false }))
+  const ada = new Set(hasil.map((g) => g.id))
+  for (const u of db.kueri<{ data_json: string }>(
+    `SELECT data_json FROM usulan WHERE jenis = 'tambah_generus' AND status = 'menunggu' AND dihapus = 0 AND kelompok_id = ? ORDER BY dibuat_pada`,
+    [kelompokId],
+  )) {
+    let d: Record<string, unknown> = {}
+    try {
+      d = JSON.parse(u.data_json) as Record<string, unknown>
+    } catch {
+      continue
+    }
+    if (typeof d.id !== 'string' || ada.has(d.id)) continue
+    ada.add(d.id)
+    hasil.push({
+      id: d.id,
+      nama: String(d.nama ?? ''),
+      kategori: typeof d.kategori === 'string' ? d.kategori : null,
+      status: 'aktif',
+      wali_nama: typeof d.wali_nama === 'string' ? d.wali_nama : null,
+      wali_no_hp: typeof d.wali_no_hp === 'string' ? d.wali_no_hp : null,
+      usulan: true,
+    })
+  }
+  return hasil
 }
 
 /** Kelompok di dalam wilayah EXE ini (untuk formulir penerbitan & kirim paket). */

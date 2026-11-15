@@ -311,3 +311,20 @@ menjalankan skenario §14 (daerah → EXE desa/kelompok/kurikulum → HP mubalig
 pencabutan berantai → migrasi database v2 dari fixtur `test/fixtur/v2-*.gz` yang dibuat kode v2). `test/berjenjang.test.ts` menguji unit v3. `test/ujung-ke-ujung.test.ts` (Fase 4)
 menjalankan satu siklus admin → pengurus/mubaligh → generus → wali → admin dengan berkas yang ditulis ke disk lalu dibaca ulang
 (meniru WA), database tiap aplikasi disimpan/dibuka ulang, token lewat QR berseri, dan cadangan HP terenkripsi. `test/pemeriksaan.test.ts` berisi reproduksi cacat Fase 1b; `test/kueri.test.ts` menguji kueri UI dan memastikan `src/` tidak mengimpor modul bawaan Node.
+
+## Super Admin HP (Fase 9)
+
+Token `admin` tingkat **daerah** dengan hak `terbit_bawah` (`HAK_SUPER_HP`, `adalahTokenSuperHp`) diterbitkan EXE Daerah. HP memakai
+database jenis EXE (`peran_instalasi = 'super_hp'`). Semua peran bisa diterbitkan dengan `terbitkanTokenBawah`, kecuali Super Admin HP lain.
+
+```ts
+const { kodePerangkat, kunci } = await inisialisasiExe(dbSuper, { sandi, label: 'HP Pak Fir' })
+const token = terbitkanToken(dbDaerah, kunciAdmin, { kodePerangkat, role: 'admin', nama: 'Pak Fir', wilayahId: daerahId })
+await aktifkanExe(dbSuper, kunci, token, { superHp: true })           // laptop tanpa { superHp } → TOKEN_UNTUK_SUPER_HP
+terapkanPaket(dbSuper, buatPaket(dbDaerah, daerahId, kunciAdmin).bytes) // kunci titipan semua kelompok
+const u = ajukanUsulan(dbSuper, { jenis: 'tambah_generus', kelompokId, data: { nama: 'Dewi', jenis_kelamin: 'P', kategori: 'caberawit' } })
+generusPilihanToken(dbSuper, kelompokId)                              // master + usulan (usulan: true)
+terbitkanTokenBawah(dbSuper, kunci, { kodePerangkat: kodeHpOrtu, role: 'wali', nama: 'Bu Sari', wilayahId: kelompokId, generusIds: [JSON.parse(u.data_json).id] })
+terbitkanTokenBawah(dbSuper, kunci, { kodePerangkat: kodeHpMub, role: 'mubaligh', nama: 'Ust. Ali', wilayahId: kelompokId, setorKe: 'saya' })
+imporSetor(dbDaerah, buatSetor(dbSuper).bytes, kunciAdmin)            // usulan Super Admin HP disetujui otomatis (usulanOtomatis)
+```

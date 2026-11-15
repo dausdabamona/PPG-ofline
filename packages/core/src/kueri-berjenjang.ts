@@ -382,6 +382,8 @@ export function pengingatSetor(db: Db, o: { sekarang?: string } = {}): Pengingat
   const peran = peranInstalasi(db)
   let tingkat: TingkatAsalSetor
   if (peran === 'desa' || peran === 'kelompok') tingkat = peran
+  // Fase 9: Super Admin HP menyetor ke daerah seperti EXE desa (jadwal setor desa → daerah)
+  else if (peran === 'super_hp') tingkat = 'desa'
   else if (peran === 'hp' && daftarProfil(db, ['pengurus', 'mubaligh']).length) tingkat = 'kelompok'
   else return null
   const kini = o.sekarang ? new Date(o.sekarang) : sekarang()
@@ -432,9 +434,10 @@ export function ringkasanBerandaExe(db: Db, o: { sekarang?: string } = {}): Ring
   if (peran === 'daerah' || peran === 'kurikulum') {
     wilayahId = db.nilai<string>(`SELECT id FROM wilayah WHERE tingkat = 'daerah' AND dihapus = 0 ORDER BY dibuat_pada LIMIT 1`) ?? null
     if (peran === 'kurikulum') wilayahId = ambilMeta(db, 'wilayah_instalasi') ?? wilayahId
-  } else if (peran === 'desa' || peran === 'kelompok') {
+  } else if (peran === 'desa' || peran === 'kelompok' || peran === 'super_hp') {
     wilayahId = profilExe(db).wilayah_id
   }
+  const bawahAtas = peran === 'desa' || peran === 'kelompok' || peran === 'super_hp'
   const w = wilayahId ? ambilWilayah(db, wilayahId) : undefined
   const kel = w ? kelompokDalamWilayah(db, w.id) : []
   const diKel = (sql: string) => (kel.length ? (db.nilai<number>(sql.replace('(?)', `(${kel.map(() => '?').join(',')})`), kel) ?? 0) : 0)
@@ -444,8 +447,8 @@ export function ringkasanBerandaExe(db: Db, o: { sekarang?: string } = {}): Ring
     wilayah: w ? { id: w.id, nama: w.nama, tingkat: w.tingkat } : null,
     statusSetorBawahan: w && peran !== 'kurikulum' ? statusSetor(db, w.id, o) : [],
     pengingat: pengingatSetor(db, o),
-    belumDisetor: peran === 'desa' || peran === 'kelompok' ? jumlahBelumDisetor(db) : 0,
-    belumSampaiDaerah: peran === 'desa' || peran === 'kelompok' ? jumlahBelumSampaiDaerah(db) : 0,
+    belumDisetor: bawahAtas ? jumlahBelumDisetor(db) : 0,
+    belumSampaiDaerah: bawahAtas ? jumlahBelumSampaiDaerah(db) : 0,
     generus: {
       aktif: diKel(`SELECT COUNT(*) FROM generus WHERE dihapus = 0 AND status = 'aktif' AND kelompok_id IN (?)`),
       mondok: diKel(`SELECT COUNT(*) FROM generus WHERE dihapus = 0 AND status = 'mondok' AND kelompok_id IN (?)`),

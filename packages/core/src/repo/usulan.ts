@@ -1,11 +1,31 @@
 // Usulan perubahan master dari HP (K6): menunggu sampai disetujui admin.
 import type { Db } from '../db'
 import { GalatPpg } from '../galat'
+import { ulid } from '../ids'
 import { pastikanPencatat } from './kegiatan-umum'
 import { ambilRekaman, sisipkanRekaman, tandaTanya, uraiJson, type RekamanDasar } from './umum'
 
-export type JenisUsulan = 'tambah_generus' | 'ubah_generus' | 'tambah_jamaah' | 'pindah_kelompok' | 'ubah_status'
-export const JENIS_USULAN: readonly JenisUsulan[] = ['tambah_generus', 'ubah_generus', 'tambah_jamaah', 'pindah_kelompok', 'ubah_status']
+export type JenisUsulan =
+  | 'tambah_generus'
+  | 'ubah_generus'
+  | 'tambah_jamaah'
+  | 'pindah_kelompok'
+  | 'ubah_status'
+  /** Fase 9 (Super Admin HP): wilayah baru di bawah `kelompok_id` (= induk). */
+  | 'tambah_wilayah'
+  /** Fase 9 (Super Admin HP): pengajian/kelas rutin baru untuk wilayah `kelompok_id`. */
+  | 'tambah_pengajian'
+export const JENIS_USULAN: readonly JenisUsulan[] = [
+  'tambah_generus',
+  'ubah_generus',
+  'tambah_jamaah',
+  'pindah_kelompok',
+  'ubah_status',
+  'tambah_wilayah',
+  'tambah_pengajian',
+]
+/** Jenis usulan yang membuat rekaman baru: id-nya ditetapkan saat diajukan (`data.id`) dan dipakai daerah saat disetujui. */
+const USULAN_REKAMAN_BARU: readonly JenisUsulan[] = ['tambah_generus', 'tambah_wilayah', 'tambah_pengajian']
 export type StatusUsulan = 'menunggu' | 'disetujui' | 'ditolak'
 
 export interface Usulan extends RekamanDasar {
@@ -23,6 +43,9 @@ export interface Usulan extends RekamanDasar {
  * - tambah_jamaah: { nama, jenis_kelamin, tanggal_lahir?, no_hp? }
  * - pindah_kelompok: { generus_id, kelompok_tujuan_id, tanggal }
  * - ubah_status: { generus_id, status, tanggal, keterangan? }
+ * - tambah_wilayah (Fase 9): { tingkat: 'desa'|'kelompok', nama, kode? } — `kelompokId` = induknya
+ * - tambah_pengajian (Fase 9): { nama, jenis?, hari?, jam?, tempat?, kategori_generus?: string[] } — `kelompokId` = wilayahnya
+ * Jenis tambah_* mendapat `data.id` (ULID) bila belum ada: rekaman yang dibuat daerah saat menyetujui memakai id itu.
  */
 export function ajukanUsulan(db: Db, d: { jenis: JenisUsulan; kelompokId: string; data: Record<string, unknown> }): Usulan {
   if (!JENIS_USULAN.includes(d.jenis)) throw new GalatPpg('JENIS_TIDAK_SAH', 'Jenis usulan tidak dikenal.')
@@ -32,14 +55,20 @@ export function ajukanUsulan(db: Db, d: { jenis: JenisUsulan; kelompokId: string
     tambah_jamaah: ['nama', 'jenis_kelamin'],
     pindah_kelompok: ['generus_id', 'kelompok_tujuan_id', 'tanggal'],
     ubah_status: ['generus_id', 'status', 'tanggal'],
+    tambah_wilayah: ['tingkat', 'nama'],
+    tambah_pengajian: ['nama'],
   }
   for (const k of wajib[d.jenis]) {
     if (d.data[k] === undefined || d.data[k] === null || d.data[k] === '') throw new GalatPpg('DATA_KURANG', `Isian ${k} wajib diisi.`)
   }
+  if (d.jenis === 'tambah_wilayah' && d.data.tingkat !== 'desa' && d.data.tingkat !== 'kelompok') {
+    throw new GalatPpg('TINGKAT_TIDAK_SAH', 'Wilayah baru berupa desa atau kelompok.')
+  }
   pastikanPencatat(db, d.kelompokId, ['pengurus', 'mubaligh', 'admin'])
+  const data = USULAN_REKAMAN_BARU.includes(d.jenis) && typeof d.data.id !== 'string' ? { ...d.data, id: ulid() } : d.data
   return sisipkanRekaman<Usulan>(db, 'usulan', {
     jenis: d.jenis,
-    data_json: JSON.stringify(d.data),
+    data_json: JSON.stringify(data),
     status: 'menunggu',
     alasan: null,
     kelompok_id: d.kelompokId,

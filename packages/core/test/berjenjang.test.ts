@@ -260,7 +260,8 @@ describe('instalasi EXE', () => {
     expect(() => buatSetor(ulang)).toThrow(/terkunci/)
     // validasi penerbitan token EXE oleh daerah
     expect(() => terbitkanToken(d.daerah.db, d.daerah.kunci, { kodePerangkat, role: 'kurikulum', nama: 'K', wilayahId: d.desaA.id })).toThrow(/daerah/)
-    expect(() => terbitkanToken(d.daerah.db, d.daerah.kunci, { kodePerangkat, role: 'admin', nama: 'K', wilayahId: d.D.id })).toThrow(/desa atau kelompok/)
+    // Fase 9: admin tingkat daerah = Super Admin HP — wajib berhak menerbitkan kode aktivasi
+    expect(() => terbitkanToken(d.daerah.db, d.daerah.kunci, { kodePerangkat, role: 'admin', nama: 'K', wilayahId: d.D.id, hak: ['catat', 'lihat'] })).toThrow(/Super Admin HP/)
     expect(() => terbitkanToken(d.daerah.db, d.daerah.kunci, { kodePerangkat, role: 'admin', nama: 'K', wilayahId: d.A1.id, hak: ['terbit_bawah'] })).toThrow(/terbit_bawah/)
   })
 

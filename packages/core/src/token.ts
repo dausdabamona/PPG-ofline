@@ -42,6 +42,28 @@ export function hakBawaan(role: Role, tingkat: TingkatToken): Hak[] {
 
 const HAK_DELEGASI: readonly Hak[] = ['catat', 'lihat', 'setor_belajar']
 
+/**
+ * Fase 9: token **Super Admin HP** = role `admin` tingkat `daerah` dengan hak `terbit_bawah`, diterbitkan EXE Daerah.
+ * Dipakai di HP (instalasi `super_hp`) untuk pendaftaran di seluruh daerah. Tidak memegang kunci induk organisasi.
+ */
+export function adalahTokenSuperHp(p: Pick<PayloadToken, 'role' | 'tingkat' | 'hak'>): boolean {
+  return p.role === 'admin' && p.tingkat === 'daerah' && p.hak.includes('terbit_bawah')
+}
+
+/** Hak token Super Admin HP (diterbitkan EXE Daerah). */
+export const HAK_SUPER_HP: readonly Hak[] = ['catat', 'lihat', 'terbit_bawah']
+
+/**
+ * Fase 9: hak yang boleh diberikan Super Admin HP kepada token di bawahnya. `admin` = EXE desa (boleh `terbit_bawah`)
+ * atau EXE kelompok (boleh `sahkan`); tidak ada token Super Admin HP lain (admin tingkat daerah).
+ */
+export const HAK_DARI_SUPER: Partial<Record<Role, readonly Hak[]>> = {
+  pengurus: ['catat', 'lihat'],
+  mubaligh: ['catat', 'lihat', 'sahkan', 'terbit_generus'],
+  admin: ['catat', 'lihat', 'sahkan', 'terbit_bawah'],
+  kurikulum: ['lihat'],
+}
+
 /** Hak yang boleh diberikan EXE desa (hak `terbit_bawah`) kepada token di bawahnya (v3). */
 export const HAK_DARI_DESA: Partial<Record<Role, readonly Hak[]>> = {
   pengurus: ['catat', 'lihat'],
@@ -353,6 +375,13 @@ const MAKS_RANTAI = 3
 /** Aturan bentuk token akar (ditandatangani admin daerah). */
 function periksaAkar(p: PayloadToken): HasilPeriksaToken | null {
   if (p.role === 'mubaligh' && p.tingkat !== 'kelompok') return tolak('TOKEN_TIDAK_SAH', 'Token mubaligh harus untuk satu kelompok.')
+  if (p.role === 'admin' && p.tingkat === 'daerah') {
+    // Fase 9: Super Admin HP
+    if (!adalahTokenSuperHp(p) || !p.hak.every((h) => HAK_SUPER_HP.includes(h))) {
+      return tolak('TOKEN_TIDAK_SAH', 'Token Super Admin HP harus berhak menerbitkan kode aktivasi.')
+    }
+    return null
+  }
   if (p.role === 'admin' && p.tingkat !== 'desa' && p.tingkat !== 'kelompok') {
     return tolak('TOKEN_TIDAK_SAH', 'Token EXE admin hanya untuk tingkat desa atau kelompok.')
   }
@@ -381,7 +410,6 @@ function periksaRantai(t: TokenTerurai, opsi: OpsiPeriksaToken, kedalaman: numbe
     return periksaAkar(p)
   }
   if (kedalaman >= MAKS_RANTAI) return tolak('RANTAI_TIDAK_SAH', 'Rantai penerbit token terlalu panjang.')
-  if (p.role === 'kurikulum') return tolak('TOKEN_TIDAK_SAH', 'Token kurikulum hanya diterbitkan admin daerah.')
   let pen: TokenTerurai
   try {
     pen = uraiToken(p.penerbit)
@@ -392,18 +420,27 @@ function periksaRantai(t: TokenTerurai, opsi: OpsiPeriksaToken, kedalaman: numbe
   if (q.admin_sign_pub !== opsi.adminSignPub || q.org_id !== p.org_id || q.admin_box_pub !== p.admin_box_pub) {
     return tolak('RANTAI_TIDAK_SAH', 'Penerbit berasal dari organisasi lain.')
   }
+  // Fase 9: Super Admin HP (admin tingkat daerah) boleh menerbitkan token generus/wali dan kurikulum juga
+  const dariSuper = adalahTokenSuperHp(q)
+  if (p.role === 'kurikulum' && !dariSuper) return tolak('TOKEN_TIDAK_SAH', 'Token kurikulum hanya diterbitkan admin daerah.')
   if (delegasi) {
-    if (q.role !== 'mubaligh') return tolak('RANTAI_TIDAK_SAH', 'Penerbit token bukan mubaligh.')
+    if (q.role !== 'mubaligh' && !dariSuper) return tolak('RANTAI_TIDAK_SAH', 'Penerbit token bukan mubaligh.')
   } else if (q.role !== 'admin' || !q.hak.includes('terbit_bawah')) {
     return tolak('RANTAI_TIDAK_SAH', 'Penerbit token tidak berhak menerbitkan token di bawahnya.')
   }
   const rq = periksaRantai(pen, opsi, kedalaman + 1)
   if (rq) return tolak('RANTAI_TIDAK_SAH', delegasi ? 'Token mubaligh penerbit tidak sah.' : `Token penerbit tidak sah: ${rq.sah ? '' : rq.alasan}`)
-  if (delegasi) {
+  if (delegasi && dariSuper) {
+    if (p.tingkat !== 'kelompok') return tolak('RANTAI_TIDAK_SAH', 'Token generus/wali harus untuk satu kelompok.')
+    if (opsi.wilayahMencakup?.(q.wilayah_id, p.wilayah_id) === false) return tolak('RANTAI_TIDAK_SAH', 'Kelompok token di luar daerah penerbit.')
+  } else if (delegasi) {
     if (!q.hak.includes('terbit_generus')) return tolak('RANTAI_TIDAK_SAH', 'Mubaligh penerbit tidak berhak menerbitkan token generus.')
     if (q.wilayah_id !== p.wilayah_id || p.tingkat !== 'kelompok') {
       return tolak('RANTAI_TIDAK_SAH', 'Token generus/wali harus untuk kelompok mubaligh penerbit.')
     }
+  } else if (dariSuper) {
+    const r = periksaDariSuper(p, q, opsi)
+    if (r) return r
   } else {
     const r = periksaDariDesa(p, q, opsi)
     if (r) return r
@@ -427,6 +464,33 @@ function periksaRantai(t: TokenTerurai, opsi: OpsiPeriksaToken, kedalaman: numbe
   if (p.role === 'generus' && ids.length !== 1) return tolak('TOKEN_TIDAK_SAH', 'Token generus harus untuk tepat satu generus.')
   if (p.role === 'wali' && ids.length < 1) return tolak('TOKEN_TIDAK_SAH', 'Token wali harus memuat minimal satu anak.')
   if (p.role === 'wali' && p.hak.includes('setor_belajar')) return tolak('RANTAI_TIDAK_SAH', 'Wali tidak menyetor kemajuan belajar.')
+  return null
+}
+
+/**
+ * Fase 9: aturan token yang diterbitkan Super Admin HP. Wilayah penerbit = daerah (akar, tertanda admin daerah), jadi
+ * setiap wilayah organisasi ada di dalamnya — tidak perlu `bukti_wilayah`; pohon lokal (bila ada) tetap diperiksa.
+ * Tidak ada Super Admin HP yang diterbitkan Super Admin HP lain.
+ */
+function periksaDariSuper(p: PayloadToken, q: PayloadToken, opsi: OpsiPeriksaToken): HasilPeriksaToken | null {
+  const boleh = HAK_DARI_SUPER[p.role]
+  if (!boleh) return tolak('RANTAI_TIDAK_SAH', 'Super Admin HP tidak boleh menerbitkan token ini.')
+  if (!p.hak.every((h) => boleh.includes(h))) return tolak('RANTAI_TIDAK_SAH', 'Token memuat hak yang tidak boleh diberikan Super Admin HP.')
+  if (p.role === 'admin') {
+    if (p.tingkat === 'daerah') return tolak('RANTAI_TIDAK_SAH', 'Super Admin HP hanya diterbitkan EXE Daerah.')
+    if (p.hak.includes('terbit_bawah') && p.tingkat !== 'desa') return tolak('RANTAI_TIDAK_SAH', 'Hak terbit_bawah hanya untuk EXE desa.')
+    if (p.hak.includes('sahkan') && p.tingkat !== 'kelompok') return tolak('RANTAI_TIDAK_SAH', 'Hak sahkan EXE hanya untuk EXE kelompok.')
+  }
+  if (p.role === 'mubaligh' && p.tingkat !== 'kelompok') return tolak('TOKEN_TIDAK_SAH', 'Token mubaligh harus untuk satu kelompok.')
+  if (p.role === 'kurikulum' && (p.tingkat !== 'daerah' || p.wilayah_id !== q.wilayah_id)) {
+    return tolak('TOKEN_TIDAK_SAH', 'Token kurikulum harus untuk daerah.')
+  }
+  if (p.wilayah_id === q.wilayah_id) {
+    if (p.tingkat !== 'daerah') return tolak('RANTAI_TIDAK_SAH', 'Tingkat token tidak sesuai wilayah penerbit.')
+  } else {
+    if (p.tingkat === 'daerah') return tolak('RANTAI_TIDAK_SAH', 'Tingkat token tidak sesuai wilayah penerbit.')
+    if (opsi.wilayahMencakup?.(q.wilayah_id, p.wilayah_id) === false) return tolak('RANTAI_TIDAK_SAH', 'Wilayah token di luar daerah penerbit.')
+  }
   return null
 }
 
