@@ -27,6 +27,7 @@ import {
   buatPaket,
   terbitkanToken,
   imporSetor,
+  uraiToken,
 } from '@ppg/core'
 import { App } from '../src/App'
 import { buatPlatformPalsu } from './platform-palsu'
@@ -268,5 +269,32 @@ describe('§16 juknis (Fase 10)', () => {
     await u.type(within(dlg).getByLabelText(/Target/), '18')
     await u.click(within(dlg).getByRole('button', { name: 'Simpan' }))
     await waitFor(() => expect(within((screen.getByText('Keilmuan sesuai GBMTPG')).closest('tr')!).getByText(/18 materi/)).toBeTruthy())
+  })
+})
+
+describe('§17 kepengurusan (Fase 11)', () => {
+  it('terbitkan token pengurus daerah berjabatan → Kepengurusan menampilkan jabatan', async () => {
+    const w = await dunia()
+    const u = userEvent.setup()
+    await masuk(u, simpanDb(w.db))
+    const hp = await bukaDb()
+    const { kodePerangkat } = await inisialisasiPerangkat(hp, 'HP Bendahara')
+    await buka(u, 'Perangkat & Token')
+    await pilihOpsi(u, 'Untuk', /^Pengurus/)
+    await u.click(screen.getByLabelText('Kode Perangkat'))
+    await u.paste(kodePerangkat)
+    await screen.findByText(/HP: HP Bendahara/)
+    await pilihOpsi(u, 'Wilayah tugas', /Sorong/)
+    await u.type(screen.getByLabelText('Nama pemegang'), 'Bendahara PPG')
+    await u.click(await screen.findByRole('checkbox', { name: 'Bendahara' }))
+    await u.click(screen.getByRole('checkbox', { name: 'Bidang Tenaga Pendidik' }))
+    await u.click(screen.getByRole('button', { name: 'Terbitkan token' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Token untuk Bendahara PPG' })
+    const token = (within(dialog).getByTestId('teks-token') as HTMLTextAreaElement).value
+    expect(uraiToken(token).payload.jabatan).toEqual(['bendahara', 'tenaga_pendidik'])
+    await u.keyboard('{Escape}')
+    await buka(u, 'Kepengurusan')
+    const tabel = await screen.findByRole('table', { name: 'Pengurus berjabatan' })
+    expect(within(tabel).getByText('Bendahara, Bidang Tenaga Pendidik')).toBeTruthy()
   })
 })

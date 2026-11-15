@@ -29,6 +29,7 @@ import { useApp, useData } from '../konteks'
 import { PemindaiQr, QrBerseri } from '../komponen/qr'
 import { cariMateri, FormKemajuan, keDataKemajuan, KEMAJUAN_KOSONG, PemilihMateri, useMateriGenerus, type IsianKemajuan } from '../komponen/materi'
 import { EvaluasiMubaligh, KeaktifanMubaligh, LaporanBulananHp } from './juknis'
+import { DaftarCatatanBidang, KontrolMtHp } from './bidang'
 import { AreaTeks, BilahPersen, Isian, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, MenuDaftar, Modal, Pilihan, Segmen, Tombol } from '../komponen/ui'
 import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_TOKEN, LABEL_ROLE, labelPeriode, persenTeks, tanggalTeks } from '../utils/label'
 import { DaftarUsulan, FormGenerusBaru, FormUsulanGenerus, KartuBukaBerkas, KartuSetorData } from './bersama'
@@ -242,7 +243,7 @@ export function GenerusMubaligh(p: { kembali?: () => void }) {
 
 // ---------------- Lainnya ----------------
 
-type Sub = 'menu' | 'setoran' | 'simak' | 'generus' | 'token' | 'laporan' | 'balasan' | 'setor' | 'berkas' | 'keaktifan' | 'evaluasi' | 'bulanan'
+type Sub = 'menu' | 'setoran' | 'simak' | 'generus' | 'token' | 'laporan' | 'balasan' | 'setor' | 'berkas' | 'keaktifan' | 'evaluasi' | 'bulanan' | 'kontrolmt' | 'nunggoni'
 
 export function LainnyaMubaligh() {
   const { db, profil } = useApp()
@@ -255,6 +256,14 @@ export function LainnyaMubaligh() {
   if (sub === 'keaktifan') return <KeaktifanMubaligh kembali={kembali} />
   if (sub === 'evaluasi') return <EvaluasiMubaligh kembali={kembali} />
   if (sub === 'bulanan') return <LaporanBulananHp kembali={kembali} />
+  if (sub === 'kontrolmt') return <KontrolMtHp kembali={kembali} />
+  if (sub === 'nunggoni')
+    return (
+      <>
+        <JudulHalaman judul="NUNGGONI" kembali={kembali} />
+        <DaftarCatatanBidang judul="NUNGGONI saya" jenis={['nunggoni']} ket="Semua Pengurus & Mubaligh Peduli: sebulan sekali menunggui 1 KBM." />
+      </>
+    )
   if (sub === 'setoran') return <SetoranGenerus kembali={kembali} />
   if (sub === 'simak') return <SimakLangsung kembali={kembali} />
   if (sub === 'generus') return <GenerusMubaligh kembali={kembali} />
@@ -289,6 +298,7 @@ export function LainnyaMubaligh() {
           },
           { teks: 'Evaluasi Semester', ket: 'Nilai penguasaan materi & raport', ikon: '★', buka: () => setSub('evaluasi') },
           { teks: 'Laporan Bulanan', ket: 'Musyawaroh 5 Unsur, Muda/i, NUNGGONI', ikon: '✉', buka: () => setSub('bulanan') },
+          { teks: 'Kontrol Keaktifan MT', ket: 'Sholat, hafalan, tadarus (dilaporkan bulanan)', ikon: '☼', buka: () => setSub('kontrolmt') },
           { teks: 'Simak Langsung', ket: 'Untuk generus tanpa HP', ikon: '♪', buka: () => setSub('simak') },
           { teks: 'Generus', ket: 'Data & usulan perubahan', ikon: '☺', buka: () => setSub('generus') },
           { teks: 'Terbitkan Token', ket: 'Untuk HP generus / orang tua', ikon: '⚿', buka: () => setSub('token') },
@@ -296,6 +306,7 @@ export function LainnyaMubaligh() {
           { teks: 'Laporan Pekanan', ket: 'Kirim WA ke orang tua', ikon: '▤', buka: () => setSub('laporan') },
           { teks: `Setor ke ${tujuan}`, ket: 'Kirim catatan; Setor Akhir', ikon: '⇧', buka: () => setSub('setor') },
           { teks: 'Buka Berkas', ket: 'Berkas dari desa/daerah atau generus', ikon: '⇩', buka: () => setSub('berkas') },
+          { teks: 'NUNGGONI', ket: 'Semua Pengurus & Mubaligh Peduli', ikon: '⚐', buka: () => setSub('nunggoni') },
         ]}
       />
     </>

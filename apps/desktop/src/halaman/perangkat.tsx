@@ -4,6 +4,9 @@
 // kelompok di wilayahnya (terbitkanTokenBawah) dan hanya mencabut token terbitannya sendiri.
 import { useEffect, useMemo, useState } from 'react'
 import {
+  JABATAN_TINGKAT,
+  LABEL_JABATAN,
+  type Jabatan,
   HAK_BAWAAN,
   ambilWilayah,
   bacaKodePerangkat,
@@ -79,6 +82,10 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
   const [nama, setNama] = useState('')
   const [hak, setHak] = useState<Hak[]>(HAK_BAWAAN.mubaligh)
   const [hari, setHari] = useState('365')
+  // §17: jabatan/bidang PPG untuk pengurus (hanya EXE Daerah)
+  const [jabatan, setJabatan] = useState<Jabatan[]>([])
+  const tingkatWilayah = wilayah ? ambilWilayah(db, wilayah)?.tingkat : undefined
+  const pilihanJabatan = jenis === 'pengurus' && peran === 'daerah' && tingkatWilayah ? JABATAN_TINGKAT[tingkatWilayah] : []
   const infoKode = useMemo(() => {
     if (!kode.trim()) return null
     try {
@@ -99,7 +106,8 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
     const t = await aksi(
       () => {
         const o = { kodePerangkat: kode, nama, wilayahId: wilayah, hak: hakTampil ? hak : undefined, berlakuHari: Number(hari) }
-        if (peran === 'daerah') return terbitkanToken(db, kunciDaerah(kunci), { ...o, role: j.role })
+        const jb = jabatan.filter((x) => pilihanJabatan.includes(x))
+        if (peran === 'daerah') return terbitkanToken(db, kunciDaerah(kunci), { ...o, role: j.role, ...(jb.length ? { jabatan: jb } : {}) })
         if (j.role === 'kurikulum') throw new Error('Token kurikulum diterbitkan daerah.')
         return terbitkanTokenBawah(db, kunci as KunciExe, { ...o, role: j.role })
       },
@@ -109,6 +117,7 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
       p.hasil(t, nama)
       setKode('')
       setNama('')
+      setJabatan([])
     }
   }
 
@@ -148,6 +157,20 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
           </div>
         </fieldset> : jenis === 'super_hp' ? <p className="keterangan kolom-lebar">Super Admin HP menerbitkan token semua peran (pengurus, mubaligh, orang tua, murid, EXE desa/kelompok/kurikulum) di seluruh daerah, menambah data sebagai usulan yang disetujui otomatis saat setorannya diimpor, dan menyetor ke daerah. Tidak bisa menerbitkan Super Admin HP lain. Cabut di daftar perangkat bila HP hilang.</p> : <p className="keterangan kolom-lebar">Hak EXE mengikuti tingkatnya (EXE desa boleh menerbitkan kode aktivasi di desanya; EXE kelompok mencatat & mengesahkan; kurikulum mengelola materi & target).</p>}
       </div>
+      {pilihanJabatan.length ? (
+        <fieldset className="kolom kolom-lebar">
+          <legend>Jabatan / bidang PPG (boleh lebih dari satu)</legend>
+          <div className="baris-centang">
+            {pilihanJabatan.map((x) => (
+              <label key={x} className="centang">
+                <input type="checkbox" checked={jabatan.includes(x)} onChange={(e) => setJabatan((l) => (e.target.checked ? [...l, x] : l.filter((y) => y !== x)))} />
+                {LABEL_JABATAN[x]}
+              </label>
+            ))}
+          </div>
+          <p className="keterangan">HP pengurus hanya menampilkan menu bidangnya. Ketua/Wakil/Bendahara/Penggalang Dana menerima kunci baca keuangan; BK menerima kunci konseling.</p>
+        </fieldset>
+      ) : null}
       <div className="aksi">
         <Tombol onClick={terbit} disabled={!infoKode?.ok || !wilayah || !nama.trim()}>
           Terbitkan token

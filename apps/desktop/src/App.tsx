@@ -29,6 +29,7 @@ import { HalamanUsulan } from './halaman/usulan'
 import { HalamanKoreksi } from './halaman/koreksi'
 import { HalamanPaket } from './halaman/paket'
 import { HalamanEvaluasi, HalamanMateriEvaluasi } from './halaman/juknis'
+import { HalamanKepengurusan } from './halaman/kepengurusan'
 import { HalamanRekap } from './halaman/rekap'
 import { HalamanPengaturan } from './halaman/pengaturan'
 import { HalamanSetor } from './halaman/setor'
@@ -385,6 +386,8 @@ function Halaman(p: { kunci: KunciMenu; pilih: (k: KunciMenu) => void }) {
       return <HalamanEvaluasi />
     case 'materiEvaluasi':
       return <HalamanMateriEvaluasi />
+    case 'kepengurusan':
+      return <HalamanKepengurusan />
     case 'pengaturan':
       return <HalamanPengaturan />
   }

@@ -1,6 +1,6 @@
 // Kerangka setelah masuk: kepala (profil), spanduk status, indikator setor, isi halaman, navigasi bawah sesuai peran.
 import { useEffect, useState, type ReactNode } from 'react'
-import { infoSinkronHp, statusProfil, type Role } from '@ppg/core'
+import { infoSinkronHp, jabatanProfil, statusProfil, type Profil, type Role } from '@ppg/core'
 import { useApp, useData } from './konteks'
 import { Spanduk, Tombol } from './komponen/ui'
 import { label, LABEL_ROLE } from './utils/label'
@@ -10,6 +10,7 @@ import { JadwalMubaligh, LainnyaMubaligh, MateriKelas } from './halaman/mubaligh
 import { CatatKemajuan, JadwalGenerus, Materiku, SetorGenerus, TargetGenerus } from './halaman/generus'
 import { BerkasWali, KehadiranWali, KemajuanWali, LaporanWali, TargetWali } from './halaman/wali'
 import { HalamanAbsen } from './halaman/absen'
+import { BerandaBidang, HalamanBidang } from './halaman/bidang'
 import { PESAN_TOKEN_EXE } from './halaman/awal'
 
 export interface PropHalaman {
@@ -56,6 +57,19 @@ const TAB: Record<Role, Tab[]> = {
   // v3: peran EXE (desa/kelompok/kurikulum) tidak bisa diaktifkan di HP (ditolak core); bila ada, tampil pesan saja
   admin: [{ kunci: 'exe', teks: 'Info', ikon: 'ⓘ', isi: () => <PesanPeranExe /> }],
   kurikulum: [{ kunci: 'exe', teks: 'Info', ikon: 'ⓘ', isi: () => <PesanPeranExe /> }],
+}
+
+/** §17: pengurus berjabatan — menu sesuai bidang (Beranda · Bidang · Absen untuk PJ kelompok · Data · Sinkron). */
+function tabUntuk(profil: Profil): Tab[] {
+  const jabatan = profil.role === 'pengurus' ? jabatanProfil(profil) : []
+  if (!jabatan.length) return TAB[profil.role]
+  return [
+    { kunci: 'beranda', teks: 'Beranda', ikon: '⌂', isi: (p) => <BerandaBidang {...p} /> },
+    { kunci: 'bidang', teks: 'Bidang', ikon: '❖', isi: () => <HalamanBidang /> },
+    ...(jabatan.includes('pj_kelompok') ? [{ kunci: 'absen', teks: 'Absen', ikon: '✓', isi: () => <HalamanAbsen /> }] : []),
+    { kunci: 'data', teks: 'Data', ikon: '☺', isi: () => <DataPengurus /> },
+    { kunci: 'sinkron', teks: 'Sinkron', ikon: '⇅', isi: () => <SinkronPengurus /> },
+  ]
 }
 
 /** Tab tujuan setor per peran (untuk tombol pengingat); mubaligh → Absen (kartu "Setor sekarang"). */
@@ -107,13 +121,13 @@ function IndikatorSetor(p: { pergi: (tab: string) => void; tab: string }) {
 
 export function Kerangka(p: { akun: boolean }) {
   const { profil, ke } = useApp()
-  const daftarTab = TAB[profil.role]
+  const daftarTab = tabUntuk(profil)
   const [tab, setTab] = useState(daftarTab[0]!.kunci)
   // ketuk ulang menu yang sedang aktif → kembali ke tampilan awal menu itu
   const [ulang, setUlang] = useState(0)
   // ganti profil (peran lain) → kembali ke tab pertama
   useEffect(() => {
-    setTab(TAB[profil.role][0]!.kunci)
+    setTab(tabUntuk(profil)[0]!.kunci)
   }, [profil.id, profil.role])
   const aktif = daftarTab.find((t) => t.kunci === tab) ?? daftarTab[0]!
   const st = statusProfil(profil)

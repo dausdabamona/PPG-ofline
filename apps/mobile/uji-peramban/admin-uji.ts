@@ -39,5 +39,9 @@ export async function siapkan() {
     tokenExeDesa: (kode: string) => terbitkanToken(db, kunci, { kodePerangkat: kode, role: 'admin', nama: 'Admin Desa', wilayahId: ds.id }),
     paket: () => buatPaket(db, k1.id, kunci),
     materi: () => buatMateri(db, kunci),
+    // §17: pengurus daerah berjabatan (ketua + bendahara) dan paket seluruh daerah
+    tokenPengurusJabatan: (kode: string) =>
+      terbitkanToken(db, kunci, { kodePerangkat: kode, role: 'pengurus', nama: 'Bendahara PPG', wilayahId: d.id, jabatan: ['ketua', 'bendahara'] }),
+    paketDaerah: () => buatPaket(db, d.id, kunci),
   }
 }

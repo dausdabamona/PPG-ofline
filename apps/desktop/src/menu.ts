@@ -22,14 +22,15 @@ export const MENU = {
   rekap: { teks: 'Rekap & Laporan', ikon: '▤' },
   evaluasi: { teks: 'Evaluasi & Keaktifan', ikon: '★' },
   materiEvaluasi: { teks: 'Materi Evaluasi', ikon: '☰' },
+  kepengurusan: { teks: 'Kepengurusan', ikon: '♜' },
   pengaturan: { teks: 'Pengaturan', ikon: '⚙' },
 } as const
 export type KunciMenu = keyof typeof MENU
 
 /** Menu tiap peran (urut tampil). */
 export const MENU_PERAN: Record<PeranExe, KunciMenu[]> = {
-  daerah: ['beranda', 'wilayah', 'generus', 'pengajian', 'materi', 'target', 'materiEvaluasi', 'perangkat', 'jadwal', 'impor', 'usulan', 'koreksi', 'paket', 'rekap', 'evaluasi', 'pengaturan'],
-  desa: ['beranda', 'setor', 'impor', 'bukaPaket', 'paket', 'balasan', 'perangkat', 'generus', 'rekap', 'evaluasi', 'pengaturan'],
+  daerah: ['beranda', 'wilayah', 'generus', 'pengajian', 'materi', 'target', 'materiEvaluasi', 'perangkat', 'jadwal', 'impor', 'usulan', 'koreksi', 'paket', 'rekap', 'evaluasi', 'kepengurusan', 'pengaturan'],
+  desa: ['beranda', 'setor', 'impor', 'bukaPaket', 'paket', 'balasan', 'perangkat', 'generus', 'rekap', 'evaluasi', 'kepengurusan', 'pengaturan'],
   kelompok: ['beranda', 'absen', 'impor', 'setor', 'bukaPaket', 'balasan', 'rekap', 'evaluasi', 'pengaturan'],
   kurikulum: ['beranda', 'materi', 'target', 'materiEvaluasi', 'bukaPaket', 'pengaturan'],
 }
