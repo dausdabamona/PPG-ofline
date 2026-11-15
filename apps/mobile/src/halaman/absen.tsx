@@ -22,6 +22,7 @@ import {
   saranMateriPertemuan,
   tanggalDariIso,
   tanggalHariIni,
+  teksDataSetor,
   tujuanSetor,
   type StatusPresensi,
 } from '@ppg/core'
@@ -43,26 +44,31 @@ function tenggatTeks(iso: string): string {
 }
 
 /**
- * Pengingat tenggat setor (V2) di atas Absen/Beranda: tenggat berikutnya, terlambat/mendekat, data belum disetor,
- * dan tombol besar "Setor sekarang" bila mendekati/lewat tenggat (atau belum pernah setor padahal ada data).
+ * Pengingat tenggat setor (V2) di atas Absen/Beranda: tenggat berikutnya, terlambat/mendekat, data belum dikirim vs
+ * sudah dikirim menunggu konfirmasi (Fase 9b), dan tombol besar "Setor sekarang" bila mendekati/lewat tenggat
+ * (atau belum pernah setor padahal ada data). Tanpa data yang perlu disetor tidak ada status terlambat.
  */
 export function KartuPengingatSetor() {
   const { db, aksi, kirimBerkas } = useApp()
-  const r = useData(() => ({ p: pengingatSetor(db), info: infoSinkronHp(db) }), [])
+  const r = useData(() => ({ p: pengingatSetor(db), info: infoSinkronHp(db) }), [db])
   if (!r.data?.p) return null
   const { p: x, info } = r.data
   const tujuan = x.tujuan?.nama ?? 'Daerah'
-  const tujuh = !x.tenggatBerikutnya && info.perluPengingat && x.belumDisetor > 0
+  const tujuh = !x.tenggatBerikutnya && info.perluPengingat && x.belumDikirim > 0
   const tombolBesar = x.tampilkanTombol || tujuh
+  const belumAda = !x.terlambat && x.belumAdaSetoran && x.belumDikirim > 0 && !!x.tenggatBerikutnya
+  const dekat = !x.terlambat && !belumAda && x.mendekat && x.belumDikirim > 0
   const setor = async () => {
     const b = await aksi(() => buatSetor(db))
     if (b) await kirimBerkas(b, `Berkas setoran siap. Kirim ke ${tujuan} lewat WA.`)
   }
   return (
-    <Kartu judul={`Setor ke ${tujuan}`} kelas={x.terlambat ? 'pengingat-terlambat' : x.mendekat ? 'pengingat-dekat' : undefined}>
+    <Kartu judul={`Setor ke ${tujuan}`} kelas={x.terlambat ? 'pengingat-terlambat' : belumAda || dekat ? 'pengingat-dekat' : undefined}>
       {x.terlambat ? (
         <Spanduk jenis="bahaya">Setoran terlambat. Segera setor ke {tujuan}.</Spanduk>
-      ) : x.mendekat ? (
+      ) : belumAda ? (
+        <Spanduk jenis="peringatan">Belum ada setoran. Setor ke {tujuan} sebelum tenggat.</Spanduk>
+      ) : dekat ? (
         <Spanduk jenis="peringatan">Tenggat setor kurang dari 24 jam lagi.</Spanduk>
       ) : null}
       <p>
@@ -74,14 +80,7 @@ export function KartuPengingatSetor() {
           'Jadwal setor belum ditetapkan.'
         )}
         <br />
-        {x.belumDisetor ? (
-          <>
-            Ada <b>{x.belumDisetor}</b> data belum disetor.
-          </>
-        ) : (
-          'Semua data sudah disetor.'
-        )}{' '}
-        <small>Setor terakhir: {waktuTeks(x.terakhirSetor)}</small>
+        <span data-keadaan-setor={x.keadaan}>{teksDataSetor(x, tujuan)}</span> <small>Setor terakhir: {waktuTeks(x.terakhirSetor)}</small>
       </p>
       {tombolBesar ? (
         <Tombol penuh onClick={setor}>
@@ -89,7 +88,7 @@ export function KartuPengingatSetor() {
         </Tombol>
       ) : x.belumDisetor ? (
         <Tombol kecil varian="kedua" onClick={setor}>
-          Setor ke {tujuan}
+          {x.belumDikirim ? `Setor ke ${tujuan}` : `Kirim ulang ke ${tujuan}`}
         </Tombol>
       ) : null}
     </Kartu>

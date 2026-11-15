@@ -80,9 +80,13 @@ describe('kueri UI', () => {
     expect(r.perangkatAktif).toMatchObject({ mubaligh: 1, generus: 1, pengurus: 0, total: 2 })
     const k1 = r.setoranPerKelompok.find((k) => k.kelompok_id === d.k1.id)!
     expect(k1).toMatchObject({ hari_sejak: 0, terlambat: false })
-    expect(r.setoranPerKelompok.find((k) => k.kelompok_id === d.k2.id)).toMatchObject({ terakhir_setor: null, terlambat: true })
+    // Fase 9b: belum pernah setor → "Belum ada setoran" (kuning), belum terlambat sampai batas sejak perangkat diaktifkan
+    expect(k1).toMatchObject({ belumAdaSetoran: false })
+    expect(r.setoranPerKelompok.find((k) => k.kelompok_id === d.k2.id)).toMatchObject({ terakhir_setor: null, belumAdaSetoran: true, terlambat: false })
     keTanggal('2026-11-20')
-    expect(ringkasanBerandaAdmin(d.admin.db).setoranPerKelompok.find((k) => k.kelompok_id === d.k1.id)).toMatchObject({ hari_sejak: 18, terlambat: true })
+    const r2 = ringkasanBerandaAdmin(d.admin.db).setoranPerKelompok
+    expect(r2.find((k) => k.kelompok_id === d.k1.id)).toMatchObject({ hari_sejak: 18, terlambat: true })
+    expect(r2.find((k) => k.kelompok_id === d.k2.id)).toMatchObject({ belumAdaSetoran: true, terlambat: true })
     keTanggal('2026-11-02')
   })
 

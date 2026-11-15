@@ -10,6 +10,7 @@ import {
   kelompokDalamWilayah,
   setorAkhir,
   tanggalHariIni,
+  teksDataSetor,
   tujuanSetor,
   KATEGORI_GENERUS,
   type Generus,
@@ -68,13 +69,7 @@ export function KartuSetorData(p: { setorAkhir?: boolean }) {
         {(i) => (
           <>
             <p>
-              {i.belumDisetor ? (
-                <>
-                  Ada <b>{i.belumDisetor}</b> data belum disetor.
-                </>
-              ) : (
-                'Semua data sudah disetor.'
-              )}
+              {teksDataSetor(i, tujuan)}
               <br />
               <small>Setor terakhir: {waktuTeks(i.terakhirSetor)} · Data dari atas terakhir: {waktuTeks(i.terakhirPaket)}</small>
               {i.belumSampaiDaerah ? (

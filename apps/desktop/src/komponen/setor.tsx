@@ -1,5 +1,5 @@
 // Komponen bersama v3: kartu "Setor ke Desa/Daerah" (tombol besar + tenggat) dan tabel status setor wilayah bawahan.
-import { buatSetor, pengingatSetor, type StatusSetorBawahan } from '@ppg/core'
+import { buatSetor, pengingatSetor, teksDataSetor, type StatusSetorBawahan } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { KeadaanData, Kartu, Kosong, Lencana, Tombol } from './ui'
 import { uraianJadwalSetor, waktuHari, waktuLokal } from '../utils/label'
@@ -20,18 +20,27 @@ export function KartuSetorKeAtas(p: { ringkas?: boolean }) {
       <KeadaanData hasil={hasil}>
         {(r) =>
           r ? (
-            <div className={`kotak-setor${r.terlambat ? ' terlambat' : r.mendekat ? ' mendekat' : ''}`}>
+            <div className={`kotak-setor${r.terlambat ? ' terlambat' : r.mendekat && r.belumDikirim > 0 ? ' mendekat' : ''}`}>
               <div>
                 <p>
                   Tujuan: <b>{r.tujuan?.nama ?? tujuanBawaan}</b>
                 </p>
                 <p>
                   Tenggat berikutnya: <b>{r.tenggatBerikutnya ? waktuHari(r.tenggatBerikutnya) : 'Belum diatur daerah'}</b>{' '}
-                  {r.terlambat ? <Lencana warna="merah">Terlambat</Lencana> : r.mendekat ? <Lencana warna="kuning">Mendekati tenggat</Lencana> : null}
+                  {r.terlambat ? (
+                    <Lencana warna="merah">Terlambat</Lencana>
+                  ) : r.belumAdaSetoran && r.belumDikirim > 0 && r.tenggatBerikutnya ? (
+                    <Lencana warna="kuning">Belum ada setoran</Lencana>
+                  ) : r.mendekat && r.belumDikirim > 0 ? (
+                    <Lencana warna="kuning">Mendekati tenggat</Lencana>
+                  ) : null}
                 </p>
                 <p>
                   Setor terakhir: <b>{r.terakhirSetor ? waktuLokal(r.terakhirSetor) : 'Belum pernah'}</b> · Data belum diterima {tujuanBawaan.toLowerCase()}:{' '}
                   <b data-testid="belum-disetor">{r.belumDisetor}</b>
+                </p>
+                <p data-testid="teks-data-setor" data-keadaan-setor={r.keadaan}>
+                  {teksDataSetor(r, r.tujuan?.nama ?? tujuanBawaan)}
                 </p>
               </div>
               <button type="button" className="tombol tombol-utama tombol-besar" onClick={() => void setor(false)}>
@@ -82,6 +91,8 @@ export function TabelStatusSetor(p: { daftar: StatusSetorBawahan[]; kolomNama: s
                 <Lencana warna="abu">Tanpa jadwal</Lencana>
               ) : s.terlambat ? (
                 <Lencana warna="merah">Terlambat</Lencana>
+              ) : s.belumAdaSetoran ? (
+                <Lencana warna="kuning">Belum ada setoran</Lencana>
               ) : (
                 <Lencana warna="hijau">Tepat waktu</Lencana>
               )}

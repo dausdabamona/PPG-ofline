@@ -6,7 +6,7 @@
 //   node apps/mobile/uji-peramban/uji-asap.mjs "$PWD/apps/mobile/dist" "$PWD/apps/mobile/node_modules/.uji/admin-uji.cjs"
 // (atur CHROME=/path/chrome bila bukan /usr/bin/google-chrome; PLAYWRIGHT=/path/playwright-core bila tidak di node_modules)
 // Uji asap HP 360×740 (v3): sambut → Kode Perangkat (QR ≥ 280 px) → kode EXE ditolak dengan pesan → aktivasi mubaligh → paket & materi →
-// Absen (pengingat terlambat, kelas, saran materi, hadir + tuntas) → Materi kelas → QR berseri + layar penuh → Setor sekarang →
+// Absen (pengingat setor, kelas, saran materi, hadir + tuntas) → Materi kelas → QR berseri + layar penuh → Setor sekarang →
 // cadangan terenkripsi → muat ulang (IndexedDB).
 import { createServer } from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
@@ -89,9 +89,9 @@ await bukaBerkas('Buka Berkas', [p, m])
 await page.getByText(/Daftar materi berhasil dibuka/).waitFor({ timeout: 30000 })
 kecil.push(...(await ukurTombol()))
 
-// Absen: pengingat terlambat → kelas → saran materi → hadir + tuntas → simpan
+// Absen: pengingat netral (belum ada data, Fase 9b) → kelas → saran materi → hadir + tuntas → simpan
 await navKe('Absen')
-await page.getByText(/Setoran terlambat/).waitFor()
+await page.getByText(/Belum ada data untuk disetor/).waitFor()
 await page.getByRole('radio', { name: /Kelas Caberawit/ }).click()
 await page.getByRole('button', { name: 'Pakai saran pertama' }).click()
 await foto('3-absen-materi')
@@ -135,7 +135,7 @@ await page.getByRole('button', { name: 'Tutup', exact: true }).click()
 await navKe('Absen')
 const [setor] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Setor sekarang' }).click()])
 if (!/^PPG_SETOR_/.test(setor.suggestedFilename())) galat.push(`berkas setor: ${setor.suggestedFilename()}`)
-await page.getByText(/Setoran terlambat/).waitFor({ state: 'detached' })
+await page.getByText(/data sudah dikirim, menunggu konfirmasi/).waitFor()
 
 // cadangan HP wajib kata sandi → berkas terenkripsi (PBKDF2 + secretbox di bawah CSP)
 await page.getByRole('button', { name: /^Profil:/ }).click()

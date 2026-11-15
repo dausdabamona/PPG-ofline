@@ -82,7 +82,8 @@ function IndikatorSetor(p: { pergi: (tab: string) => void; tab: string }) {
   // di tab Absen (dan Beranda pengurus) sudah ada kartu pengingat setor
   if (!info.data || profil.role === 'wali' || profil.role === 'admin' || profil.role === 'kurikulum' || p.tab === 'absen' || (profil.role === 'pengurus' && p.tab === 'beranda')) return null
   const generus = profil.role === 'generus'
-  const n = generus ? info.data.belumDisetorBelajar : info.data.belumDisetor
+  // Fase 9b: yang sudah dikirim (menunggu konfirmasi) tidak dihitung lagi sebagai belum disetor
+  const n = generus ? info.data.belumDisetorBelajar : info.data.belumDikirim
   const ingat = generus ? info.data.perluPengingatBelajar : info.data.perluPengingat
   const hari = generus ? info.data.hariSejakBelajar : info.data.hariSejakSetor
   if (!n) return null

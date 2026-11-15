@@ -12,7 +12,7 @@ import { daftarPerangkat, type PerangkatTerdaftar } from './repo/perangkat'
 import { ambilProfil, daftarProfil } from './repo/profil'
 import { ambilMeta } from './repo/umum'
 import { ambilWilayah, daftarWilayah, kelompokDalamWilayah, turunanWilayah, type Tingkat, type Wilayah } from './repo/wilayah'
-import { jumlahBelumDisetor, jumlahBelumSampaiDaerah } from './sinkron/setor'
+import { jumlahBelumSampaiDaerah, rincianBelumDisetor } from './sinkron/setor'
 import { jumlahBelumDisetorBelajar } from './sinkron/belajar'
 import { awalPekan, akhirPekan, hariDalamPekan, sekarangIso, selisihHari, tambahHari, tanggalDariIso, tanggalHariIni } from './waktu'
 
@@ -124,8 +124,13 @@ export interface SetoranKelompok {
   /** Waktu impor setoran terakhir dari pengurus/mubaligh kelompok itu (ISO) atau null. */
   terakhir_setor: string | null
   hari_sejak: number | null
-  /** true bila belum pernah setor atau lebih dari `hariTerlambat` hari. */
+  /**
+   * true bila setoran terakhir lebih dari `hariTerlambat` hari lalu. Belum pernah setor (Fase 9b): baru terlambat
+   * bila sudah lebih dari `hariTerlambat` hari sejak perangkat pengurus/mubaligh pertama kelompok itu didaftarkan.
+   */
   terlambat: boolean
+  /** Fase 9b: belum pernah ada setoran (tampil "Belum ada setoran" kuning selama belum terlambat). */
+  belumAdaSetoran: boolean
 }
 
 export interface RingkasanBerandaAdmin {
@@ -151,7 +156,13 @@ export function ringkasanBerandaAdmin(db: Db, o: { hariTerlambat?: number } = {}
     const terakhir =
       db.nilai<string | null>(`SELECT MAX(terakhir_setor) FROM perangkat WHERE wilayah_id = ? AND role IN ('pengurus', 'mubaligh')`, [k.id]) ?? null
     const h = hariSejak(terakhir, hariIni)
-    return { kelompok_id: k.id, nama: k.nama, terakhir_setor: terakhir, hari_sejak: h, terlambat: h === null || h > batas }
+    let terlambat = h !== null && h > batas
+    if (h === null) {
+      const aktif =
+        db.nilai<string | null>(`SELECT MIN(dibuat_pada) FROM perangkat WHERE wilayah_id = ? AND role IN ('pengurus', 'mubaligh')`, [k.id]) ?? k.dibuat_pada
+      terlambat = (hariSejak(aktif, hariIni) ?? 0) > batas
+    }
+    return { kelompok_id: k.id, nama: k.nama, terakhir_setor: terakhir, hari_sejak: h, terlambat, belumAdaSetoran: terakhir === null }
   })
   return {
     generus: { aktif: hitung('aktif'), mondok: hitung('mondok'), total: db.nilai<number>('SELECT COUNT(*) FROM generus WHERE dihapus = 0') ?? 0 },
@@ -201,18 +212,24 @@ export interface InfoSinkronHp {
   perluPengingatBelajar: boolean
   /** v3: data yang sudah diterima tingkat atas tetapi belum dipastikan sampai di daerah (konfirmasi bertahap). */
   belumSampaiDaerah: number
+  /** Fase 9b: bagian `belumDisetor` yang belum ikut berkas SETOR mana pun. */
+  belumDikirim: number
+  /** Fase 9b: bagian `belumDisetor` yang sudah dikirim tetapi belum dikonfirmasi tingkat atas. */
+  menungguKonfirmasi: number
 }
 
 /** Indikator "Ada N data belum disetor" + pengingat setor (§12). */
 export function infoSinkronHp(db: Db, o: { hariPengingat?: number } = {}): InfoSinkronHp {
   const pengurus = daftarProfil(db, ['pengurus', 'mubaligh']).length > 0
   const generus = daftarProfil(db, 'generus').length > 0
-  const belumDisetor = pengurus ? jumlahBelumDisetor(db) : 0
+  const rinci = pengurus ? rincianBelumDisetor(db) : { belumDikirim: 0, menungguKonfirmasi: 0 }
+  const belumDisetor = rinci.belumDikirim + rinci.menungguKonfirmasi
   const belumDisetorBelajar = generus ? jumlahBelumDisetorBelajar(db) : 0
   const terakhirSetor = ambilMeta(db, 'terakhir_setor') ?? null
   const terakhirBelajar = ambilMeta(db, 'terakhir_belajar') ?? null
   const relevan = pengurus ? terakhirSetor : terakhirBelajar
-  const tertunda = pengurus ? belumDisetor : belumDisetorBelajar
+  // Fase 9b: yang sudah dikirim (menunggu konfirmasi) tidak lagi memicu pengingat
+  const tertunda = pengurus ? rinci.belumDikirim : belumDisetorBelajar
   const h = hariSejak(relevan, tanggalHariIni())
   const batas = o.hariPengingat ?? 7
   const hb = hariSejak(terakhirBelajar, tanggalHariIni())
@@ -228,6 +245,8 @@ export function infoSinkronHp(db: Db, o: { hariPengingat?: number } = {}): InfoS
     hariSejakBelajar: hb,
     perluPengingatBelajar: belumDisetorBelajar > 0 && (hb === null || hb > batas),
     belumSampaiDaerah: pengurus ? jumlahBelumSampaiDaerah(db) : 0,
+    belumDikirim: rinci.belumDikirim,
+    menungguKonfirmasi: rinci.menungguKonfirmasi,
   }
 }
 

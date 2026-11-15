@@ -56,6 +56,26 @@ export function jumlahBelumDisetor(db: Db): number {
   return n
 }
 
+function hitungSeqDi(db: Db, dari: number, sampai: number | null): number {
+  let n = 0
+  for (const t of DAFTAR_TABEL_SINKRON)
+    n += (sampai === null
+      ? db.nilai<number>(`SELECT COUNT(*) FROM ${t} WHERE seq_lokal > ?`, [dari])
+      : db.nilai<number>(`SELECT COUNT(*) FROM ${t} WHERE seq_lokal > ? AND seq_lokal <= ?`, [dari, sampai])) ?? 0
+  return n
+}
+
+/**
+ * Fase 9b: rincian data belum dikonfirmasi tingkat atas — `menungguKonfirmasi` = sudah ikut berkas SETOR terakhir
+ * (seq ≤ `terkirim_seq`) tetapi belum dikonfirmasi; `belumDikirim` = dicatat/diterima sesudah setoran terakhir.
+ * Jumlah keduanya = {@link jumlahBelumDisetor}.
+ */
+export function rincianBelumDisetor(db: Db): { belumDikirim: number; menungguKonfirmasi: number } {
+  const konf = ambilMetaAngka(db, 'konfirmasi_seq')
+  const kirim = Math.max(konf, ambilMetaAngka(db, 'terkirim_seq'))
+  return { belumDikirim: hitungSeqDi(db, kirim, null), menungguKonfirmasi: kirim > konf ? hitungSeqDi(db, konf, kirim) : 0 }
+}
+
 /** v3: jumlah rekaman lokal yang belum dipastikan sampai di daerah (konfirmasi bertahap). */
 export function jumlahBelumSampaiDaerah(db: Db): number {
   const konf = ambilMetaAngka(db, 'konfirmasi_daerah_seq')
@@ -133,6 +153,8 @@ export function buatSetor(db: Db, opsi: { setorAkhir?: boolean; semua?: boolean 
   const tujuan = tp.atas_box_pub ?? admin.boxPub
   const bytes = kemasBerkas(header, segelKe(dariB64url(tujuan), kompresJson(isi)), identitas.tandaTangan.rahasia)
   aturMeta(db, 'terakhir_setor', sekarangIso())
+  // Fase 9b: catat seq tertinggi yang sudah dikirim → kartu setor membedakan "menunggu konfirmasi" dari "belum dikirim"
+  if (urut > ambilMetaAngka(db, 'terkirim_seq')) aturMeta(db, 'terkirim_seq', urut)
   const namaW = slug(ambilWilayah(db, wilayah)?.nama ?? wilayah)
   return {
     nama: `PPG_SETOR${opsi.setorAkhir ? '_AKHIR' : ''}_${namaW}_${tanggalRingkas()}_${urut}.ppg`,

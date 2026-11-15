@@ -501,14 +501,16 @@ describe('jadwal setor & status', () => {
     terapkanPaket(d.exeA.db, buatPaket(d.daerah.db, d.desaA.id, d.daerah.kunci).bytes)
     const m = await mubalighA1(d)
     const ing = pengingatSetor(m.db)!
-    expect(ing).toMatchObject({ terlambat: true, tujuan: { tingkat: 'desa' } }) // belum pernah setor
+    // Fase 9b: belum pernah setor tetapi belum ada data → bukan terlambat, keadaan "kosong"
+    expect(ing).toMatchObject({ terlambat: false, belumAdaSetoran: true, keadaan: 'kosong', tujuan: { tingkat: 'desa' } })
     expect(new Date(ing.tenggatBerikutnya!).getDay()).toBe(6)
     imporSetor(d.exeA.db, buatSetor(m.db).bytes, d.exeA.kunci)
     expect(pengingatSetor(m.db)).toMatchObject({ terlambat: false, belumDisetor: 0, tampilkanTombol: false })
     const sk = statusSetor(d.exeA.db, d.A1.id)
     expect(sk).toHaveLength(1)
     expect(sk[0]).toMatchObject({ perangkat_id: m.id, terlambat: false })
-    expect(statusSetor(d.exeA.db, d.desaA.id).map((x) => [x.nama, x.terlambat])).toEqual([['A1', false], ['A2', true]])
+    // Fase 9b: A2 belum pernah setor, tenggat pertama sejak aktivasi belum lewat → "belum ada setoran", bukan terlambat
+    expect(statusSetor(d.exeA.db, d.desaA.id).map((x) => [x.nama, x.terlambat, x.belumAdaSetoran])).toEqual([['A1', false, false], ['A2', false, true]])
     expect(pengingatSetor(d.daerah.db)).toBeNull()
     expect(statusSetor(d.daerah.db, 'TIDAK-ADA')).toEqual([])
     expect(ringkasanBerandaExe(m.db).peran).toBe('hp')

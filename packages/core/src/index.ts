@@ -73,7 +73,7 @@ export * from './kueri-berjenjang'
 export * from './instalasi'
 export { opsiPeriksaDb, periksaTokenDb, wilayahMencakupDb, wajibBuktiWilayahDb, idRantaiPenerbit, wilayahRantaiPenerbit } from './rantai'
 export * from './sinkron/umum'
-export { buatSetor, imporSetor, jumlahBelumDisetor, jumlahBelumSampaiDaerah, tujuanSetor, type IsiSetor, type RingkasanImporSetor } from './sinkron/setor'
+export { buatSetor, imporSetor, jumlahBelumDisetor, jumlahBelumSampaiDaerah, rincianBelumDisetor, tujuanSetor, type IsiSetor, type RingkasanImporSetor } from './sinkron/setor'
 export { buatKurikulum, imporKurikulum, jumlahSuntinganKurikulum, TABEL_KURIKULUM, type IsiKurikulum, type RingkasanImporKurikulum } from './sinkron/kurikulum'
 export { buatPaket, terapkanPaket, versiPaketTerpasang, dataWilayah, berkasLebihBaru, type IsiPaket, type RingkasanTerapkan } from './sinkron/paket'
 export {

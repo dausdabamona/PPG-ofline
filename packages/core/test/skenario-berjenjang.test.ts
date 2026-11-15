@@ -312,7 +312,9 @@ describe('Skenario berjenjang v3 (§14)', () => {
     expect(sk.map((x) => [x.nama, x.terlambat])).toEqual([['Klasaman 1', true], ['Klasaman 2', true]])
     expect(statusSetor(daerah.db, desaA.id).map((x) => x.terakhirSetor !== null)).toEqual([true, true])
     const ing = pengingatSetor(hpM.db)!
-    expect(ing).toMatchObject({ terlambat: true, tampilkanTombol: true, tujuan: { perangkatId: exeA.id, nama: 'Desa Klasaman', tingkat: 'desa' } })
+    // Fase 9b: semua data HP sudah dikonfirmasi → tidak ada yang perlu disetor → HP tidak menampilkan "terlambat"
+    // (desa tetap melihat HP itu terlambat karena tidak tahu isi HP)
+    expect(ing).toMatchObject({ terlambat: false, tampilkanTombol: false, belumDisetor: 0, keadaan: 'semua_disetor', tujuan: { perangkatId: exeA.id, nama: 'Desa Klasaman', tingkat: 'desa' } })
     expect(ringkasanBerandaExe(exeA.db)).toMatchObject({ peran: 'desa', wilayah: { id: desaA.id }, generus: { aktif: 4 } })
   })
 

@@ -566,3 +566,53 @@ master EXE Daerah).
   (wilayah + kunci saja).
 - Kata sandi Super Admin **tidak bisa dipulihkan** (sama dengan EXE bawah, V-T21); pulihkan dari cadangan + sandinya, atau aktivasi ulang.
 - Gradle/Electron tidak dijalankan di sini; pemindai QR native belum dicoba di HP sungguhan.
+
+## Fase 9b — perbaikan kartu setor (2026-11-16)
+
+Dua cacat kecil kartu **"Setor ke Desa …"** yang terlihat saat membuat video dari tangkapan layar asli.
+
+### Cacat & akar masalah
+1. **Hitungan tidak berubah setelah "Setor sekarang".** Tampilan sebenarnya disegarkan; akar masalahnya di core: `jumlahBelumDisetor`
+   menghitung semua rekaman dengan `seq_lokal > konfirmasi_seq`, dan `konfirmasi_seq` baru naik setelah paket/balasan dari tingkat
+   atas. Jadi data yang **sudah dikirim** tetap disebut "belum disetor".
+2. **"Setoran terlambat" bersamaan dengan "Semua data sudah disetor".** `pengingatSetor`/`statusSetor` menandai *belum pernah setor =
+   terlambat* tanpa melihat apakah ada data, dan sejak detik pertama perangkat diaktifkan.
+
+### Perbaikan
+- Core `buatSetor` mencatat meta `terkirim_seq` (seq tertinggi yang sudah ikut berkas SETOR). Fungsi baru `rincianBelumDisetor` →
+  `belumDikirim` + `menungguKonfirmasi` (jumlahnya = `belumDisetor`, tidak berubah artinya).
+- `PengingatSetor` bertambah `belumDikirim`, `menungguKonfirmasi`, `belumAdaSetoran`, `keadaan` (`kosong` / `semua_disetor` /
+  `menunggu_konfirmasi` / `belum_dikirim`). `InfoSinkronHp` bertambah `belumDikirim`, `menungguKonfirmasi`. Kalimat bersama
+  `teksDataSetor()`: "Ada N data belum disetor." · "N data sudah dikirim, menunggu konfirmasi Desa …." · "Semua data sudah disetor." ·
+  "Belum ada data untuk disetor."
+- **Aturan terlambat (konsisten APK & EXE):**
+  - HP/EXE penyetor (`pengingatSetor`): **tidak pernah terlambat bila tidak ada data yang perlu disetor**. Belum pernah setor + ada data
+    → kuning **"Belum ada setoran"** sampai tenggat pertama sesudah profil diaktifkan; lewat itu → merah "Setoran terlambat".
+  - Tabel status bawahan EXE (`statusSetor`): belum pernah setor → lencana kuning **"Belum ada setoran"** sampai tenggat pertama sesudah
+    perangkat penyetor pertama wilayah itu didaftarkan (tanpa perangkat: sejak wilayah dibuat); lewat itu → "Terlambat". Field baru
+    `belumAdaSetoran`.
+  - Beranda admin daerah lama (`ringkasanBerandaAdmin.setoranPerKelompok`): "Belum pernah" → kuning "Belum ada setoran" sampai
+    `hariTerlambat` (14) hari sejak perangkat pengurus/mubaligh pertama kelompok didaftarkan.
+  - Tombol besar "Setor sekarang" & "Mendekati tenggat" hanya bila ada data **belum dikirim**; bila semua sudah dikirim tinggal tombol
+    kecil **"Kirim ulang ke …"** (setoran kumulatif).
+- UI: kartu pengingat Absen/Beranda (APK), `KartuSetorData`, indikator "Ada N data belum disetor" (kini hanya yang belum dikirim),
+  kartu & daftar status desa Super Admin HP, `KartuSetorKeAtas` + `TabelStatusSetor` + tabel beranda daerah (EXE).
+
+### Uji
+- Test gagal dulu: `packages/core/test/fase9b-kartu-setor.test.ts` (5 test: tanpa data bukan terlambat; kuning lalu terlambat setelah
+  tenggat pertama; tepat setelah Setor = "menunggu konfirmasi", data baru = "belum dikirim", konfirmasi desa mengosongkan; status HP &
+  kelompok "belum ada setoran" lalu terlambat; setelah setor pertama). `kueri.test.ts` ditambah kasus beranda admin.
+- Ekspektasi lama yang memang mencerminkan cacat disesuaikan: `berjenjang` (HP tanpa data, kelompok A2), `skenario-berjenjang` #10 (HP
+  yang semua datanya sudah dikonfirmasi tidak lagi "terlambat" — desa tetap melihat HP itu terlambat karena tidak tahu isi HP),
+  `apk-v3` (sebelum absen: "Belum ada data untuk disetor"; sesudah absen: "Belum ada setoran"; tepat setelah "Setor sekarang": "N data
+  sudah dikirim, menunggu konfirmasi Daerah" + "Kirim ulang ke Daerah"), `exe-v3` (Klasaman 1/Klasaman/Malanu → "Belum ada setoran").
+  Skrip uji asap peramban (`uji-asap.mjs`, `uji-asap-v3.mjs`) disesuaikan dengan teks baru.
+- `npm test`: core **25 berkas / 171 test**, desktop **8 / 17**, mobile **6 / 13** — **201 test lulus**. `npm run typecheck` bersih,
+  `npm run build` sukses.
+
+### Sisa masalah (jujur)
+- Uji asap peramban HP (`uji-asap.mjs`) di sesi ini berhenti di langkah aktivasi (menunggu tombol "Aktifkan", baris 75) — **juga terjadi
+  tanpa perubahan Fase 9b**, jadi bukan regresi fase ini; perlu diperiksa terpisah (kemungkinan alur sambut berubah di Fase 9).
+- Rekaman yang ditolak tingkat atas tetap terhitung "sudah dikirim, menunggu konfirmasi" sampai setoran berikutnya (yang mengirimnya
+  ulang) — teks tetap jujur, tetapi tidak menyebut "ditolak".
+- DB lama tanpa meta `terkirim_seq` menghitung semua yang belum dikonfirmasi sebagai "belum dikirim" sampai setor berikutnya.

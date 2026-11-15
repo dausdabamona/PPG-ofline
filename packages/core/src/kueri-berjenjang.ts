@@ -14,7 +14,7 @@ import { daftarProfil } from './repo/profil'
 import { ambilPertemuan, type PertemuanRinci } from './repo/pertemuan'
 import { daftarTarget, jadwalSetorUntuk, periodeAktif, type ItemTargetMateri, type JadwalSetor, type TingkatAsalSetor } from './repo/target'
 import { ambilWilayah, daftarWilayah, kelompokDalamWilayah, turunanWilayah, type Tingkat } from './repo/wilayah'
-import { jumlahBelumDisetor, jumlahBelumSampaiDaerah, tujuanSetor } from './sinkron/setor'
+import { jumlahBelumDisetor, jumlahBelumSampaiDaerah, rincianBelumDisetor, tujuanSetor } from './sinkron/setor'
 import { jumlahSuntinganKurikulum } from './sinkron/kurikulum'
 import { sekarang, tambahHari, tanggalDariIso, tanggalHariIni, selisihHari } from './waktu'
 
@@ -303,18 +303,36 @@ export interface StatusSetorBawahan {
   tenggatTerakhir: string | null
   terakhirSetor: string | null
   hariSejakSetor: number | null
-  /** Tidak ada setoran pada periode yang berakhir di tenggat terakhir (V2). Tanpa jadwal: false. */
+  /**
+   * Tidak ada setoran pada periode yang berakhir di tenggat terakhir (V2). Tanpa jadwal: false.
+   * Fase 9b: yang belum pernah setor baru terlambat setelah tenggat pertama sesudah perangkat/wilayah diaktifkan.
+   */
   terlambat: boolean
+  /** Fase 9b: belum pernah ada setoran (tampil "Belum ada setoran" kuning selama belum terlambat). */
+  belumAdaSetoran: boolean
 }
 
 function maks(...l: (string | null | undefined)[]): string | null {
   return l.filter((x): x is string => !!x).sort().pop() ?? null
 }
 
+/**
+ * Aturan terlambat (V2 + Fase 9b) bersama untuk statusSetor & pengingatSetor: sudah pernah setor → terlambat bila
+ * setoran terakhir sebelum awal periode yang berakhir di tenggat terakhir; belum pernah setor → terlambat hanya
+ * setelah tenggat pertama sesudah `aktifSejak` (waktu perangkat/wilayah diaktifkan) lewat.
+ */
+function hitungTerlambat(j: JadwalSetor | undefined, t: Tenggat | null, terakhir: string | null, aktifSejak: string | null, kini: Date): boolean {
+  if (!j || !t) return false
+  if (terakhir) return new Date(terakhir) < t.awalPeriode
+  if (!aktifSejak) return true
+  return kini >= hitungTenggat(j, new Date(aktifSejak)).berikut
+}
+
 function nilaiStatus(
   dasar: Pick<StatusSetorBawahan, 'wilayah_id' | 'nama' | 'tingkat' | 'perangkat_id'>,
   j: JadwalSetor | undefined,
   terakhir: string | null,
+  aktifSejak: string | null,
   kini: Date,
 ): StatusSetorBawahan {
   const t = j ? hitungTenggat(j, kini) : null
@@ -325,8 +343,13 @@ function nilaiStatus(
     tenggatTerakhir: t ? t.terakhir.toISOString() : null,
     terakhirSetor: terakhir,
     hariSejakSetor: terakhir ? selisihHari(tanggalDariIso(terakhir), tanggalDariIso(kini.toISOString())) : null,
-    terlambat: !!t && (!terakhir || new Date(terakhir) < t.awalPeriode),
+    terlambat: hitungTerlambat(j, t, terakhir, aktifSejak, kini),
+    belumAdaSetoran: !terakhir,
   }
+}
+
+function minIso(...l: (string | null | undefined)[]): string | null {
+  return l.filter((x): x is string => !!x).sort()[0] ?? null
 }
 
 const ROLE_PENYETOR = new Set(['pengurus', 'mubaligh', 'admin'])
@@ -344,23 +367,29 @@ export function statusSetor(db: Db, wilayahId: string, o: { sekarang?: string } 
   const token = daftarPerangkat(db).filter((t) => ROLE_PENYETOR.has(t.role) && t.perangkat_id !== saya)
   if (w.tingkat === 'kelompok') {
     const j = jadwalSetorUntuk(db, 'kelompok')
-    const perHp = new Map<string, { nama: string; terakhir: string | null }>()
+    const perHp = new Map<string, { nama: string; terakhir: string | null; aktif: string | null }>()
     for (const t of token.filter((x) => x.wilayah_id === w.id && !x.dicabut_pada)) {
-      const e = perHp.get(t.perangkat_id) ?? { nama: t.label ?? t.nama, terakhir: null }
+      const e = perHp.get(t.perangkat_id) ?? { nama: t.label ?? t.nama, terakhir: null, aktif: null }
       e.terakhir = maks(e.terakhir, t.terakhir_setor, t.terakhir_lapor)
+      e.aktif = minIso(e.aktif, t.dibuat_pada)
       perHp.set(t.perangkat_id, e)
     }
-    return [...perHp.entries()].map(([pid, e]) => nilaiStatus({ wilayah_id: w.id, nama: e.nama, tingkat: 'kelompok', perangkat_id: pid }, j, e.terakhir, kini))
+    return [...perHp.entries()].map(([pid, e]) =>
+      nilaiStatus({ wilayah_id: w.id, nama: e.nama, tingkat: 'kelompok', perangkat_id: pid }, j, e.terakhir, e.aktif, kini),
+    )
   }
   return daftarWilayah(db, { indukId: w.id }).map((c) => {
     const j = jadwalSetorUntuk(db, c.tingkat as TingkatAsalSetor)
     const di = new Set(turunanWilayah(db, c.id))
     let terakhir: string | null = null
+    // aktif sejak: perangkat penyetor pertama di wilayah itu terdaftar; belum ada perangkat → wilayah dibuat
+    let aktif: string | null = null
     for (const t of token) {
       if (t.wilayah_id === c.id) terakhir = maks(terakhir, t.terakhir_setor, t.terakhir_lapor)
       else if (di.has(t.wilayah_id)) terakhir = maks(terakhir, t.terakhir_setor)
+      if (di.has(t.wilayah_id)) aktif = minIso(aktif, t.dibuat_pada)
     }
-    return nilaiStatus({ wilayah_id: c.id, nama: c.nama, tingkat: c.tingkat, perangkat_id: null }, j, terakhir, kini)
+    return nilaiStatus({ wilayah_id: c.id, nama: c.nama, tingkat: c.tingkat, perangkat_id: null }, j, terakhir, aktif ?? c.dibuat_pada, kini)
   })
 }
 
@@ -369,11 +398,24 @@ export interface PengingatSetor {
   tujuan: ReturnType<typeof tujuanSetor>
   tenggatBerikutnya: string | null
   terakhirSetor: string | null
+  /** Data belum dikonfirmasi tingkat atas (= belumDikirim + menungguKonfirmasi). */
   belumDisetor: number
+  /** Fase 9b: data yang dicatat/diterima sesudah setoran terakhir (belum ikut berkas SETOR mana pun). */
+  belumDikirim: number
+  /** Fase 9b: data yang sudah ikut berkas SETOR tetapi belum dikonfirmasi tingkat atas (lewat paket/balasan). */
+  menungguKonfirmasi: number
+  /**
+   * Fase 9b: kosong = belum ada data untuk disetor; semua_disetor = semua sudah dikonfirmasi;
+   * menunggu_konfirmasi = semua sudah dikirim, menunggu konfirmasi; belum_dikirim = ada data yang belum dikirim.
+   */
+  keadaan: 'kosong' | 'semua_disetor' | 'menunggu_konfirmasi' | 'belum_dikirim'
+  /** Terlambat setor — hanya bila ada data belum disetor (Fase 9b); belum pernah setor: setelah tenggat pertama sejak aktivasi. */
   terlambat: boolean
+  /** Fase 9b: belum pernah menyetor dari perangkat ini. */
+  belumAdaSetoran: boolean
   /** ≤ 24 jam menuju tenggat. */
   mendekat: boolean
-  /** Tampilkan tombol besar "Setor ke Desa/Kelompok" (mendekati tenggat, terlambat, atau ada data > 0 dan belum pernah setor). */
+  /** Tampilkan tombol besar "Setor ke Desa/Kelompok" (terlambat, mendekati tenggat dengan data belum dikirim, atau belum pernah setor padahal ada data). */
   tampilkanTombol: boolean
 }
 
@@ -390,18 +432,42 @@ export function pengingatSetor(db: Db, o: { sekarang?: string } = {}): Pengingat
   const j = jadwalSetorUntuk(db, tingkat)
   const terakhir = ambilMeta(db, 'terakhir_setor') ?? null
   const t = j ? hitungTenggat(j, kini) : null
-  const belumDisetor = jumlahBelumDisetor(db)
-  const terlambat = !!t && (!terakhir || new Date(terakhir) < t.awalPeriode)
+  const { belumDikirim, menungguKonfirmasi } = rincianBelumDisetor(db)
+  const belumDisetor = belumDikirim + menungguKonfirmasi
+  const aktifSejak = minIso(...daftarProfil(db, ['pengurus', 'mubaligh', 'admin']).map((p) => p.dibuat_pada))
+  // Fase 9b: tanpa data yang perlu disetor tidak ada status terlambat
+  const terlambat = belumDisetor > 0 && hitungTerlambat(j, t, terakhir, aktifSejak, kini)
   const mendekat = !!t && t.berikut.getTime() - kini.getTime() <= 24 * 3600_000
+  const keadaan: PengingatSetor['keadaan'] =
+    belumDikirim > 0 ? 'belum_dikirim' : menungguKonfirmasi > 0 ? 'menunggu_konfirmasi' : terakhir ? 'semua_disetor' : 'kosong'
   return {
     tujuan: tujuanSetor(db),
     tenggatBerikutnya: t ? t.berikut.toISOString() : null,
     terakhirSetor: terakhir,
     belumDisetor,
+    belumDikirim,
+    menungguKonfirmasi,
+    keadaan,
     terlambat,
+    belumAdaSetoran: !terakhir,
     mendekat,
-    tampilkanTombol: terlambat || (mendekat && belumDisetor > 0) || (!terakhir && belumDisetor > 0),
+    tampilkanTombol: terlambat || (mendekat && belumDikirim > 0) || (!terakhir && belumDikirim > 0),
   }
+}
+
+/**
+ * Fase 9b: kalimat jujur jumlah data setor untuk kartu setor APK/EXE — membedakan yang belum dikirim dari yang
+ * sudah dikirim tetapi menunggu konfirmasi tingkat atas, dan "belum ada data" dari "semua sudah disetor".
+ */
+export function teksDataSetor(
+  r: Pick<PengingatSetor, 'belumDikirim' | 'menungguKonfirmasi' | 'terakhirSetor'>,
+  tujuan: string,
+): string {
+  const tunggu = `sudah dikirim, menunggu konfirmasi ${tujuan}`
+  if (r.belumDikirim > 0)
+    return `Ada ${r.belumDikirim} data belum disetor.${r.menungguKonfirmasi > 0 ? ` ${r.menungguKonfirmasi} data lain ${tunggu}.` : ''}`
+  if (r.menungguKonfirmasi > 0) return `${r.menungguKonfirmasi} data ${tunggu}.`
+  return r.terakhirSetor ? 'Semua data sudah disetor.' : 'Belum ada data untuk disetor.'
 }
 
 // ---------------- beranda tiap tingkat EXE ----------------

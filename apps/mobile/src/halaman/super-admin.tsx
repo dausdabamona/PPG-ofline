@@ -27,6 +27,7 @@ import {
   KATEGORI_GENERUS,
   PANJANG_SANDI_CADANGAN_MIN,
   ringkasanBerandaExe,
+  teksDataSetor,
   statusProfil,
   STATUS_GENERUS,
   tanggalHariIni,
@@ -159,15 +160,7 @@ function BerandaSuper(p: { pergi: (t: KunciTab) => void }) {
               <p className="keterangan">Paket terakhir dari Daerah: {waktuTeks(x.terakhirPaket)}</p>
             </Kartu>
             <Kartu judul="Setor ke Daerah">
-              <p>
-                {x.belumDisetor ? (
-                  <>
-                    Ada <b>{x.belumDisetor}</b> data belum disetor ke Daerah.
-                  </>
-                ) : (
-                  'Semua data sudah disetor.'
-                )}
-              </p>
+              <p>{x.pengingat ? teksDataSetor(x.pengingat, 'Daerah') : x.belumDisetor ? `Ada ${x.belumDisetor} data belum disetor ke Daerah.` : 'Belum ada data untuk disetor.'}</p>
               {x.pengingat?.terlambat ? <Spanduk jenis="bahaya">Setoran ke Daerah terlambat.</Spanduk> : null}
               <Tombol penuh onClick={() => setor()}>
                 Setor ke Daerah
@@ -179,7 +172,15 @@ function BerandaSuper(p: { pergi: (t: KunciTab) => void }) {
                   {x.statusSetorBawahan.map((s) => (
                     <li key={s.wilayah_id}>
                       <span>{s.nama}</span>
-                      {s.terlambat ? <Lencana warna="merah">Terlambat</Lencana> : <Lencana warna="hijau">{s.terakhirSetor ? 'Sudah setor' : 'Belum ada jadwal'}</Lencana>}
+                      {s.terlambat ? (
+                        <Lencana warna="merah">Terlambat</Lencana>
+                      ) : s.terakhirSetor ? (
+                        <Lencana warna="hijau">Sudah setor</Lencana>
+                      ) : s.jadwal ? (
+                        <Lencana warna="kuning">Belum ada setoran</Lencana>
+                      ) : (
+                        <Lencana warna="abu">Belum ada jadwal</Lencana>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -723,7 +724,7 @@ function SinkronSuper() {
     <>
       <JudulHalaman judul="Sinkron" keterangan="Setor ke Daerah, buka paket & setoran, kirim paket & balasan." />
       <Kartu judul="Setor ke Daerah">
-        <p>{info.data?.belumDisetor ? `Ada ${info.data.belumDisetor} data belum disetor.` : 'Semua data sudah disetor.'} Setoran membawa perangkat yang didaftarkan HP ini, usulan data, dan setoran HP di bawahnya.</p>
+        <p>{info.data?.pengingat ? teksDataSetor(info.data.pengingat, 'Daerah') : info.data?.belumDisetor ? `Ada ${info.data.belumDisetor} data belum disetor.` : 'Belum ada data untuk disetor.'} Setoran membawa perangkat yang didaftarkan HP ini, usulan data, dan setoran HP di bawahnya.</p>
         <Tombol penuh onClick={() => setor()}>
           Setor ke Daerah
         </Tombol>

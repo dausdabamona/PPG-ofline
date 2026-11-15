@@ -88,7 +88,15 @@ function BerandaDaerah(p: { r: RingkasanBerandaExe; pilih: (k: KunciMenu) => voi
                   <td>{s.nama}</td>
                   <td>{s.terakhir_setor ? waktuLokal(s.terakhir_setor) : 'Belum pernah'}</td>
                   <td>{s.hari_sejak ?? '—'}</td>
-                  <td>{s.terlambat ? <Lencana warna="merah">Terlambat</Lencana> : <Lencana warna="hijau">Lancar</Lencana>}</td>
+                  <td>
+                    {s.terlambat ? (
+                      <Lencana warna="merah">Terlambat</Lencana>
+                    ) : s.belumAdaSetoran ? (
+                      <Lencana warna="kuning">Belum ada setoran</Lencana>
+                    ) : (
+                      <Lencana warna="hijau">Lancar</Lencana>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

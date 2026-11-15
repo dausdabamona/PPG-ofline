@@ -50,7 +50,7 @@ async function siapkanV3() {
   expect(m).toHaveLength(3)
   const periode = periodeAktif(admin.db)
   tetapkanTarget(admin.db, { periode, kategoriGenerus: 'caberawit', materiIds: m.map((x) => x.id) })
-  // kelompok → desa tiap pekan, 3 hari lagi (tidak "mendekat"); HP yang belum pernah setor = terlambat
+  // kelompok → desa tiap pekan, 3 hari lagi (tidak "mendekat"); HP baru yang belum pernah setor = "Belum ada setoran" (Fase 9b)
   aturJadwalSetor(admin.db, { tingkatAsal: 'kelompok', pola: 'pekanan', hari: (dow + 3) % 7, jam: '21:00' })
   const materi = buatMateri(admin.db, admin.kunci)
   return { ...admin, dina, kelas, m, periode, materi: { nama: materi.nama, bytes: materi.bytes } }
@@ -78,8 +78,11 @@ describe('APK v3 — mubaligh', () => {
     pf.kirimIntent(w.materi)
     await tungguTeks(/Daftar materi berhasil dibuka/)
 
-    // pengingat tenggat di atas Absen: belum pernah setor → terlambat → tombol besar
-    await tungguTeks(/Setoran terlambat/)
+    // pengingat tenggat di atas Absen — Fase 9b: belum ada data → netral, tanpa "terlambat" yang bertentangan
+    await tungguTeks(/Belum ada data untuk disetor/)
+    expect(screen.queryByText(/Setoran terlambat/)).toBeNull()
+    expect(screen.queryByText(/Semua data sudah disetor/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Setor sekarang' })).toBeNull()
     expect(screen.getByRole('heading', { name: 'Setor ke Daerah' })).toBeTruthy()
     expect(screen.getByText(/Tenggat berikutnya:/)).toBeTruthy()
     expect(document.querySelector('.indikator-setor')).toBeNull() // tidak dobel dengan kartu pengingat
@@ -122,10 +125,18 @@ describe('APK v3 — mubaligh', () => {
     expect(within(dlg).getAllByRole('listitem').map((li) => li.textContent)).toEqual(w.m.map((x) => x.nama))
     await u.click(within(dlg).getByRole('button', { name: 'Tutup' }))
 
-    // Absen: "Setor sekarang" → berkas setoran → daerah menerima absen, pertemuan, dan tuntas
+    // Absen: ada data, belum pernah setor, tenggat pertama belum lewat → kuning "Belum ada setoran" + tombol besar
     await nav(u, 'Absen')
+    await tungguTeks(/Belum ada setoran\. Setor ke Daerah sebelum tenggat/)
+    expect(screen.queryByText(/Setoran terlambat/)).toBeNull()
+    expect(screen.getByText(/^Ada \d+ data belum disetor\.$/)).toBeTruthy()
+    // "Setor sekarang" → berkas setoran → kartu langsung segar: data "sudah dikirim, menunggu konfirmasi"
     await u.click(await screen.findByRole('button', { name: 'Setor sekarang' }))
     await tungguTeks(/Berkas setoran siap\. Kirim ke Daerah/)
+    await tungguTeks(/^\d+ data sudah dikirim, menunggu konfirmasi Daerah\.$/)
+    expect(screen.queryByText(/data belum disetor/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Setor sekarang' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Kirim ulang ke Daerah' })).toBeTruthy()
     const r = imporSetor(w.db, dibagikan(pf, 'PPG_SETOR_').bytes, w.kunci)
     expect(r.perTabel.presensi?.ditambah).toBe(3)
     expect(r.perTabel.pertemuan?.ditambah).toBe(1)
