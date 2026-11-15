@@ -723,3 +723,19 @@ Kontrak: RENCANA §17 (J-K1–J-K14, perlu dikonfirmasi §17.3). Nama pengurus d
 - Pemegang kunci bidang yang dicabut masih bisa membaca catatan **lama** yang sudah ia terima; catatan baru aman setelah ganti kunci.
 - Formulir catatan bidang di EXE belum ada (EXE hanya melihat & merekap; pencatatan bidang dari HP pengurus).
 - Jadwal NUNGGONI per kelompok belum berupa kalender; NUNGGONI dicatat sesudah terlaksana (laporan bulanan + catatan pribadi).
+
+---
+
+## Fase 12 — DITUNDA (16 Nov 2026, 08.15 WIT) — lanjut malam ini
+
+Status: belum ada kode; pohon kerja bersih di `cf5cd07`. Dihentikan atas permintaan pemilik (batas token harian).
+
+Arahan pemilik: "yang berkaitan dengan kurikulum agar diserahkan ke role kurikulum, yang berkaitan dengan kebijakan lainnya agar diatur dalam mekanisme musyawaroh".
+
+**A. Diserahkan ke role Kurikulum** — daftar "Perlu Ditetapkan Kurikulum" di EXE kurikulum (dan HP jabatan Bidang Kurikulum): target surat Generus 2 & 3 (51 vs 45), halaman kitab hadits & target GBMTPG kosong, dalil Sorong no. 26 & 28 sama, periode evaluasi, definisi Caberawit A, pembagi yang contohnya tidak cocok, jurus ASAD, rumus TOTAL, 22 butir Caberawit C, cara nilai wudhu & sholat. Tiap butir: nilai sementara + alasan + tetapkan/ubah → status "Ditetapkan Kurikulum" (tanggal, siapa), tersebar lewat paket kurikulum, riwayat tersimpan. Isian kosong = "belum ditetapkan" dan tidak ikut TOTAL; raport/rekap menuliskannya.
+
+**B. Kebijakan lain lewat Musyawaroh** — register Kebijakan (Sementara / Ditetapkan Musyawarah, nomor & tanggal, riwayat); notulen oleh Sekretaris berisi butir keputusan yang ditautkan ke kunci kebijakan; disahkan Ketua (atau Wakil bermandat) → berlaku & tersebar; EXE Daerah yang menerapkan; musyawarah desa hanya kebijakan lingkup desa; perubahan hak baca keuangan → rotasi kunci; agenda berikutnya otomatis memuat kebijakan sementara; teks WA undangan/agenda/hasil; ringkasan di beranda Ketua/Sekretaris. Contoh kebijakan: nominal tabungan 4 desa, rumus & jumlah juara reward, hak baca keuangan (penggalang dana, wakil ketua), jadwal musyawarah rutin, nominal dana kegiatan, nilai sementara lain di §17.
+
+Proses: §18 RENCANA (perbarui §16.4 & §17) → TDD core → UI EXE & HP → test/typecheck/build → uji asap 360×740 → review keamanan → LAPORAN & PANDUAN → push & CI.
+
+Antrean sesudahnya: pembaruan video tutorial untuk layar Fase 10–12; PDF tautan video (setelah pemilik menjalankan JALANKAN-SUARA.bat dan Drive tersinkron).
