@@ -207,7 +207,7 @@ describe('alur utama EXE admin', () => {
     await waitFor(() => expect(pf.tersimpan.some((b) => b.nama.endsWith('.xlsx'))).toBe(true), { timeout: 20000 })
     const wb = new ExcelJS.Workbook()
     await wb.xlsx.load(berkasTerakhir(pf, 'Rekap_').bytes.buffer as ArrayBuffer)
-    expect(wb.worksheets.map((w) => w.name)).toEqual(['Presensi per Kelompok', 'Presensi per Generus', 'Kemajuan'])
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['Presensi per Kelompok', 'Presensi per Generus', 'Kemajuan', 'Capaian per Wilayah', 'Capaian per Kelas', 'Capaian per Generus'])
     const ws = wb.getWorksheet('Presensi per Kelompok')!
     expect(ws.getRow(4).getCell(1).value).toBe('Klasaman 1')
     expect(ws.getRow(4).getCell(2).value).toBe(1)

@@ -467,3 +467,93 @@ export function ringkasanBerandaExe(db: Db, o: { sekarang?: string } = {}): Ring
   }
   return hasil
 }
+
+// ---------------- rekap capaian target (Fase 6, layar Rekap EXE) ----------------
+
+export interface BarisCapaian {
+  wilayah_id: string
+  nama: string
+  /** Generus aktif & anggota pada tanggal rekap. */
+  jumlahGenerus: number
+  /** Pasangan (generus × materi target) yang sudah tuntas disahkan. */
+  tuntas: number
+  /** Pasangan (generus × materi target) keseluruhan; 0 = belum ada target untuk generusnya. */
+  total: number
+  persen: number
+}
+
+export interface BarisCapaianKelas extends BarisCapaian {
+  kelompok_id: string
+  kelompok_nama: string
+  kategori: KategoriGenerus
+}
+
+export interface BarisCapaianGenerus {
+  generus_id: string
+  nama: string
+  kelompok_id: string
+  kelompok_nama: string
+  kategori: KategoriGenerus
+  tuntas: number
+  total: number
+  persen: number
+}
+
+export interface RekapCapaian {
+  periode: string
+  wilayah: BarisCapaian
+  perDesa: BarisCapaian[]
+  perKelompok: BarisCapaian[]
+  /** Kelas = kategori generus di satu kelompok. */
+  perKelas: BarisCapaianKelas[]
+  perGenerus: BarisCapaianGenerus[]
+}
+
+const persenDari = (tuntas: number, total: number) => (total ? Math.round((tuntas / total) * 1000) / 10 : 0)
+
+/**
+ * Rekap capaian target kurikulum (persentase tuntas) per kelas (kategori di kelompok), kelompok, desa, dan seluruh
+ * wilayah — dibangun dari `progresKelas`. Persen = materi target yang tuntas disahkan ÷ seluruh materi target generus.
+ */
+export function rekapCapaian(db: Db, o: { wilayahId: string; periode?: string; tanggal?: string }): RekapCapaian {
+  const tanggal = o.tanggal ?? tanggalHariIni()
+  const periode = o.periode ?? periodeAktif(db, tanggal)
+  const w = ambilWilayah(db, o.wilayahId)
+  const baris = (id: string, nama: string): BarisCapaian => ({ wilayah_id: id, nama, jumlahGenerus: 0, tuntas: 0, total: 0, persen: 0 })
+  const semua = baris(o.wilayahId, w?.nama ?? '')
+  const perDesa = new Map<string, BarisCapaian>()
+  const perKelompok: BarisCapaian[] = []
+  const perKelas: BarisCapaianKelas[] = []
+  const perGenerus: BarisCapaianGenerus[] = []
+  const tambah = (b: BarisCapaian, tuntas: number, total: number) => {
+    b.jumlahGenerus++
+    b.tuntas += tuntas
+    b.total += total
+  }
+  for (const kid of w ? kelompokDalamWilayah(db, w.id) : []) {
+    const k = ambilWilayah(db, kid)
+    if (!k || k.dihapus) continue
+    const desaId = k.induk_id && ambilWilayah(db, k.induk_id)?.tingkat === 'desa' ? k.induk_id : null
+    const desa = desaId ? (perDesa.get(desaId) ?? baris(desaId, ambilWilayah(db, desaId)!.nama)) : null
+    if (desa && desaId) perDesa.set(desaId, desa)
+    const bk = baris(k.id, k.nama)
+    const kelas = new Map<string, BarisCapaianKelas>()
+    for (const g of progresKelas(db, k.id, null, { periode, tanggal }).generus) {
+      const c = kelas.get(g.kategori) ?? { ...baris(k.id, k.nama), kelompok_id: k.id, kelompok_nama: k.nama, kategori: g.kategori }
+      kelas.set(g.kategori, c)
+      for (const b of [c, bk, semua, ...(desa ? [desa] : [])]) tambah(b, g.tuntas, g.total)
+      perGenerus.push({ generus_id: g.generus_id, nama: g.nama, kelompok_id: k.id, kelompok_nama: k.nama, kategori: g.kategori, tuntas: g.tuntas, total: g.total, persen: g.persen })
+    }
+    perKelompok.push(bk)
+    perKelas.push(...[...kelas.values()].sort((a, b) => a.kategori.localeCompare(b.kategori)))
+  }
+  const akhiri = <T extends BarisCapaian>(b: T): T => ({ ...b, persen: persenDari(b.tuntas, b.total) })
+  return {
+    periode,
+    wilayah: akhiri(semua),
+    perDesa: [...perDesa.values()].map(akhiri),
+    perKelompok: perKelompok.map(akhiri),
+    perKelas: perKelas.map(akhiri),
+    perGenerus,
+  }
+}

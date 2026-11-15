@@ -10,18 +10,18 @@ export const JEDA_QR_SERI_MS = 1500
 function GambarQr(p: { teks: string; label: string }) {
   const hasil = useMemo(() => {
     try {
-      const qr = QRCode.create(p.teks, { errorCorrectionLevel: 'L' })
+      const qr = QRCode.create(p.teks, { errorCorrectionLevel: 'M' })
       const n = qr.modules.size
       const d: string[] = []
-      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (qr.modules.get(y, x)) d.push(`M${x + 2} ${y + 2}h1v1h-1z`)
-      return { ukuran: n + 4, jalur: d.join('') }
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (qr.modules.get(y, x)) d.push(`M${x + 4} ${y + 4}h1v1h-1z`)
+      return { ukuran: n + 8, jalur: d.join('') }
     } catch {
       return null
     }
   }, [p.teks])
   if (!hasil) return <KotakGalat pesan="Teks terlalu panjang untuk QR. Kirim teks token lewat WA." />
   return (
-    <svg className="qr-svg" role="img" aria-label={p.label} width={280} height={280} viewBox={`0 0 ${hasil.ukuran} ${hasil.ukuran}`} shapeRendering="crispEdges">
+    <svg className="qr-svg" role="img" aria-label={p.label} width={320} height={320} viewBox={`0 0 ${hasil.ukuran} ${hasil.ukuran}`} shapeRendering="crispEdges">
       <rect width="100%" height="100%" fill="#fff" />
       <path d={hasil.jalur} fill="#0b1f1d" />
     </svg>

@@ -1,5 +1,5 @@
 // Ekspor rekap ke Excel (exceljs): tulis buffer, lalu disimpan lewat platform (berkas:simpan).
-import type { BarisRekapKemajuan, RekapPresensi } from '@ppg/core'
+import type { BarisRekapKemajuan, RekapCapaian, RekapPresensi } from '@ppg/core'
 
 export interface DataEksporRekap {
   judul: string
@@ -7,6 +7,8 @@ export interface DataEksporRekap {
   presensi: RekapPresensi
   kemajuan: BarisRekapKemajuan[]
   namaKelompok: Map<string, string>
+  /** v3: capaian target kurikulum (persentase tuntas). */
+  capaian?: RekapCapaian
 }
 
 const TEAL = 'FF0F766E'
@@ -70,6 +72,37 @@ export async function buatExcelRekap(d: DataEksporRekap): Promise<Uint8Array> {
     const baris: Record<string, unknown> = { nama: r.nama, kelompok: d.namaKelompok.get(r.kelompok_id) ?? r.kelompok_id, kategori: r.kategori, disahkan: r.disahkan, total: r.total, persen: r.persen }
     for (const b of r.perBidang) baris[`b_${b.bidang_id}`] = `${b.disahkan}/${b.total}`
     m.addRow(baris)
+  }
+
+  if (d.capaian) {
+    const c = d.capaian
+    const kolomCapaian = [
+      { header: 'Generus', key: 'jumlahGenerus', width: 10 },
+      { header: 'Materi tuntas', key: 'tuntas', width: 14 },
+      { header: 'Materi target', key: 'total', width: 14 },
+      { header: '% Tuntas', key: 'persen', width: 10 },
+    ]
+    const w = wb.addWorksheet('Capaian per Wilayah')
+    kepala(w, [{ header: 'Tingkat', key: 'tingkat', width: 12 }, { header: 'Wilayah', key: 'nama', width: 28 }, ...kolomCapaian])
+    w.getCell('A2').value = `Capaian target periode ${c.periode}`
+    w.addRow({ tingkat: 'Wilayah', ...c.wilayah })
+    for (const r of c.perDesa) w.addRow({ tingkat: 'Desa', ...r })
+    for (const r of c.perKelompok) w.addRow({ tingkat: 'Kelompok', ...r })
+    const ks = wb.addWorksheet('Capaian per Kelas')
+    kepala(ks, [{ header: 'Kelompok', key: 'kelompok_nama', width: 24 }, { header: 'Kelas (kategori)', key: 'kategori', width: 16 }, ...kolomCapaian])
+    ks.getCell('A2').value = `Capaian target periode ${c.periode}`
+    for (const r of c.perKelas) ks.addRow(r)
+    const gs = wb.addWorksheet('Capaian per Generus')
+    kepala(gs, [
+      { header: 'Nama', key: 'nama', width: 28 },
+      { header: 'Kelompok', key: 'kelompok_nama', width: 24 },
+      { header: 'Kategori', key: 'kategori', width: 12 },
+      { header: 'Materi tuntas', key: 'tuntas', width: 14 },
+      { header: 'Materi target', key: 'total', width: 14 },
+      { header: '% Tuntas', key: 'persen', width: 10 },
+    ])
+    gs.getCell('A2').value = `Capaian target periode ${c.periode}`
+    for (const r of c.perGenerus) gs.addRow(r)
   }
 
   const buf = await wb.xlsx.writeBuffer()

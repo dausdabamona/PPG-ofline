@@ -1,11 +1,23 @@
-// Akar aplikasi: memuat database, pengaturan awal / masuk, simpan otomatis, kunci otomatis, tata letak + navigasi.
+// Akar aplikasi: memuat database, pengaturan awal / masuk / aktivasi, simpan otomatis, kunci otomatis, tata letak + navigasi.
+// v3: satu EXE untuk semua tingkat — menu menyesuaikan peran instalasi (daerah / desa / kelompok / kurikulum).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { adalahAdmin, ambilMeta, bukaDb, type Db, type KunciAdmin } from '@ppg/core'
+import {
+  adalahAdmin,
+  adalahExe,
+  adalahKunciExe,
+  ambilMeta,
+  bukaDb,
+  infoInstalasi,
+  kunciExe,
+  type Db,
+  type KunciExe,
+  type KunciPemegang,
+} from '@ppg/core'
 import { DaftarToast, PenyediaApp, useApp, useToast, type NilaiApp } from './konteks'
 import type { Platform } from './platform'
 import { KotakGalat, Memuat } from './komponen/ui'
 import { pesanGalat } from './utils/label'
-import { LayarMasuk, LayarPengaturanAwal } from './halaman/masuk'
+import { LayarAktivasi, LayarMasuk, LayarPengaturanAwal } from './halaman/masuk'
 import { HalamanBeranda } from './halaman/beranda'
 import { HalamanWilayah } from './halaman/wilayah'
 import { HalamanGenerus } from './halaman/generus'
@@ -18,27 +30,24 @@ import { HalamanKoreksi } from './halaman/koreksi'
 import { HalamanPaket } from './halaman/paket'
 import { HalamanRekap } from './halaman/rekap'
 import { HalamanPengaturan } from './halaman/pengaturan'
+import { HalamanSetor } from './halaman/setor'
+import { HalamanJadwalSetor } from './halaman/jadwal-setor'
+import { HalamanTarget } from './halaman/target'
+import { HalamanAbsen } from './halaman/absen'
+import { MENU, MENU_PERAN, judulPeran, teksMenu, type KunciMenu } from './menu'
 
-export const MENU = [
-  { kunci: 'beranda', teks: 'Beranda', ikon: '⌂' },
-  { kunci: 'wilayah', teks: 'Wilayah', ikon: '▦' },
-  { kunci: 'generus', teks: 'Generus & Jamaah', ikon: '☺' },
-  { kunci: 'pengajian', teks: 'Pengajian', ikon: '◷' },
-  { kunci: 'materi', teks: 'Materi', ikon: '❖' },
-  { kunci: 'perangkat', teks: 'Perangkat & Token', ikon: '⚿' },
-  { kunci: 'impor', teks: 'Impor Setoran', ikon: '⇩' },
-  { kunci: 'usulan', teks: 'Usulan', ikon: '✉' },
-  { kunci: 'koreksi', teks: 'Koreksi', ikon: '✎' },
-  { kunci: 'paket', teks: 'Kirim Paket', ikon: '⇧' },
-  { kunci: 'rekap', teks: 'Rekap & Laporan', ikon: '▤' },
-  { kunci: 'pengaturan', teks: 'Pengaturan', ikon: '⚙' },
-] as const
-export type KunciMenu = (typeof MENU)[number]['kunci']
+export { MENU, MENU_PERAN, judulPeran, teksMenu, type KunciMenu } from './menu'
 
 const BATAS_DIAM_MS = 30 * 60 * 1000
 const JEDA_SIMPAN_MS = 800
 
-type Tahap = { t: 'memuat' } | { t: 'galat'; pesan: string } | { t: 'awal' } | { t: 'masuk' } | { t: 'siap'; kunci: KunciAdmin }
+type Tahap =
+  | { t: 'memuat' }
+  | { t: 'galat'; pesan: string }
+  | { t: 'awal' }
+  | { t: 'masuk' }
+  | { t: 'aktivasi'; kunci: KunciExe }
+  | { t: 'siap'; kunci: KunciPemegang }
 
 export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?: number }) {
   const { platform } = p
@@ -88,7 +97,7 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
   )
   const lepasRef = useRef<(() => void) | null>(null)
 
-  // Muat database saat mulai.
+  // Muat database saat mulai. Database v2 (admin lama) dimigrasikan core → EXE daerah tanpa langkah tambahan.
   useEffect(() => {
     let batal = false
     ;(async () => {
@@ -99,9 +108,9 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
         if (batal) return
         lepasRef.current?.()
         lepasRef.current = pasangDb(d)
-        if (adalahAdmin(d)) setTahap({ t: 'masuk' })
-        else if (!bytes || !ambilMeta(d, 'org_id')) setTahap({ t: 'awal' })
-        else setTahap({ t: 'galat', pesan: 'Berkas database bukan database admin.' })
+        if (adalahAdmin(d) || adalahExe(d)) setTahap({ t: 'masuk' })
+        else if (!bytes || !ambilMeta(d, 'peran_db')) setTahap({ t: 'awal' })
+        else setTahap({ t: 'galat', pesan: 'Berkas database ini milik HP, bukan aplikasi EXE.' })
       } catch (e) {
         if (!batal) setTahap({ t: 'galat', pesan: pesanGalat(e) })
       }
@@ -119,7 +128,15 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
   }, [platform, simpanSekarang])
 
   const kunciAplikasi = useCallback(() => {
-    setTahap((t) => (t.t === 'siap' ? { t: 'masuk' } : t))
+    const d = dbRef.current
+    if (d && adalahExe(d)) kunciExe(d)
+    setTahap((t) => (t.t === 'siap' || t.t === 'aktivasi' ? { t: 'masuk' } : t))
+  }, [])
+
+  /** Sesudah kata sandi benar: EXE yang belum diaktifkan → layar aktivasi; selain itu siap. */
+  const masuk = useCallback((d: Db, kunci: KunciPemegang) => {
+    if (adalahKunciExe(kunci) && !infoInstalasi(d).aktif) setTahap({ t: 'aktivasi', kunci })
+    else setTahap({ t: 'siap', kunci })
   }, [])
 
   // Kunci otomatis setelah tidak aktif.
@@ -149,7 +166,7 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
   }, [siap, batasDiam, kunciAplikasi, simpanSekarang, toast.tambah])
 
   const gantiDb = useCallback(
-    async (baru: Db, kunci: KunciAdmin) => {
+    async (baru: Db, kunci: KunciPemegang) => {
       const lama = dbRef.current
       lepasRef.current?.()
       lepasRef.current = pasangDb(baru)
@@ -157,16 +174,22 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
       await simpanSekarang()
       if (lama && lama !== baru) lama.tutup()
       setVersi((v) => v + 1)
-      setTahap({ t: 'siap', kunci })
+      setHalaman('beranda')
+      masuk(baru, kunci)
     },
-    [pasangDb, simpanSekarang],
+    [pasangDb, simpanSekarang, masuk],
   )
 
+  const info = useMemo(() => (db && tahap.t === 'siap' ? infoInstalasi(db) : null), [db, tahap, versi])
+
   const nilai = useMemo<NilaiApp | null>(() => {
-    if (!db || tahap.t !== 'siap') return null
+    if (!db || tahap.t !== 'siap' || !info?.peran || info.peran === 'hp') return null
     return {
       db,
       kunci: tahap.kunci,
+      peran: info.peran,
+      wilayahId: info.wilayahId,
+      wilayahNama: info.wilayahNama,
       platform,
       versi,
       toast: toast.tambah,
@@ -184,7 +207,12 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
         }
       },
     }
-  }, [db, tahap, platform, versi, toast.tambah, simpanSekarang, gantiDb, kunciAplikasi])
+  }, [db, tahap, info, platform, versi, toast.tambah, simpanSekarang, gantiDb, kunciAplikasi])
+
+  // Halaman yang tidak ada di menu peran ini → kembali ke Beranda.
+  useEffect(() => {
+    if (nilai && !MENU_PERAN[nilai.peran].includes(halaman)) setHalaman('beranda')
+  }, [nilai, halaman])
 
   let isi: React.ReactNode
   if (tahap.t === 'memuat' || !db) {
@@ -196,20 +224,43 @@ export function App(p: { platform: Platform; batasDiamMs?: number; jedaSimpanMs?
       <LayarPengaturanAwal
         db={db}
         platform={platform}
+        simpanSekarang={async () => {
+          kotor.current = true
+          await simpanSekarang()
+        }}
         selesai={async (d, kunci) => {
           await gantiDb(d, kunci)
-          toast.tambah('sukses', 'Database admin siap. Selamat datang!')
+          if (!adalahKunciExe(kunci)) toast.tambah('sukses', 'Database admin siap. Selamat datang!')
+          else if (!infoInstalasi(d).aktif) toast.tambah('info', 'Kode Perangkat EXE dibuat. Kirim ke tingkat atas, lalu tempel kode aktivasi.')
+          else toast.tambah('sukses', 'Database EXE dipulihkan.')
         }}
       />
     )
   } else if (tahap.t === 'masuk') {
-    isi = <LayarMasuk db={db} platform={platform} masuk={(kunci) => setTahap({ t: 'siap', kunci })} />
+    isi = <LayarMasuk db={db} platform={platform} masuk={(kunci) => masuk(db, kunci)} />
+  } else if (tahap.t === 'aktivasi') {
+    isi = (
+      <LayarAktivasi
+        db={db}
+        kunci={tahap.kunci}
+        platform={platform}
+        selesai={async () => {
+          kotor.current = true
+          await simpanSekarang()
+          setHalaman('beranda')
+          setTahap({ t: 'siap', kunci: tahap.kunci })
+          toast.tambah('sukses', 'Aktivasi berhasil. Selamat datang!')
+        }}
+      />
+    )
   } else if (nilai) {
     isi = (
       <PenyediaApp nilai={nilai}>
-        <TataLetak halaman={halaman} pilih={setHalaman} />
+        <TataLetak halaman={MENU_PERAN[nilai.peran].includes(halaman) ? halaman : 'beranda'} pilih={setHalaman} />
       </PenyediaApp>
     )
+  } else {
+    isi = <LayarGalat pesan="Peran instalasi tidak dikenal." />
   }
 
   return (
@@ -224,7 +275,7 @@ function LayarGalat(p: { pesan: string }) {
   return (
     <div className="layar-tengah">
       <div className="kartu kartu-sempit">
-        <h1>PPG Sorong Admin</h1>
+        <h1>PPG Sorong</h1>
         <KotakGalat pesan={p.pesan} />
         <p>Tutup aplikasi lalu coba lagi. Bila berlanjut, pulihkan database dari folder cadangan.</p>
       </div>
@@ -244,29 +295,30 @@ function TataLetak(p: { halaman: KunciMenu; pilih: (k: KunciMenu) => void }) {
 }
 
 function BilahSamping(p: { halaman: KunciMenu; pilih: (k: KunciMenu) => void }) {
-  const { kunci, kunciAplikasi, simpanSekarang } = useApp()
+  const { kunci, peran, wilayahNama, kunciAplikasi, simpanSekarang } = useApp()
   return (
     <nav className="bilah-samping" aria-label="Menu utama">
       <div className="merek">
         <img className="merek-logo" src="./logo.svg" alt="" aria-hidden="true" />
         <div>
-          <strong>PPG Sorong Admin</strong>
-          <small>{kunci.namaOrganisasi}</small>
+          <strong>PPG Sorong</strong>
+          <small data-testid="peran-wilayah">{judulPeran(peran, wilayahNama)}</small>
+          {!adalahKunciExe(kunci) ? <small>{kunci.namaOrganisasi}</small> : null}
         </div>
       </div>
       <ul>
-        {MENU.map((m) => (
-          <li key={m.kunci}>
+        {MENU_PERAN[peran].map((k) => (
+          <li key={k}>
             <button
               type="button"
-              className={p.halaman === m.kunci ? 'menu aktif' : 'menu'}
-              aria-current={p.halaman === m.kunci ? 'page' : undefined}
-              onClick={() => p.pilih(m.kunci)}
+              className={p.halaman === k ? 'menu aktif' : 'menu'}
+              aria-current={p.halaman === k ? 'page' : undefined}
+              onClick={() => p.pilih(k)}
             >
               <span className="ikon" aria-hidden="true">
-                {m.ikon}
+                {MENU[k].ikon}
               </span>
-              {m.teks}
+              {teksMenu(k, peran)}
             </button>
           </li>
         ))}
@@ -294,6 +346,8 @@ function Halaman(p: { kunci: KunciMenu; pilih: (k: KunciMenu) => void }) {
   switch (p.kunci) {
     case 'beranda':
       return <HalamanBeranda pilih={p.pilih} />
+    case 'absen':
+      return <HalamanAbsen />
     case 'wilayah':
       return <HalamanWilayah />
     case 'generus':
@@ -302,10 +356,18 @@ function Halaman(p: { kunci: KunciMenu; pilih: (k: KunciMenu) => void }) {
       return <HalamanPengajian />
     case 'materi':
       return <HalamanMateri />
+    case 'target':
+      return <HalamanTarget />
     case 'perangkat':
       return <HalamanPerangkat />
+    case 'jadwal':
+      return <HalamanJadwalSetor />
     case 'impor':
-      return <HalamanImpor />
+      return <HalamanImpor mode="setor" />
+    case 'bukaPaket':
+      return <HalamanImpor mode="paket" />
+    case 'setor':
+      return <HalamanSetor />
     case 'usulan':
       return <HalamanUsulan />
     case 'koreksi':

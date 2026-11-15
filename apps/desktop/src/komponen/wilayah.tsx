@@ -1,5 +1,5 @@
 // Pembantu pilihan wilayah (urut pohon, berindentasi) untuk formulir dan filter.
-import { pohonWilayah, type Db, type SimpulWilayah, type Tingkat } from '@ppg/core'
+import { pohonWilayah, turunanWilayah, type Db, type SimpulWilayah, type Tingkat } from '@ppg/core'
 import { LABEL_TINGKAT } from '../utils/label'
 import { Pilihan } from './ui'
 
@@ -10,13 +10,14 @@ export interface OpsiWilayah {
   nama: string
 }
 
-/** Wilayah urut pohon; `tingkat` membatasi jenis yang bisa dipilih. */
-export function opsiWilayah(db: Db, tingkat?: Tingkat | Tingkat[]): OpsiWilayah[] {
+/** Wilayah urut pohon; `tingkat` membatasi jenis yang bisa dipilih; `akar` membatasi ke wilayah itu + turunannya (EXE desa/kelompok). */
+export function opsiWilayah(db: Db, tingkat?: Tingkat | Tingkat[], akar?: string | null): OpsiWilayah[] {
   const boleh = tingkat ? (Array.isArray(tingkat) ? tingkat : [tingkat]) : null
+  const dalam = akar ? new Set(turunanWilayah(db, akar)) : null
   const hasil: OpsiWilayah[] = []
   const jalan = (l: SimpulWilayah[], kedalaman: number) => {
     for (const s of l) {
-      if (!boleh || boleh.includes(s.tingkat)) {
+      if ((!boleh || boleh.includes(s.tingkat)) && (!dalam || dalam.has(s.id))) {
         hasil.push({
           nilai: s.id,
           nama: s.nama,
@@ -39,6 +40,8 @@ export function PilihWilayah(p: {
   tingkat?: Tingkat | Tingkat[]
   kosong?: string
   bantuan?: string
+  /** Batasi ke wilayah ini + turunannya. */
+  akar?: string | null
 }) {
-  return <Pilihan label={p.label} nilai={p.nilai} ubah={p.ubah} pilihan={opsiWilayah(p.db, p.tingkat)} kosong={p.kosong} bantuan={p.bantuan} />
+  return <Pilihan label={p.label} nilai={p.nilai} ubah={p.ubah} pilihan={opsiWilayah(p.db, p.tingkat, p.akar)} kosong={p.kosong} bantuan={p.bantuan} />
 }

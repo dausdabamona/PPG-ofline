@@ -1,5 +1,7 @@
 // Layar 7: Perangkat & Token — terbitkan token dari Kode Perangkat (teks + QR + salin), daftar perangkat,
 // cabut/bekukan/cairkan, ganti kunci kelompok, serah terima mubaligh.
+// v3: daerah juga mengaktifkan EXE desa / EXE kelompok / EXE kurikulum; EXE desa menerbitkan token pengurus/mubaligh/EXE
+// kelompok di wilayahnya (terbitkanTokenBawah) dan hanya mencabut token terbitannya sendiri.
 import { useEffect, useMemo, useState } from 'react'
 import {
   HAK_BAWAAN,
@@ -9,6 +11,11 @@ import {
   cabutPerangkat,
   cairkanPerangkat,
   daftarPerangkatRinci,
+  idRantaiPenerbit,
+  profilExe,
+  terbitkanTokenBawah,
+  type KunciExe,
+  type Tingkat,
   gantiKunciKelompok,
   serahTerimaMubaligh,
   slug,
@@ -18,34 +25,54 @@ import {
   type PerangkatRinci,
   type StatusPerangkat,
 } from '@ppg/core'
-import { useApp, useData } from '../konteks'
+import { kunciDaerah, useApp, useData } from '../konteks'
 import { AreaTeks, Isian, KeadaanData, Kartu, KepalaHalaman, Konfirmasi, KotakGalat, Lencana, Memuat, Modal, Pilihan, Tombol } from '../komponen/ui'
 import { PilihWilayah } from '../komponen/wilayah'
 import { QrBerseri } from '../komponen/qr'
-import { LABEL_HAK, LABEL_ROLE, LABEL_STATUS_PERANGKAT, label, pesanGalat, waktuLokal } from '../utils/label'
+import { LABEL_HAK, LABEL_STATUS_PERANGKAT, labelRole, pesanGalat, waktuLokal } from '../utils/label'
 
 const HAK_ROLE: Record<'pengurus' | 'mubaligh', Hak[]> = {
   pengurus: ['catat', 'lihat'],
   mubaligh: ['catat', 'lihat', 'sahkan', 'terbit_generus'],
 }
 
+type JenisTerbit = 'mubaligh' | 'pengurus' | 'exe_desa' | 'exe_kelompok' | 'kurikulum'
+
+const JENIS: Record<JenisTerbit, { teks: string; role: 'pengurus' | 'mubaligh' | 'admin' | 'kurikulum'; tingkat?: Tingkat }> = {
+  mubaligh: { teks: 'Mubaligh (HP, satu kelompok)', role: 'mubaligh', tingkat: 'kelompok' },
+  pengurus: { teks: 'Pengurus (HP, kelompok/desa/daerah)', role: 'pengurus' },
+  exe_desa: { teks: 'EXE Desa (aplikasi laptop desa)', role: 'admin', tingkat: 'desa' },
+  exe_kelompok: { teks: 'EXE Kelompok (aplikasi laptop kelompok)', role: 'admin', tingkat: 'kelompok' },
+  kurikulum: { teks: 'EXE Kurikulum (tim kurikulum)', role: 'kurikulum', tingkat: 'daerah' },
+}
+
 export function HalamanPerangkat() {
+  const { peran } = useApp()
   const [token, setToken] = useState<{ teks: string; nama: string } | null>(null)
   return (
     <>
-      <KepalaHalaman judul="Perangkat & Token" keterangan="Token pengurus/mubaligh ditandatangani admin; token generus/wali diterbitkan mubaligh." />
+      <KepalaHalaman
+        judul="Perangkat & Token"
+        keterangan={
+          peran === 'daerah'
+            ? 'Terbitkan kode aktivasi HP pengurus/mubaligh dan EXE desa/kelompok/kurikulum. Daerah melihat dan bisa mencabut semua perangkat.'
+            : 'Terbitkan kode aktivasi HP pengurus/mubaligh dan EXE kelompok di desa ini. Token generus/wali diterbitkan mubaligh.'
+        }
+      />
       <FormTerbit hasil={(teks, nama) => setToken({ teks, nama })} />
       <DaftarPerangkat />
-      <KunciKelompok />
+      {peran === 'daerah' ? <KunciKelompok /> : null}
       {token ? <ModalToken token={token.teks} nama={token.nama} tutup={() => setToken(null)} /> : null}
     </>
   )
 }
 
 function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
-  const { db, kunci, aksi } = useApp()
+  const { db, kunci, peran, wilayahId, aksi } = useApp()
   const [kode, setKode] = useState('')
-  const [role, setRole] = useState<'pengurus' | 'mubaligh'>('mubaligh')
+  const [jenis, setJenis] = useState<JenisTerbit>('mubaligh')
+  const role = jenis === 'pengurus' ? 'pengurus' : 'mubaligh'
+  const hakTampil = jenis === 'mubaligh' || jenis === 'pengurus'
   const [wilayah, setWilayah] = useState('')
   const [nama, setNama] = useState('')
   const [hak, setHak] = useState<Hak[]>(HAK_BAWAAN.mubaligh)
@@ -58,15 +85,23 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
       return { ok: false as const, pesan: pesanGalat(e) }
     }
   }, [kode])
+  const tingkatJenis = JENIS[jenis].tingkat
   useEffect(() => {
     setHak(HAK_BAWAAN[role])
-    if (role === 'mubaligh' && wilayah && ambilWilayah(db, wilayah)?.tingkat !== 'kelompok') setWilayah('')
-  }, [role])
+    if (tingkatJenis && wilayah && ambilWilayah(db, wilayah)?.tingkat !== tingkatJenis) setWilayah('')
+  }, [jenis])
+  const pilihanJenis: JenisTerbit[] = peran === 'daerah' ? ['mubaligh', 'pengurus', 'exe_desa', 'exe_kelompok', 'kurikulum'] : ['mubaligh', 'pengurus', 'exe_kelompok']
 
   const terbit = async () => {
+    const j = JENIS[jenis]
     const t = await aksi(
-      () => terbitkanToken(db, kunci, { kodePerangkat: kode, role, nama, wilayahId: wilayah, hak, berlakuHari: Number(hari) }),
-      `Token ${LABEL_ROLE[role]} untuk ${nama} diterbitkan.`,
+      () => {
+        const o = { kodePerangkat: kode, nama, wilayahId: wilayah, hak: hakTampil ? hak : undefined, berlakuHari: Number(hari) }
+        if (peran === 'daerah') return terbitkanToken(db, kunciDaerah(kunci), { ...o, role: j.role })
+        if (j.role === 'kurikulum') throw new Error('Token kurikulum diterbitkan daerah.')
+        return terbitkanTokenBawah(db, kunci as KunciExe, { ...o, role: j.role })
+      },
+      `Kode aktivasi ${labelRole(j.role, j.tingkat)} untuk ${nama} diterbitkan.`,
     )
     if (t) {
       p.hasil(t, nama)
@@ -76,37 +111,30 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
   }
 
   return (
-    <Kartu judul="Terbitkan token pengurus / mubaligh">
+    <Kartu judul={peran === 'daerah' ? 'Terbitkan token / kode aktivasi' : 'Terbitkan kode aktivasi di desa ini'}>
       <div className="formulir dua-kolom">
         <AreaTeks
           label="Kode Perangkat"
           nilai={kode}
           ubah={setKode}
           baris={3}
-          placeholder="Tempel Kode Perangkat (PPGD1.…) yang dikirim dari HP lewat WA"
+          placeholder="Tempel Kode Perangkat (PPGD1.…) yang dikirim dari HP atau EXE lewat WA"
           bantuan={infoKode?.ok ? `HP: ${infoKode.d.label} · id ${infoKode.d.perangkat_id}` : undefined}
         />
         {infoKode && !infoKode.ok ? <KotakGalat pesan={infoKode.pesan} /> : null}
-        <Pilihan
-          label="Peran"
-          nilai={role}
-          ubah={(v) => setRole(v as 'pengurus' | 'mubaligh')}
-          pilihan={[
-            { nilai: 'mubaligh', teks: 'Mubaligh (satu kelompok)' },
-            { nilai: 'pengurus', teks: 'Pengurus (kelompok/desa/daerah)' },
-          ]}
-        />
+        <Pilihan label="Untuk" nilai={jenis} ubah={(v) => setJenis(v as JenisTerbit)} pilihan={pilihanJenis.map((x) => ({ nilai: x, teks: JENIS[x].teks }))} />
         <PilihWilayah
           db={db}
           label="Wilayah tugas"
           nilai={wilayah}
           ubah={setWilayah}
-          tingkat={role === 'mubaligh' ? 'kelompok' : undefined}
+          tingkat={tingkatJenis}
+          akar={peran === 'daerah' ? null : wilayahId}
           kosong="— pilih wilayah —"
         />
         <Isian label="Nama pemegang" nilai={nama} ubah={setNama} wajib placeholder="mis. Ust. Hasan" />
         <Isian label="Masa berlaku (hari)" type="number" nilai={hari} ubah={setHari} min={1} max={3650} />
-        <fieldset className="kolom kolom-lebar">
+        {hakTampil ? <fieldset className="kolom kolom-lebar">
           <legend>Hak</legend>
           <div className="baris-centang">
             {HAK_ROLE[role].map((h) => (
@@ -116,7 +144,7 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
               </label>
             ))}
           </div>
-        </fieldset>
+        </fieldset> : <p className="keterangan kolom-lebar">Hak EXE mengikuti tingkatnya (EXE desa boleh menerbitkan kode aktivasi di desanya; EXE kelompok mencatat & mengesahkan; kurikulum mengelola materi & target).</p>}
       </div>
       <div className="aksi">
         <Tombol onClick={terbit} disabled={!infoKode?.ok || !wilayah || !nama.trim()}>
@@ -174,7 +202,10 @@ function warnaStatus(s: StatusPerangkat): 'hijau' | 'kuning' | 'merah' | 'abu' {
 }
 
 function DaftarPerangkat() {
-  const { db, aksi } = useApp()
+  const { db, peran, wilayahId, aksi } = useApp()
+  const sayaToken = peran === 'daerah' ? 'ADMIN' : profilExe(db).token_id
+  // EXE desa hanya mengendalikan token yang rantai penerbitnya melewati EXE ini (V-T16); daerah semua.
+  const bolehKendali = (x: PerangkatRinci) => peran === 'daerah' || idRantaiPenerbit(x.token).includes(sayaToken)
   const [wilayah, setWilayah] = useState('')
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
@@ -183,7 +214,7 @@ function DaftarPerangkat() {
   const hasil = useData(
     () =>
       daftarPerangkatRinci(db, {
-        wilayahId: wilayah || undefined,
+        wilayahId: wilayah || (peran === 'daerah' ? undefined : (wilayahId ?? undefined)),
         role: (role || undefined) as PerangkatRinci['role'] | undefined,
         status: (status || undefined) as StatusPerangkat | undefined,
       }),
@@ -193,8 +224,14 @@ function DaftarPerangkat() {
   return (
     <Kartu judul="Daftar perangkat (token)">
       <div className="filter">
-        <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="Semua wilayah" />
-        <Pilihan label="Peran" nilai={role} ubah={setRole} pilihan={Object.entries(LABEL_ROLE).map(([n, t]) => ({ nilai: n, teks: t }))} kosong="Semua peran" />
+        <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="Semua wilayah" akar={peran === 'daerah' ? null : wilayahId} />
+        <Pilihan
+          label="Peran"
+          nilai={role}
+          ubah={setRole}
+          pilihan={['pengurus', 'mubaligh', 'generus', 'wali', 'admin', 'kurikulum'].map((n) => ({ nilai: n, teks: n === 'admin' ? 'EXE Desa/Kelompok' : labelRole(n) }))}
+          kosong="Semua peran"
+        />
         <Pilihan
           label="Status"
           nilai={status}
@@ -223,7 +260,7 @@ function DaftarPerangkat() {
                 {daftar.map((x) => (
                   <tr key={x.id}>
                     <td>{x.nama}</td>
-                    <td>{label(LABEL_ROLE, x.role)}</td>
+                    <td>{labelRole(x.role, x.tingkat)}</td>
                     <td>{x.wilayah_nama}</td>
                     <td>{x.label ?? x.perangkat_id.slice(-6)}</td>
                     <td>
@@ -232,22 +269,22 @@ function DaftarPerangkat() {
                     <td>{waktuLokal(x.berlaku_sampai)}</td>
                     <td>{waktuLokal(x.terakhir_setor)}</td>
                     <td className="sel-aksi">
-                      {x.diterbitkan_oleh === 'ADMIN' ? (
+                      {x.diterbitkan_oleh === sayaToken ? (
                         <Tombol kecil varian="tipis" onClick={() => setLihat(x)}>
                           Token
                         </Tombol>
                       ) : null}
-                      {x.status !== 'dicabut' && !x.dibekukan ? (
+                      {x.status !== 'dicabut' && !x.dibekukan && bolehKendali(x) ? (
                         <Tombol kecil varian="tipis" onClick={() => setKonfirmasi({ p: x, jenis: 'beku' })}>
                           Bekukan
                         </Tombol>
                       ) : null}
-                      {x.status !== 'dicabut' && x.dibekukan ? (
+                      {x.status !== 'dicabut' && x.dibekukan && bolehKendali(x) ? (
                         <Tombol kecil varian="tipis" onClick={() => setKonfirmasi({ p: x, jenis: 'cair' })}>
                           Cairkan
                         </Tombol>
                       ) : null}
-                      {x.status !== 'dicabut' ? (
+                      {x.status !== 'dicabut' && bolehKendali(x) ? (
                         <Tombol kecil varian="tipis" onClick={() => setKonfirmasi({ p: x, jenis: 'cabut' })}>
                           Cabut
                         </Tombol>
@@ -316,7 +353,7 @@ function KunciKelompok() {
           ya="Ganti kunci"
           batal={() => setGanti(false)}
           setuju={async () => {
-            const v = await aksi(() => gantiKunciKelompok(db, kunci, kelompok))
+            const v = await aksi(() => gantiKunciKelompok(db, kunciDaerah(kunci), kelompok))
             if (v) toast('sukses', `Kunci kelompok diganti ke versi ${v}. Kirim paket ke kelompok ini.`)
             setGanti(false)
           }}
@@ -346,7 +383,7 @@ function ModalSerahTerima(p: { kelompokId: string; tutup: () => void }) {
             varian="bahaya"
             disabled={!pilih || (!paksa && !st.data?.lengkap)}
             onClick={async () => {
-              const h = await aksi(() => serahTerimaMubaligh(db, kunci, { kelompokId: p.kelompokId, perangkatLamaId: pilih, paksa }))
+              const h = await aksi(() => serahTerimaMubaligh(db, kunciDaerah(kunci), { kelompokId: p.kelompokId, perangkatLamaId: pilih, paksa }))
               if (h) {
                 toast('sukses', `Serah terima selesai: ${h.tokenDicabut.length} token dicabut, kunci kelompok versi ${h.versiKunciBaru}. Terbitkan token mubaligh baru lalu kirim paket. Hari itu juga, mubaligh baru WAJIB mengirim Balasan ke semua HP generus dan wali.`)
                 p.tutup()

@@ -1,6 +1,6 @@
 // Konteks aplikasi: database aktif, kunci admin (hanya di memori), platform, toast, dan pembantu aksi.
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Db, KunciAdmin } from '@ppg/core'
+import { adalahKunciExe, type Db, type KunciAdmin, type KunciPemegang } from '@ppg/core'
 import type { Platform } from './platform'
 import { pesanGalat } from './utils/label'
 
@@ -11,9 +11,17 @@ export interface Toast {
   pesan: string
 }
 
+/** Peran instalasi EXE yang sudah aktif. */
+export type PeranExe = 'daerah' | 'desa' | 'kelompok' | 'kurikulum'
+
 export interface NilaiApp {
   db: Db
-  kunci: KunciAdmin
+  /** Daerah: KunciAdmin; EXE desa/kelompok/kurikulum: KunciExe. */
+  kunci: KunciPemegang
+  peran: PeranExe
+  /** Wilayah instalasi (daerah: wilayah daerah pertama; desa/kelompok: wilayah token). */
+  wilayahId: string | null
+  wilayahNama: string | null
   platform: Platform
   /** Naik setiap database berubah — dipakai sebagai dependensi pemuatan data. */
   versi: number
@@ -25,7 +33,7 @@ export interface NilaiApp {
   /** Simpan database sekarang (tanpa menunggu debounce). */
   simpanSekarang: () => Promise<void>
   /** Ganti seluruh database (pulihkan cadangan). */
-  gantiDb: (db: Db, kunci: KunciAdmin) => Promise<void>
+  gantiDb: (db: Db, kunci: KunciPemegang) => Promise<void>
   /** Kunci aplikasi (kembali ke layar masuk). */
   kunciAplikasi: () => void
 }
@@ -34,6 +42,12 @@ const Konteks = createContext<NilaiApp | null>(null)
 
 export function PenyediaApp(p: { nilai: NilaiApp; children: ReactNode }) {
   return <Konteks.Provider value={p.nilai}>{p.children}</Konteks.Provider>
+}
+
+/** Kunci admin daerah (hanya di EXE daerah). */
+export function kunciDaerah(k: KunciPemegang): KunciAdmin {
+  if (adalahKunciExe(k)) throw new Error('Fitur ini hanya di EXE daerah.')
+  return k
 }
 
 export function useApp(): NilaiApp {

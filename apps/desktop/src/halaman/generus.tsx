@@ -1,9 +1,11 @@
 // Layar 4: Generus & Jamaah — tabel + filter, tambah/ubah, impor CSV (+ templat), pindah kelompok, ubah status.
+// v3: di EXE desa hanya lihat (wilayah desa) + usulan (generus baru, ubah status, pindah) yang ikut Setor ke Daerah.
 import { useState } from 'react'
 import {
   KATEGORI_GENERUS,
   KOLOM_CSV_GENERUS,
   STATUS_GENERUS,
+  ajukanUsulan,
   ambilWilayah,
   buatCsv,
   cariGenerus,
@@ -37,10 +39,18 @@ const OPSI_JK = [
 ]
 
 export function HalamanGenerus() {
+  const { peran } = useApp()
   const [tab, setTab] = useState<'generus' | 'jamaah'>('generus')
   return (
     <>
-      <KepalaHalaman judul="Generus & Jamaah" keterangan="Data master milik admin. Perubahan dari HP masuk lewat Usulan." />
+      <KepalaHalaman
+        judul={peran === 'daerah' ? 'Generus & Jamaah' : 'Generus & Data'}
+        keterangan={
+          peran === 'daerah'
+            ? 'Data master milik admin daerah. Perubahan dari HP dan EXE desa masuk lewat Usulan.'
+            : 'Data master milik admin daerah (dari paket). Perubahan diajukan sebagai usulan dan ikut Setor ke Daerah.'
+        }
+      />
       <div className="tab" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'generus'} className={tab === 'generus' ? 'aktif' : ''} onClick={() => setTab('generus')}>
           Generus
@@ -59,7 +69,9 @@ function warnaStatus(s: string): 'hijau' | 'kuning' | 'abu' {
 }
 
 function TabGenerus() {
-  const { db, aksi, platform, toast } = useApp()
+  const { db, peran, wilayahId, aksi, platform, toast } = useApp()
+  const ubah = peran === 'daerah'
+  const akar = ubah ? null : wilayahId
   const [wilayah, setWilayah] = useState('')
   const [kategori, setKategori] = useState('')
   const [status, setStatus] = useState('')
@@ -70,7 +82,7 @@ function TabGenerus() {
   const [hasilCsv, setHasilCsv] = useState<{ nama: string; hasil: HasilImporCsv } | null>(null)
 
   const hasil = useData(() => {
-    const w = wilayah ? ambilWilayah(db, wilayah) : undefined
+    const w = wilayah ? ambilWilayah(db, wilayah) : akar ? ambilWilayah(db, akar) : undefined
     return cariGenerus(db, {
       kelompokId: w?.tingkat === 'kelompok' ? w.id : undefined,
       wilayahId: w && w.tingkat !== 'kelompok' ? w.id : undefined,
@@ -107,20 +119,24 @@ function TabGenerus() {
     <>
       <Kartu
         aksi={
-          <>
-            <Tombol varian="kedua" onClick={unduhTemplat}>
-              Unduh templat CSV
-            </Tombol>
-            <Tombol varian="kedua" onClick={imporCsv}>
-              Impor CSV
-            </Tombol>
-            <Tombol onClick={() => setForm({ g: null })}>+ Tambah generus</Tombol>
-          </>
+          ubah ? (
+            <>
+              <Tombol varian="kedua" onClick={unduhTemplat}>
+                Unduh templat CSV
+              </Tombol>
+              <Tombol varian="kedua" onClick={imporCsv}>
+                Impor CSV
+              </Tombol>
+              <Tombol onClick={() => setForm({ g: null })}>+ Tambah generus</Tombol>
+            </>
+          ) : (
+            <Tombol onClick={() => setForm({ g: null })}>+ Usulkan generus baru</Tombol>
+          )
         }
         judul="Daftar generus"
       >
         <div className="filter">
-          <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="Semua wilayah" />
+          <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="Semua wilayah" akar={akar} />
           <Pilihan label="Kategori" nilai={kategori} ubah={setKategori} pilihan={OPSI_KATEGORI} kosong="Semua kategori" />
           <Pilihan label="Status" nilai={status} ubah={setStatus} pilihan={OPSI_STATUS} kosong="Semua status" />
           <Isian label="Cari nama" nilai={cari} ubah={setCari} placeholder="Ketik nama…" />
@@ -159,14 +175,16 @@ function TabGenerus() {
                           {g.wali_no_hp ? <small className="blok">{g.wali_no_hp}</small> : null}
                         </td>
                         <td className="sel-aksi">
-                          <Tombol kecil varian="tipis" onClick={() => setForm({ g })}>
-                            Ubah
-                          </Tombol>
+                          {ubah ? (
+                            <Tombol kecil varian="tipis" onClick={() => setForm({ g })}>
+                              Ubah
+                            </Tombol>
+                          ) : null}
                           <Tombol kecil varian="tipis" onClick={() => setPindah(g)}>
-                            Pindah
+                            {ubah ? 'Pindah' : 'Usulkan pindah'}
                           </Tombol>
                           <Tombol kecil varian="tipis" onClick={() => setUbahSt(g)}>
-                            Status
+                            {ubah ? 'Status' : 'Usulkan status'}
                           </Tombol>
                         </td>
                       </tr>
@@ -178,9 +196,9 @@ function TabGenerus() {
           )}
         </KeadaanData>
       </Kartu>
-      {form ? <FormGenerus g={form.g} tutup={() => setForm(null)} /> : null}
-      {pindah ? <FormPindah g={pindah} tutup={() => setPindah(null)} /> : null}
-      {ubahSt ? <FormStatus g={ubahSt} tutup={() => setUbahSt(null)} /> : null}
+      {form ? <FormGenerus g={form.g} tutup={() => setForm(null)} usulan={!ubah} /> : null}
+      {pindah ? <FormPindah g={pindah} tutup={() => setPindah(null)} usulan={!ubah} /> : null}
+      {ubahSt ? <FormStatus g={ubahSt} tutup={() => setUbahSt(null)} usulan={!ubah} /> : null}
       {hasilCsv ? (
         <Modal judul={`Hasil impor ${hasilCsv.nama}`} tutup={() => setHasilCsv(null)} aksi={<Tombol onClick={() => setHasilCsv(null)}>Tutup</Tombol>}>
           <p>
@@ -210,8 +228,8 @@ function TabGenerus() {
   )
 }
 
-function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void }) {
-  const { db, aksi } = useApp()
+function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void; usulan?: boolean }) {
+  const { db, wilayahId, aksi } = useApp()
   const g = p.g
   const [kelompok, setKelompok] = useState(g?.kelompok_id ?? '')
   const [nama, setNama] = useState(g?.nama ?? '')
@@ -222,6 +240,26 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void }) {
   const [waliHp, setWaliHp] = useState(g?.wali_no_hp ?? '')
   const [mulai, setMulai] = useState(tanggalHariIni())
   const simpan = async () => {
+    if (p.usulan) {
+      const u = await aksi(
+        () =>
+          ajukanUsulan(db, {
+            jenis: 'tambah_generus',
+            kelompokId: kelompok,
+            data: {
+              nama: nama.trim(),
+              jenis_kelamin: jk,
+              tanggal_lahir: lahir || null,
+              kategori: kategori || null,
+              wali_nama: waliNama.trim() || null,
+              wali_no_hp: waliHp.trim() || null,
+            },
+          }),
+        `Usulan generus "${nama.trim()}" tersimpan. Ikut terkirim saat Setor ke Daerah.`,
+      )
+      if (u) p.tutup()
+      return
+    }
     const h = await aksi(
       () =>
         g
@@ -249,7 +287,7 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void }) {
   }
   return (
     <Modal
-      judul={g ? `Ubah generus: ${g.nama}` : 'Tambah generus'}
+      judul={p.usulan ? 'Usulkan generus baru' : g ? `Ubah generus: ${g.nama}` : 'Tambah generus'}
       tutup={p.tutup}
       lebar
       aksi={
@@ -257,31 +295,33 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void }) {
           <Tombol varian="kedua" onClick={p.tutup}>
             Batal
           </Tombol>
-          <Tombol onClick={simpan}>Simpan</Tombol>
+          <Tombol onClick={simpan}>{p.usulan ? 'Ajukan usulan' : 'Simpan'}</Tombol>
         </>
       }
     >
       <div className="formulir dua-kolom">
-        {g ? null : <PilihWilayah db={db} label="Kelompok" nilai={kelompok} ubah={setKelompok} tingkat="kelompok" kosong="— pilih kelompok —" />}
+        {g ? null : (
+          <PilihWilayah db={db} label="Kelompok" nilai={kelompok} ubah={setKelompok} tingkat="kelompok" kosong="— pilih kelompok —" akar={p.usulan ? wilayahId : null} />
+        )}
         <Isian label="Nama lengkap" nilai={nama} ubah={setNama} wajib />
         <Pilihan label="Jenis kelamin" nilai={jk} ubah={setJk} pilihan={OPSI_JK} />
         <Isian label="Tanggal lahir" type="date" nilai={lahir} ubah={setLahir} />
         <Pilihan label="Kategori" nilai={kategori} ubah={setKategori} pilihan={OPSI_KATEGORI} kosong={g ? '(tidak diubah)' : 'Otomatis dari umur'} />
         <Isian label="Nama wali" nilai={waliNama} ubah={setWaliNama} />
         <Isian label="No. HP wali" nilai={waliHp} ubah={setWaliHp} placeholder="08…" />
-        {g ? null : <Isian label="Mulai menjadi anggota" type="date" nilai={mulai} ubah={setMulai} />}
+        {g || p.usulan ? null : <Isian label="Mulai menjadi anggota" type="date" nilai={mulai} ubah={setMulai} />}
       </div>
     </Modal>
   )
 }
 
-function FormPindah(p: { g: GenerusRinci; tutup: () => void }) {
+function FormPindah(p: { g: GenerusRinci; tutup: () => void; usulan?: boolean }) {
   const { db, aksi } = useApp()
   const [tujuan, setTujuan] = useState('')
   const [tanggal, setTanggal] = useState(tanggalHariIni())
   return (
     <Modal
-      judul={`Pindah kelompok: ${p.g.nama}`}
+      judul={`${p.usulan ? 'Usulkan pindah' : 'Pindah'} kelompok: ${p.g.nama}`}
       tutup={p.tutup}
       aksi={
         <>
@@ -290,15 +330,24 @@ function FormPindah(p: { g: GenerusRinci; tutup: () => void }) {
           </Tombol>
           <Tombol
             onClick={async () => {
-              const ok = await aksi(() => {
-                if (!tujuan) throw new Error('Pilih kelompok tujuan.')
-                pindahKelompok(db, p.g.id, tujuan, tanggal)
-                return true
-              }, `${p.g.nama} dipindahkan. Token lama dicabut; mubaligh kelompok baru menerbitkan token baru.`)
+              const ok = await aksi(
+                () => {
+                  if (!tujuan) throw new Error('Pilih kelompok tujuan.')
+                  if (p.usulan) {
+                    ajukanUsulan(db, { jenis: 'pindah_kelompok', kelompokId: p.g.kelompok_id, data: { generus_id: p.g.id, kelompok_tujuan_id: tujuan, tanggal, keterangan: null } })
+                    return true
+                  }
+                  pindahKelompok(db, p.g.id, tujuan, tanggal)
+                  return true
+                },
+                p.usulan
+                  ? `Usulan pindah ${p.g.nama} tersimpan. Ikut terkirim saat Setor ke Daerah.`
+                  : `${p.g.nama} dipindahkan. Token lama dicabut; mubaligh kelompok baru menerbitkan token baru.`,
+              )
               if (ok) p.tutup()
             }}
           >
-            Pindahkan
+            {p.usulan ? 'Ajukan usulan' : 'Pindahkan'}
           </Tombol>
         </>
       }
@@ -314,14 +363,14 @@ function FormPindah(p: { g: GenerusRinci; tutup: () => void }) {
   )
 }
 
-function FormStatus(p: { g: GenerusRinci; tutup: () => void }) {
+function FormStatus(p: { g: GenerusRinci; tutup: () => void; usulan?: boolean }) {
   const { db, aksi } = useApp()
   const [status, setStatus] = useState<string>(p.g.status === 'aktif' ? 'mondok' : 'aktif')
   const [tanggal, setTanggal] = useState(tanggalHariIni())
   const [ket, setKet] = useState('')
   return (
     <Modal
-      judul={`Ubah status: ${p.g.nama}`}
+      judul={`${p.usulan ? 'Usulkan status' : 'Ubah status'}: ${p.g.nama}`}
       tutup={p.tutup}
       aksi={
         <>
@@ -330,14 +379,23 @@ function FormStatus(p: { g: GenerusRinci; tutup: () => void }) {
           </Tombol>
           <Tombol
             onClick={async () => {
-              const ok = await aksi(() => {
-                ubahStatus(db, p.g.id, status as StatusGenerus, tanggal, ket || null)
-                return true
-              }, `Status ${p.g.nama} menjadi ${label(LABEL_STATUS_GENERUS, status)}.`)
+              const ok = await aksi(
+                () => {
+                  if (p.usulan) {
+                    ajukanUsulan(db, { jenis: 'ubah_status', kelompokId: p.g.kelompok_id, data: { generus_id: p.g.id, status, tanggal, keterangan: ket || null } })
+                    return true
+                  }
+                  ubahStatus(db, p.g.id, status as StatusGenerus, tanggal, ket || null)
+                  return true
+                },
+                p.usulan
+                  ? `Usulan status ${p.g.nama} (${label(LABEL_STATUS_GENERUS, status)}) tersimpan. Ikut terkirim saat Setor ke Daerah.`
+                  : `Status ${p.g.nama} menjadi ${label(LABEL_STATUS_GENERUS, status)}.`,
+              )
               if (ok) p.tutup()
             }}
           >
-            Simpan status
+            {p.usulan ? 'Ajukan usulan' : 'Simpan status'}
           </Tombol>
         </>
       }
@@ -356,17 +414,20 @@ function FormStatus(p: { g: GenerusRinci; tutup: () => void }) {
 }
 
 function TabJamaah() {
-  const { db } = useApp()
+  const { db, peran, wilayahId } = useApp()
+  const ubah = peran === 'daerah'
+  const akar = ubah ? null : wilayahId
   const [wilayah, setWilayah] = useState('')
   const [form, setForm] = useState<{ j: Jamaah | null } | null>(null)
   const hasil = useData(() => {
     const nama = new Map(daftarWilayah(db).map((w) => [w.id, w.nama]))
-    return daftarJamaah(db, wilayah ? { kelompokIds: kelompokDalamWilayah(db, wilayah) } : {}).map((j) => ({ ...j, kelompok_nama: nama.get(j.kelompok_id) ?? '?' }))
-  }, [db, wilayah])
+    const w = wilayah || akar
+    return daftarJamaah(db, w ? { kelompokIds: kelompokDalamWilayah(db, w) } : {}).map((j) => ({ ...j, kelompok_nama: nama.get(j.kelompok_id) ?? '?' }))
+  }, [db, wilayah, akar])
   return (
-    <Kartu judul="Daftar jamaah" aksi={<Tombol onClick={() => setForm({ j: null })}>+ Tambah jamaah</Tombol>}>
+    <Kartu judul="Daftar jamaah" aksi={ubah ? <Tombol onClick={() => setForm({ j: null })}>+ Tambah jamaah</Tombol> : undefined}>
       <div className="filter">
-        <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="Semua wilayah" />
+        <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="Semua wilayah" akar={akar} />
       </div>
       <KeadaanData hasil={hasil} kosong={(d) => d.length === 0} teksKosong="Belum ada jamaah.">
         {(daftar) => (
@@ -392,9 +453,11 @@ function TabJamaah() {
                   <td>{j.kelompok_nama}</td>
                   <td>{j.status ?? '—'}</td>
                   <td className="sel-aksi">
-                    <Tombol kecil varian="tipis" onClick={() => setForm({ j })}>
-                      Ubah
-                    </Tombol>
+                    {ubah ? (
+                      <Tombol kecil varian="tipis" onClick={() => setForm({ j })}>
+                        Ubah
+                      </Tombol>
+                    ) : null}
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,7 @@
 // Layar 11: Kirim Paket — buat berkas PAKET untuk satu wilayah atau semua kelompok berpenerima, lalu simpan.
+// v3: daerah juga "Paket semua desa" (untuk EXE desa); EXE desa membuat paket untuk kelompok/HP di desanya saja.
 import { useState } from 'react'
-import { ambilWilayah, buatPaket, daftarPerangkatRinci, daftarWilayah, kelompokBerpenerima } from '@ppg/core'
+import { ambilWilayah, buatPaket, daftarPerangkatRinci, daftarWilayah, kelompokBerpenerima, turunanWilayah } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { KeadaanData, Kartu, KepalaHalaman, Lencana, Tombol } from '../komponen/ui'
 import { PilihWilayah } from '../komponen/wilayah'
@@ -15,16 +16,19 @@ interface PaketDibuat {
 }
 
 export function HalamanPaket() {
-  const { db, kunci, platform, aksi, toast } = useApp()
+  const { db, kunci, peran, wilayahId, platform, aksi, toast } = useApp()
   const [wilayah, setWilayah] = useState('')
   const [dibuat, setDibuat] = useState<{ daftar: PaketDibuat[]; lokasi: string } | null>(null)
+  const daerah = peran === 'daerah'
+  const akar = daerah ? daftarWilayah(db, { tingkat: 'daerah' }).map((d) => d.id) : wilayahId ? [wilayahId] : []
+  const dalamAkar = (id: string) => daerah || turunanWilayah(db, wilayahId ?? '').includes(id)
 
   const kelompok = useData(() => {
-    const ber = new Set(daftarWilayah(db, { tingkat: 'daerah' }).flatMap((d) => kelompokBerpenerima(db, d.id)))
-    return daftarWilayah(db, { tingkat: 'kelompok' }).map((k) => ({
+    const ber = new Set(akar.flatMap((d) => kelompokBerpenerima(db, d)))
+    return daftarWilayah(db, { tingkat: 'kelompok' }).filter((k) => dalamAkar(k.id)).map((k) => ({
       ...k,
       berpenerima: ber.has(k.id),
-      penerima: daftarPerangkatRinci(db, { wilayahId: k.id, role: ['mubaligh', 'pengurus'], status: 'aktif' }).length,
+      penerima: daftarPerangkatRinci(db, { wilayahId: k.id, role: ['mubaligh', 'pengurus', 'admin'], status: 'aktif' }).length,
     }))
   }, [db])
 
@@ -32,7 +36,7 @@ export function HalamanPaket() {
     const w = ambilWilayah(db, wilayah)
     const p = await aksi(() => buatPaket(db, wilayah, kunci))
     if (!p || !w) return
-    if (p.penerima === 0) toast('info', `Paket ${w.nama} tidak punya penerima aktif — belum ada token pengurus/mubaligh di wilayah ini.`)
+    if (p.penerima === 0) toast('info', `Paket ${w.nama} tidak punya penerima aktif — belum ada token pengurus/mubaligh/EXE di wilayah ini.`)
     const lokasi = await aksi(() => platform.simpanBerkas(p.nama, p.bytes))
     if (lokasi) {
       setDibuat({ daftar: [{ wilayah: w.nama, nama: p.nama, versi: p.versi, penerima: p.penerima, ukuran: p.bytes.length }], lokasi })
@@ -40,10 +44,13 @@ export function HalamanPaket() {
     }
   }
 
-  const semua = async () => {
-    const ids = [...new Set(daftarWilayah(db, { tingkat: 'daerah' }).flatMap((d) => kelompokBerpenerima(db, d.id)))]
+  const semua = async (tingkat: 'kelompok' | 'desa' = 'kelompok') => {
+    const ids =
+      tingkat === 'desa'
+        ? daftarWilayah(db, { tingkat: 'desa' }).filter((d) => daftarPerangkatRinci(db, { wilayahId: d.id, role: 'admin', status: 'aktif' }).some((x) => x.wilayah_id === d.id)).map((d) => d.id)
+        : [...new Set(akar.flatMap((d) => kelompokBerpenerima(db, d)))]
     if (!ids.length) {
-      toast('info', 'Belum ada kelompok yang punya token pengurus/mubaligh aktif.')
+      toast('info', tingkat === 'desa' ? 'Belum ada desa yang punya EXE desa aktif.' : 'Belum ada kelompok yang punya token pengurus/mubaligh aktif.')
       return
     }
     const paket = await aksi(() => ids.map((id) => ({ id, p: buatPaket(db, id, kunci) })))
@@ -60,19 +67,36 @@ export function HalamanPaket() {
 
   return (
     <>
-      <KepalaHalaman judul="Kirim Paket" keterangan="Paket membawa data master, kegiatan, koreksi, token & pencabutan terbaru ke HP pengurus/mubaligh." />
+      <KepalaHalaman
+        judul="Kirim Paket"
+        keterangan={
+          daerah
+            ? 'Paket membawa data master, kegiatan, koreksi, target, jadwal setor, token & pencabutan terbaru ke EXE desa dan HP pengurus/mubaligh.'
+            : 'Paket membawa data desa dari daerah, token & pencabutan terbaru ke HP pengurus/mubaligh dan EXE kelompok di desa ini.'
+        }
+      />
       <Kartu judul="Paket satu wilayah">
         <div className="filter">
-          <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="— pilih wilayah —" />
+          <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="— pilih wilayah —" akar={daerah ? null : wilayahId} />
           <div className="aksi-filter">
             <Tombol onClick={satu} disabled={!wilayah}>
               Buat & simpan paket
             </Tombol>
-            <Tombol varian="kedua" onClick={semua}>
+            <Tombol varian="kedua" onClick={() => semua('kelompok')}>
               Paket semua kelompok
             </Tombol>
+            {daerah ? (
+              <Tombol varian="kedua" onClick={() => semua('desa')}>
+                Paket semua desa (EXE desa)
+              </Tombol>
+            ) : null}
           </div>
         </div>
+        {!daerah ? (
+          <p className="keterangan">
+            Berkas materi (PPG_MATERI_….ppg) dari daerah diteruskan <b>apa adanya</b> ke grup WA kelompok/HP — tidak perlu dibuat ulang di desa.
+          </p>
+        ) : null}
       </Kartu>
       {dibuat ? (
         <Kartu judul={`Paket tersimpan (${dibuat.lokasi})`}>

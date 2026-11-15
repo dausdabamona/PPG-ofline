@@ -1,10 +1,22 @@
-// Layar 5: Pengajian — jadwal rutin per wilayah (tambah / ubah / hapus).
+// Layar 5: Pengajian — jadwal rutin per wilayah (tambah / ubah / hapus). v3: tiap pengajian bisa menjadi kelas untuk
+// kategori generus tertentu (absen pertemuan hanya menampilkan generus kategori itu).
 import { useState } from 'react'
-import { daftarPengajian, daftarWilayah, hapusPengajian, tambahPengajian, turunanWilayah, ubahPengajian, type Pengajian } from '@ppg/core'
+import {
+  KATEGORI_GENERUS,
+  daftarPengajian,
+  daftarWilayah,
+  hapusPengajian,
+  kategoriKelas,
+  tambahPengajian,
+  turunanWilayah,
+  ubahPengajian,
+  type KategoriGenerus,
+  type Pengajian,
+} from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { Isian, KeadaanData, Kartu, KepalaHalaman, Konfirmasi, Modal, Pilihan, Tombol } from '../komponen/ui'
 import { PilihWilayah } from '../komponen/wilayah'
-import { NAMA_HARI } from '../utils/label'
+import { LABEL_KATEGORI, NAMA_HARI } from '../utils/label'
 
 const OPSI_HARI = NAMA_HARI.map((h, i) => ({ nilai: String(i), teks: h }))
 
@@ -38,6 +50,7 @@ export function HalamanPengajian() {
                   <th>Hari</th>
                   <th>Jam</th>
                   <th>Tempat</th>
+                  <th>Kelas (kategori)</th>
                   <th>Wilayah</th>
                   <th aria-label="Aksi" />
                 </tr>
@@ -50,6 +63,7 @@ export function HalamanPengajian() {
                     <td>{x.hari === null ? '—' : NAMA_HARI[x.hari]}</td>
                     <td>{x.jam ?? '—'}</td>
                     <td>{x.tempat ?? '—'}</td>
+                    <td>{kategoriKelas(x)?.map((k) => LABEL_KATEGORI[k] ?? k).join(', ') ?? 'Semua'}</td>
                     <td>{x.wilayah_nama}</td>
                     <td className="sel-aksi">
                       <Tombol kecil varian="tipis" onClick={() => setForm({ p: x })}>
@@ -93,6 +107,7 @@ function FormPengajian(p: { p: Pengajian | null; wilayahAwal: string; tutup: () 
   const [hari, setHari] = useState(x?.hari === null || x?.hari === undefined ? '0' : String(x.hari))
   const [jam, setJam] = useState(x?.jam ?? '16:00')
   const [tempat, setTempat] = useState(x?.tempat ?? '')
+  const [kategori, setKategori] = useState<KategoriGenerus[]>((kategoriKelas(x) ?? []) as KategoriGenerus[])
   return (
     <Modal
       judul={x ? 'Ubah pengajian' : 'Tambah pengajian'}
@@ -104,7 +119,7 @@ function FormPengajian(p: { p: Pengajian | null; wilayahAwal: string; tutup: () 
           </Tombol>
           <Tombol
             onClick={async () => {
-              const d = { nama, jenis: jenis || null, hari: Number(hari), jam: jam || null, tempat: tempat || null }
+              const d = { nama, jenis: jenis || null, hari: Number(hari), jam: jam || null, tempat: tempat || null, kategoriGenerus: kategori.length ? kategori : null }
               const h = await aksi(() => (x ? ubahPengajian(db, x.id, d) : tambahPengajian(db, { wilayahId: wilayah, ...d })), 'Jadwal pengajian disimpan.')
               if (h) p.tutup()
             }}
@@ -121,6 +136,22 @@ function FormPengajian(p: { p: Pengajian | null; wilayahAwal: string; tutup: () 
         <Pilihan label="Hari" nilai={hari} ubah={setHari} pilihan={OPSI_HARI} />
         <Isian label="Jam" type="time" nilai={jam} ubah={setJam} />
         <Isian label="Tempat" nilai={tempat} ubah={setTempat} />
+        <fieldset className="kolom kolom-lebar">
+          <legend>Kelas — kategori generus</legend>
+          <div className="baris-centang">
+            {KATEGORI_GENERUS.map((k) => (
+              <label key={k} className="centang">
+                <input
+                  type="checkbox"
+                  checked={kategori.includes(k)}
+                  onChange={(e) => setKategori((l) => (e.target.checked ? [...l, k] : l.filter((y) => y !== k)))}
+                />
+                {LABEL_KATEGORI[k]}
+              </label>
+            ))}
+          </div>
+          <small className="bantuan">Kosongkan bila pengajian untuk semua generus. Absen pertemuan hanya menampilkan generus kategori yang dicentang.</small>
+        </fieldset>
       </div>
     </Modal>
   )

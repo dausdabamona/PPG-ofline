@@ -4,6 +4,7 @@ import {
   KATEGORI_GENERUS,
   TIPE_MATERI,
   aturLampiranMateri,
+  buatKurikulum,
   buatMateri,
   daftarBidang,
   daftarKategoriMateri,
@@ -16,14 +17,14 @@ import {
   type MateriLengkap,
   type TipeMateri,
 } from '@ppg/core'
-import { useApp, useData } from '../konteks'
+import { kunciDaerah, useApp, useData } from '../konteks'
 import { AreaTeks, Isian, KeadaanData, Kartu, KepalaHalaman, Konfirmasi, Lencana, Modal, Pilihan, Tombol } from '../komponen/ui'
 import { LABEL_KATEGORI, LABEL_TIPE_MATERI, label } from '../utils/label'
 
 const OPSI_TIPE = TIPE_MATERI.map((t) => ({ nilai: t, teks: LABEL_TIPE_MATERI[t] ?? t }))
 
 export function HalamanMateri() {
-  const { db, kunci, aksi, platform, toast } = useApp()
+  const { db, kunci, peran, aksi, platform, toast } = useApp()
   const bidang = useData(() => daftarBidang(db), [db])
   const [bidangId, setBidangId] = useState('')
   const [kategoriId, setKategoriId] = useState('')
@@ -49,18 +50,29 @@ export function HalamanMateri() {
   }
 
   const buatBerkas = async () => {
-    const berkas = await aksi(() => buatMateri(db, kunci))
+    if (peran === 'kurikulum') {
+      const b = await aksi(() => buatKurikulum(db))
+      if (!b) return
+      const lok = await aksi(() => platform.simpanBerkas(b.nama, b.bytes))
+      if (lok) toast('sukses', `Berkas ${b.nama} (${b.jumlah} data) disimpan. Kirim ke Admin Daerah lewat WA.`)
+      return
+    }
+    const berkas = await aksi(() => buatMateri(db, kunciDaerah(kunci)))
     if (!berkas) return
     const path = await aksi(() => platform.simpanBerkas(berkas.nama, berkas.bytes))
-    if (path) toast('sukses', `Berkas materi v${berkas.versi} disimpan: ${berkas.nama}. Kirim ke grup WA.`)
+    if (path) toast('sukses', `Berkas materi v${berkas.versi} disimpan: ${berkas.nama}. Kirim ke grup WA (desa meneruskannya apa adanya).`)
   }
 
   return (
     <>
       <KepalaHalaman
         judul="Materi"
-        keterangan="Kurikulum baku yang tampil di HP generus (teks + PDF)."
-        aksi={<Tombol onClick={buatBerkas}>Buat Berkas Materi</Tombol>}
+        keterangan={
+          peran === 'kurikulum'
+            ? 'Sunting bidang, kategori, dan materi (teks + PDF). Kirim hasilnya ke daerah dengan berkas Kurikulum.'
+            : 'Kurikulum baku yang tampil di HP generus (teks + PDF). Berkas Materi juga membawa target capaian & periode aktif.'
+        }
+        aksi={<Tombol onClick={buatBerkas}>{peran === 'kurikulum' ? 'Buat berkas Kurikulum' : 'Buat Berkas Materi'}</Tombol>}
       />
       <Kartu>
         <KeadaanData hasil={bidang} kosong={(d) => d.length === 0} teksKosong="Belum ada bidang materi.">

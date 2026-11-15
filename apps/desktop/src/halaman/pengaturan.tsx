@@ -1,24 +1,32 @@
-// Layar 13: Pengaturan — ganti sandi, ekspor/impor cadangan kunci, cadangan/pulihkan database.
+// Layar 13: Pengaturan — ganti sandi, ekspor/impor cadangan kunci (daerah), cadangan/pulihkan database.
+// v3: EXE desa/kelompok/kurikulum memakai kata sandi aplikasi lokal (gantiSandiExe, bukaKunciExe).
 import { useEffect, useState } from 'react'
 import {
   adalahAdmin,
+  adalahExe,
+  adalahKunciExe,
   ambilMeta,
   bukaDb,
   bukaKunciAdmin,
+  bukaKunciExe,
   eksporCadanganKunci,
   gantiSandiAdmin,
+  gantiSandiExe,
   imporCadanganKunci,
+  peranInstalasi,
   simpanDb,
   tanggalRingkas,
   type Db,
-  type KunciAdmin,
+  type KunciPemegang,
 } from '@ppg/core'
-import { useApp } from '../konteks'
+import { kunciDaerah, useApp } from '../konteks'
+import { judulPeran } from '../menu'
 import { Isian, Kartu, KepalaHalaman, Konfirmasi, Tombol } from '../komponen/ui'
 import type { BerkasDibuka } from '../platform'
 
 export function HalamanPengaturan() {
-  const { kunci, platform } = useApp()
+  const { kunci, peran, wilayahNama, platform } = useApp()
+  const exe = adalahKunciExe(kunci)
   const [folder, setFolder] = useState('')
   useEffect(() => {
     platform.folderData().then(setFolder, () => setFolder('—'))
@@ -26,10 +34,23 @@ export function HalamanPengaturan() {
   return (
     <>
       <KepalaHalaman judul="Pengaturan" />
-      <Kartu judul="Organisasi">
+      <Kartu judul={exe ? 'Instalasi EXE' : 'Organisasi'}>
         <dl className="daftar-info">
-          <dt>Nama</dt>
-          <dd>{kunci.namaOrganisasi}</dd>
+          <dt>Peran</dt>
+          <dd>{judulPeran(peran, wilayahNama)}</dd>
+          {exe ? (
+            <>
+              <dt>ID perangkat EXE</dt>
+              <dd>
+                <code>{kunci.perangkatId}</code>
+              </dd>
+            </>
+          ) : (
+            <>
+              <dt>Nama</dt>
+              <dd>{kunci.namaOrganisasi}</dd>
+            </>
+          )}
           <dt>ID organisasi</dt>
           <dd>
             <code>{kunci.orgId}</code>
@@ -43,19 +64,20 @@ export function HalamanPengaturan() {
         </dl>
       </Kartu>
       <GantiSandi />
-      <CadanganKunci />
+      {exe ? null : <CadanganKunci />}
       <CadanganDatabase />
     </>
   )
 }
 
 function GantiSandi() {
-  const { db, aksi } = useApp()
+  const { db, kunci, aksi } = useApp()
+  const exe = adalahKunciExe(kunci)
   const [lama, setLama] = useState('')
   const [baru, setBaru] = useState('')
   const [ulang, setUlang] = useState('')
   return (
-    <Kartu judul="Ganti kata sandi admin">
+    <Kartu judul={exe ? 'Ganti kata sandi aplikasi' : 'Ganti kata sandi admin'}>
       <div className="formulir tiga-kolom">
         <Isian label="Kata sandi lama" type="password" nilai={lama} ubah={setLama} />
         <Isian label="Kata sandi baru" type="password" nilai={baru} ubah={setBaru} bantuan="Minimal 8 karakter." />
@@ -66,9 +88,10 @@ function GantiSandi() {
           onClick={async () => {
             const ok = await aksi(async () => {
               if (baru !== ulang) throw new Error('Ulangi kata sandi baru tidak sama.')
-              await gantiSandiAdmin(db, lama, baru)
+              if (exe) await gantiSandiExe(db, lama, baru)
+              else await gantiSandiAdmin(db, lama, baru)
               return true
-            }, 'Kata sandi admin diganti.')
+            }, exe ? 'Kata sandi aplikasi diganti.' : 'Kata sandi admin diganti.')
             if (ok) {
               setLama('')
               setBaru('')
@@ -106,7 +129,7 @@ function CadanganKunci() {
           onClick={async () => {
             const c = await aksi(async () => {
               if (sandi !== ulang) throw new Error('Ulangi kata sandi cadangan tidak sama.')
-              return eksporCadanganKunci(db, kunci, sandi)
+              return eksporCadanganKunci(db, kunciDaerah(kunci), sandi)
             })
             if (!c) return
             const p = await aksi(() => platform.simpanBerkas(c.nama, c.bytes))
@@ -163,10 +186,11 @@ function CadanganKunci() {
 }
 
 function CadanganDatabase() {
-  const { db, kunci, aksi, platform, toast, gantiDb, simpanSekarang } = useApp()
+  const { db, kunci, peran, aksi, platform, toast, gantiDb, simpanSekarang } = useApp()
+  const exe = adalahKunciExe(kunci)
   const [berkas, setBerkas] = useState<BerkasDibuka | null>(null)
   const [sandi, setSandi] = useState('')
-  const [siap, setSiap] = useState<{ db: Db; kunci: KunciAdmin } | null>(null)
+  const [siap, setSiap] = useState<{ db: Db; kunci: KunciPemegang } | null>(null)
   return (
     <Kartu judul="Cadangan database">
       <p className="keterangan">
@@ -176,7 +200,8 @@ function CadanganDatabase() {
         <Tombol
           onClick={async () => {
             await simpanSekarang()
-            const p = await aksi(() => platform.simpanBerkas(`PPG_ADMIN_DB_${tanggalRingkas()}.db`, simpanDb(db)))
+            const nama = exe ? `PPG_EXE_${peran.toUpperCase()}_DB_${tanggalRingkas()}.db` : `PPG_ADMIN_DB_${tanggalRingkas()}.db`
+            const p = await aksi(() => platform.simpanBerkas(nama, simpanDb(db)))
             if (p) toast('sukses', `Cadangan database disimpan: ${p}`)
           }}
         >
@@ -185,7 +210,9 @@ function CadanganDatabase() {
       </div>
       <h3>Pulihkan database</h3>
       <p className="keterangan">
-        Database sekarang akan diganti. Sesudahnya kirim paket ke semua wilayah dan minta setiap HP pengurus/mubaligh menekan “Setor ulang semua data”.
+        {exe
+          ? 'Database sekarang akan diganti dengan cadangan EXE ini (peran yang sama). Sesudahnya buka paket terbaru dari tingkat atas dan minta HP di bawahnya menekan “Kirim ulang semua data”.'
+          : 'Database sekarang akan diganti. Sesudahnya kirim paket ke semua wilayah dan minta setiap HP pengurus/mubaligh menekan “Setor ulang semua data”.'}
       </p>
       <div className="formulir tiga-kolom">
         <div className="kolom">
@@ -200,7 +227,7 @@ function CadanganDatabase() {
             {berkas ? berkas.nama : 'Pilih berkas'}
           </Tombol>
         </div>
-        <Isian label="Kata sandi admin pada cadangan itu" type="password" nilai={sandi} ubah={setSandi} />
+        <Isian label={exe ? 'Kata sandi aplikasi pada cadangan itu' : 'Kata sandi admin pada cadangan itu'} type="password" nilai={sandi} ubah={setSandi} />
       </div>
       <div className="aksi">
         <Tombol
@@ -209,9 +236,14 @@ function CadanganDatabase() {
           onClick={async () => {
             const h = await aksi(async () => {
               const baru = await bukaDb(berkas!.bytes)
+              if (exe) {
+                if (!adalahExe(baru) || peranInstalasi(baru) !== peran) throw new Error('Berkas ini bukan cadangan database EXE dengan peran yang sama.')
+                if (ambilMeta(baru, 'org_id') !== kunci.orgId) throw new Error('Cadangan ini milik organisasi lain.')
+                return { db: baru, kunci: await bukaKunciExe(baru, sandi) as KunciPemegang }
+              }
               if (!adalahAdmin(baru)) throw new Error('Berkas ini bukan database admin.')
               if (ambilMeta(baru, 'org_id') !== kunci.orgId) throw new Error('Cadangan ini milik organisasi lain.')
-              return { db: baru, kunci: await bukaKunciAdmin(baru, sandi) }
+              return { db: baru, kunci: (await bukaKunciAdmin(baru, sandi)) as KunciPemegang }
             })
             if (h) setSiap(h)
           }}

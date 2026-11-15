@@ -360,6 +360,16 @@ Halaman (sidebar kiri, tema teal–ivory):
 
 Build: `electron-builder` target Windows `nsis` + `portable`, nama produk "PPG Sorong Admin".
 
+**v3 (Fase 6):** EXE yang sama dipakai semua tingkat (§14). Pengaturan awal: *Buat organisasi baru (Admin Daerah)* · *Aktifkan dengan kode
+(Desa / Kelompok / Kurikulum)* · *Pulihkan dari cadangan*. Menu per peran (kepala menampilkan "Admin Desa · Klasaman" dst.):
+
+| Peran | Menu |
+|---|---|
+| Daerah | Beranda (status setor tiap desa) · Wilayah · Generus & Jamaah · Pengajian (kelas) · Materi · Target Capaian · Perangkat & Token (+ EXE desa/kelompok/kurikulum) · Jadwal Setor · Impor Setoran (+ KURIKULUM) · Usulan · Koreksi · Kirim Paket (+ semua desa) · Rekap & Laporan (+ capaian) · Pengaturan |
+| Desa | Beranda (status setor tiap kelompok + Setor ke Daerah) · Setor ke Daerah · Impor Setoran · Buka Paket · Kirim Paket · Perangkat & Token · Generus & Data (lihat + usulan) · Rekap & Laporan · Pengaturan |
+| Kelompok | Beranda (status setor tiap HP) · Absen Pertemuan · Impor Setoran · Setor ke Desa · Buka Paket · Rekap & Laporan · Pengaturan |
+| Kurikulum | Beranda (Buat berkas Kurikulum) · Materi · Target Capaian · Buka Berkas Materi · Pengaturan |
+
 ---
 
 ## 12. Aplikasi Mobile (APK) — `apps/mobile`
@@ -446,3 +456,9 @@ Hasil uji Pak Fir: QR pendaftaran tidak berfungsi (kode teks berfungsi); menu mu
 | V-T17 | Daerah membuat `penugasan_mubaligh` untuk token mubaligh terbitan desa ketika pertama kali dilaporkan lewat SETOR gabungan | Serah terima & rekap mubaligh di daerah tetap berjalan |
 | V-T18 | HP menolak token EXE (`TOKEN_UNTUK_EXE`), EXE menolak token HP (`TOKEN_UNTUK_HP`); `aktifkanExe` menolak peran/wilayah berbeda dari aktivasi pertama (`PERAN_BERBEDA`) | Satu APK & satu EXE, peran ditentukan kode aktivasi (V1) |
 | V-T19 | Skema **v3**: tabel master `jadwal_setor`, `target_capaian`, `pengaturan`; kegiatan `pertemuan`; lokal `jejak_setor`, `kunci_titipan`; kolom `perangkat.terakhir_lapor`. Migrasi otomatis v2 → v3 menandai admin lama `peran_instalasi = 'daerah'`; format token (`v: 1`) dan berkas (`versi_format: 1`) tidak berubah — token & berkas lama tetap berlaku (diuji dengan fixtur database & SETOR buatan kode v2) | Pembaruan aplikasi tanpa aktivasi ulang |
+| V-T20 | (Fase 6) **Satu EXE, menu per peran** (tabel §11 v3). Nama produk & berkas data tetap (`PPG Sorong Admin`, `userData/ppg-admin.db`) untuk semua peran; database v2 langsung terbuka sebagai daerah. EXE kelompok tidak punya Kirim Paket (HP kelompok menerima paket dari desa); EXE desa tidak mengubah master — Generus & Data hanya lihat + usulan (`ajukanUsulan`, ikut SETOR gabungan) | Pembaruan aplikasi tanpa pindah berkas; kendali master tetap di daerah (V3) |
+| V-T21 | (Fase 6) "Aktifkan dengan kode" dua langkah: (1) nama laptop + kata sandi → `inisialisasiExe` (DB langsung disimpan), (2) layar aktivasi menampilkan Kode Perangkat EXE (teks + QR + Salin + simpan .txt) dan kotak tempel token → `aktifkanExe`. EXE yang belum diaktifkan, setelah kata sandi, selalu kembali ke layar aktivasi. Kata sandi EXE bawah **tidak bisa dipulihkan** (tidak ada .ppgkey): pulihkan dari cadangan database + sandinya, atau pasang ulang & minta kode aktivasi baru | Laptop desa bisa ditutup di antara kirim kode dan terima token; kunci perangkat EXE hanya terlindung sandi lokal (V-T3) |
+| V-T22 | (Fase 6) Impor Setoran dan Buka Paket memakai jalur yang sama (`imporBanyak`, core mengarahkan menurut jenis berkas); daerah mengimpor berkas KURIKULUM di Impor Setoran. Tombol "Setor ke Desa/Daerah" = `buatSetor` (kumulatif) + "Kirim ulang semua data" (`semua: true`) | Pengguna tidak perlu tahu jenis berkas; berkas yang salah tujuan mendapat pesan core |
+| V-T23 | (Fase 6) Target Capaian disunting di layar (urut naik/turun, buang, tambah dari bidang/kategori materi yang sesuai kategori generus, salin dari periode lain) lalu disimpan sekali (`tetapkanTarget`); periode yang ditawarkan = periode aktif ±2 semester. EXE kurikulum harus membuka berkas MATERI daerah dulu (materi dasar) | Satu penyimpanan = satu daftar berurutan; salin tidak langsung menimpa |
+| V-T24 | (Fase 6) Kueri core baru **`rekapCapaian(db, {wilayahId, periode?})`**: kelas = kategori generus di satu kelompok; persen = pasangan (generus × materi target) tuntas disahkan ÷ seluruh pasangan; tingkat kelas/kelompok/desa/wilayah + per generus. Rekap EXE menampilkan & mengekspor 3 lembar Excel tambahan (Capaian per Wilayah/Kelas/Generus) | Persentase gabungan tidak bias kelas kecil; dibangun di atas `progresKelas` |
+| V-T25 | (Fase 6) QR di EXE: koreksi galat **M**, zona tenang 4 modul, 320 px (§14.2); bagian QR berseri tetap ≤ 800 karakter. Tombol kecil EXE juga ≥ 44 px | Ketentuan §14.2 dan konvensi tombol |

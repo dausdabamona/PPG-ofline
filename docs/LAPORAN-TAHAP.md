@@ -290,3 +290,78 @@ Implementasi bagian inti (`packages/core`) dari §14 rencana (keputusan V1–V5 
 - Tenggat & keterlambatan dihitung dengan jam lokal perangkat (jam HP/laptop yang salah memengaruhi status).
 - PAKET desa tetap tidak inkremental; MATERI tetap satu berkas besar (termasuk PDF).
 - Belum ada UI v3 (beranda per tingkat, pengaturan "Aktifkan dengan kode", Absen mubaligh, layar Materi yang perlu dituntaskan, QR native) — dikerjakan agen UI.
+
+---
+
+## Fase 6 — EXE v3: satu EXE untuk semua tingkat (`apps/desktop`, 2026-11-15)
+
+Mengubah `apps/desktop` menjadi satu EXE untuk daerah, desa, kelompok, dan kurikulum (§14) memakai API core v3. Aplikasi tidak memuat SQL;
+satu kueri kecil ditambahkan ke core (`rekapCapaian`, dengan test).
+
+### Yang dibuat
+- **Pengaturan awal** tiga pilihan: *Buat organisasi baru (Admin Daerah)*, *Aktifkan dengan kode (Desa / Kelompok / Kurikulum)* — nama laptop +
+  kata sandi aplikasi → layar aktivasi dengan **Kode Perangkat EXE** (teks + QR + Salin + simpan .txt) dan kotak tempel kode aktivasi —, dan
+  *Pulihkan dari cadangan* (daerah: `.ppgkey` + `.db`; EXE bawah: `.db` + kata sandi aplikasi). Masuk memakai kata sandi admin (daerah) atau
+  kata sandi aplikasi (EXE bawah); kunci aplikasi/kunci otomatis juga mengosongkan kunci EXE dari memori. **Database v2 terbuka sebagai daerah**
+  tanpa langkah tambahan (diuji dengan fixtur v2).
+- **Menu per peran** (`src/menu.ts`), kepala menampilkan peran & wilayah ("Admin Desa · Klasaman"):
+  - **Daerah**: semua menu lama + **Jadwal Setor** (kelompok→desa pekanan, desa→daerah bulanan; simpan/hapus), **Target Capaian**,
+    Perangkat & Token menerbitkan juga **EXE Desa / EXE Kelompok / EXE Kurikulum**, Beranda dengan **status setor tiap desa** (jadwal,
+    tenggat berikutnya, setor terakhir, merah "Terlambat" / hijau "Tepat waktu"), Impor Setoran juga menerima berkas **KURIKULUM**, Kirim Paket
+    + "Paket semua desa (EXE desa)", Materi membawa target.
+  - **Desa**: Beranda (status setor tiap kelompok + kartu **Setor ke Daerah** dengan tombol besar & tenggat), Setor ke Daerah, Impor Setoran
+    (HP & EXE kelompok), Buka Paket (PAKET + MATERI daerah), Kirim Paket (hanya wilayah desa; catatan meneruskan MATERI apa adanya),
+    Perangkat & Token (`terbitkanTokenBawah`: mubaligh/pengurus/EXE kelompok di desanya; cabut/bekukan hanya token yang rantainya lewat EXE ini),
+    Generus & Data (lihat + **usulan** generus baru/status/pindah), Rekap & Excel wilayah desa.
+  - **Kelompok**: Beranda (status setor tiap HP + Setor ke Desa), **Absen Pertemuan** (tanggal + kelas → buka pertemuan → materi hari ini dari
+    **saran** / daftar target → kehadiran per generus → centang **tuntas** per materi, hanya yang hadir; materi yang sudah tuntas ditandai),
+    Impor Setoran HP, Setor ke Desa, Buka Paket, Rekap kelompok.
+  - **Kurikulum**: Beranda (periode aktif, jumlah target, suntingan belum dikirim, tombol **Buat berkas Kurikulum**), Materi (sunting; tombol
+    berkas Kurikulum), **Target Capaian** (periode S1/S2 × kategori generus, tambah/urut/buang, **salin dari periode lain**, jadikan periode
+    aktif), Buka Berkas Materi.
+- **Pengajian = kelas**: formulir punya centang kategori generus; kolom "Kelas (kategori)".
+- **Rekap**: kartu **Capaian target** (wilayah, per desa, per kelompok, per kelas) + Excel 3 lembar baru (Capaian per Wilayah/Kelas/Generus).
+  Core: `rekapCapaian` (`packages/core/test/fase6.test.ts`).
+- Komponen bersama `komponen/setor.tsx` (kartu setor ke atas, tabel status setor); `PilihWilayah` mendapat `akar` (EXE desa/kelompok hanya
+  melihat wilayahnya). QR: koreksi galat M, zona tenang 4 modul, 320 px; tombol kecil kini ≥ 44 px. Tema teal–ivory, toast, status
+  memuat/kosong/galat tetap.
+
+### Hasil uji
+- `npm test`: core **21 berkas / 144 test**, desktop **6 / 15**, mobile **4 / 6** — **165 test lulus**, 0 gagal (Fase 5: 160).
+  `npm run typecheck` bersih (3 workspace); `npm run build` sukses.
+- `apps/desktop/test/exe-v3.test.tsx` (jsdom, UI sungguhan, satu platform palsu & database per laptop):
+  1. daerah (jadwal setor, kelas caberawit, token EXE desa dari Kode Perangkat yang dibuat di UI desa, paket desa, berkas materi) → EXE desa
+     masuk & aktivasi → menu desa (tanpa Wilayah/Jadwal) → buka paket+materi → terbitkan token mubaligh (opsi wilayah hanya desanya, tanpa
+     "EXE Desa") → paket kelompok → HP presensi → **impor setoran** → usulan generus baru → beranda desa (Klasaman 2 tepat waktu, Klasaman 1
+     terlambat) → **Setor ke Daerah** → daerah impor ("Setoran gabungan") → beranda daerah: **Klasaman tepat waktu, Malanu terlambat**; DB
+     daerah berisi presensi, token mubaligh, usulan, kelas.
+  2. EXE kurikulum aktivasi → buka MATERI → target caberawit (tambah 2, ubah urutan, simpan) → salin ke periode berikutnya → jadikan aktif →
+     **berkas Kurikulum** → daerah impor di Impor Setoran → Target Capaian daerah memuat urutan & periode aktif yang sama.
+  3. EXE kelompok aktivasi dengan token dari EXE desa → buka paket desa + materi → **Absen Pertemuan** (kelas caberawit: generus praremaja
+     tidak tampil; saran materi dipakai; Budi alpa → centang tuntas nonaktif; Ali tuntas) → rekap capaian 1/4 = 25 % + Excel (Ali 50 %) →
+     Setor ke Desa → EXE desa mengimpor (kemajuan Ali disahkan).
+  4. Database admin **v2** (fixtur core) → masuk → Admin Daerah dengan menu & beranda v3.
+- **Chrome headless** (`uji-peramban/uji-asap-v3.mjs`, `playwright-core` + Chrome, CSP produksi): empat konteks peramban terpisah (daerah,
+  desa, kelompok, kurikulum), kode/token lewat teks, berkas lewat unduhan → pemilih berkas: daerah (wilayah, kelas, jadwal, token EXE desa &
+  kurikulum, paket, materi) → desa (aktivasi, buka paket, token EXE kelompok, paket) → kelompok (aktivasi, buka paket, absen, setor) → desa
+  (impor, setor ke daerah) → kurikulum (materi, target, berkas) → daerah (impor setoran gabungan + kurikulum; beranda "Klasaman Tepat waktu",
+  "Malanu Terlambat"; rekap capaian + Excel) → muat ulang desa → masuk kembali sebagai desa. **0 galat konsol, 0 tombol < 44 px.**
+  Uji asap lama (`uji-asap.mjs`) tetap lulus, 0 galat konsol.
+
+### Keputusan otonom baru (V-T20–V-T25 di rencana)
+- **V-T20** satu EXE, menu per peran; nama produk/berkas data tetap; desa tanpa ubah master (lihat + usulan); kelompok tanpa Kirim Paket.
+- **V-T21** aktivasi dua langkah; EXE belum aktif kembali ke layar aktivasi; kata sandi EXE bawah tidak bisa dipulihkan tanpa cadangan DB.
+- **V-T22** Impor Setoran & Buka Paket satu jalur (`imporBanyak`); KURIKULUM diimpor di Impor Setoran daerah.
+- **V-T23** penyuntingan target lokal lalu simpan sekali; periode aktif ±2 semester; kurikulum membuka MATERI daerah dulu.
+- **V-T24** `rekapCapaian` (persen = pasangan generus × materi target).
+- **V-T25** QR EXE ECC M + zona tenang; tombol kecil ≥ 44 px.
+
+### Sisa masalah (jujur)
+- **Electron belum dijalankan** di lingkungan ini (seperti Fase 2): yang terverifikasi tsc, vite build, jsdom, dan Chrome headless dengan
+  CSP produksi. EXE pertama untuk semua peran dibangun CI.
+- EXE desa/kelompok belum punya menu **Kirim Balasan** ke HP generus/wali (core mendukung, V-T9) — pencabutan mubaligh sampai ke HP generus
+  lewat Balasan mubaligh baru seperti v2.
+- Desa meneruskan berkas MATERI daerah secara manual dari WA (EXE tidak menyimpan salinan berkas MATERI untuk diteruskan).
+- Nama EXE di kepala belum ada sebelum paket pertama dibuka (wilayah belum dikenal) — tampil "Admin Desa" saja.
+- Panduan pengguna (`docs/PANDUAN-PENGGUNA.md`) belum diperbarui untuk alur v3 (aktivasi EXE desa/kelompok/kurikulum, jadwal setor, absen).
+- APK (QR native, layar mubaligh sederhana, "Materi yang perlu dituntaskan") belum dikerjakan di fase ini.
