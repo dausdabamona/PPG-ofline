@@ -292,11 +292,39 @@ export function persenKeaktifan(jumlah: number, target: number): number {
   return Math.round((Math.min(Math.max(0, jumlah), target) / target) * 10000) / 100
 }
 
-/** Target keaktifan per bulan untuk jenjang (materi evaluasi `keaktifan`; bawaan 20, Pra Nikah 16). */
+/** Nilai sementara target keaktifan (juknis) bila materi evaluasi belum ada di perangkat ini (J-C1). */
+export function targetKeaktifanSementara(jenjang: string): number {
+  return jenjang === 'pranikah' ? 16 : 20
+}
+
+/**
+ * Target keaktifan per bulan untuk jenjang — butir Kurikulum K16 (§19), disimpan sebagai target materi evaluasi
+ * `keaktifan`. Satu-satunya pembaca target: semua hitungan (bulanan, semester, raport, rekap, kejar target, reward,
+ * cetakan lembar) memakai fungsi ini.
+ */
 export function targetKeaktifan(db: Db, jenjang: string): number {
   const j = jenjang === 'caberawit' ? 'caberawit_a' : jenjang
   const t = db.nilai<number | null>(`SELECT target FROM materi_evaluasi WHERE id = ? AND dihapus = 0`, [idMateriEvaluasi(j, 'keaktifan')])
-  return t && t > 0 ? t : j === 'pranikah' ? 16 : 20
+  return t && t > 0 ? t : targetKeaktifanSementara(j)
+}
+
+/** Teks target keaktifan untuk layar, mis. "20 kali/bulan (Pra Nikah 16)" atau per kelompok jenjang bila berbeda. */
+export function ringkasTargetKeaktifan(db: Db): string {
+  const t = KATEGORI_GENERUS.map((j) => targetKeaktifan(db, j))
+  const pn = t[t.length - 1]!
+  const lain = t.slice(0, -1)
+  if (lain.every((x) => x === lain[0])) return lain[0] === pn ? `${pn} kali/bulan` : `${lain[0]} kali/bulan (Pra Nikah ${pn})`
+  // kelompokkan jenjang berurutan bernilai sama
+  const nama = ['PAUD', 'Caberawit A', 'Caberawit B', 'Caberawit C', 'Pra Remaja', 'Remaja', 'Pra Nikah']
+  const bagian: string[] = []
+  let i = 0
+  while (i < t.length) {
+    let k = i
+    while (k + 1 < t.length && t[k + 1] === t[i]) k++
+    bagian.push(`${k > i ? `${nama[i]}–${nama[k]}` : nama[i]} ${t[i]}`)
+    i = k + 1
+  }
+  return `${bagian.join(' · ')} kali/bulan`
 }
 
 export interface HariKeaktifan {

@@ -294,10 +294,10 @@ describe('Perlu Ditetapkan Kurikulum (§18.2)', () => {
     return db
   }
 
-  it('15 butir dengan nilai sementara; daerah tidak menetapkan; EXE Kurikulum menetapkan → KURIKULUM → daerah → MATERI', async () => {
+  it('16 butir dengan nilai sementara; daerah tidak menetapkan; EXE Kurikulum menetapkan → KURIKULUM → daerah → MATERI', async () => {
     const w = await dunia()
     const awal = daftarButirKurikulum(w.admin.db)
-    expect(awal).toHaveLength(15)
+    expect(awal).toHaveLength(16)
     expect(awal.filter((b) => b.status === 'belum').map((b) => b.kode)).toEqual(['K11', 'K12'])
     expect(awal.find((b) => b.kode === 'K01')!.ringkas).toBe('Semester 1: November · Semester 2: Mei')
     expect(() => tetapkanButirKurikulum(w.admin.db, 'K01')).toThrow(/Bidang Kurikulum/)

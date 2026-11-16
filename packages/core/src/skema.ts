@@ -32,7 +32,8 @@ export const TABEL_SINKRON = {
   generus: {
     jenis: 'master',
     // v4 (§16): kategori_saran = 1 bila jenjang hasil saran umur (perlu dicek)
-    kolom: ['kelompok_id', 'nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'status', 'wali_nama', 'wali_no_hp', 'kategori_saran'],
+    // v6 (§19): sekolah, kelas_sekolah, iqro ('1'–'6' jilid Iqro', 'alquran')
+    kolom: ['kelompok_id', 'nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'status', 'wali_nama', 'wali_no_hp', 'kategori_saran', 'sekolah', 'kelas_sekolah', 'iqro'],
   },
   riwayat_keanggotaan: { jenis: 'master', kolom: ['generus_id', 'kelompok_id', 'mulai', 'selesai'] },
   riwayat_status: { jenis: 'master', kolom: ['generus_id', 'status', 'mulai', 'selesai', 'keterangan'] },
@@ -149,7 +150,7 @@ function tipeKolom(k: string): string {
 const KOLOM_AKHIR: Record<string, readonly string[]> = {
   pengajian: ['kategori_generus'],
   presensi: ['pertemuan_id'],
-  generus: ['kategori_saran'],
+  generus: ['kategori_saran', 'sekolah', 'kelas_sekolah', 'iqro'],
 }
 
 function ddlTabelSinkron(nama: string, info: InfoTabel): string {
@@ -238,7 +239,7 @@ CREATE TABLE IF NOT EXISTS kunci_bidang (
 `
 
 /** Versi skema saat ini. */
-export const VERSI_SKEMA = 5
+export const VERSI_SKEMA = 6
 
 function adaKolom(db: Db, tabel: string, kolom: string): boolean {
   return db.kueri<{ name: string }>(`PRAGMA table_info(${tabel})`).some((k) => k.name === kolom)
@@ -295,6 +296,10 @@ const MIGRASI: ((db: Db) => void)[] = [
     tambahTabelDanKolom(db)
     db.jalankanSkrip(DDL_LOKAL_V5)
     db.jalankanSkrip(`CREATE INDEX IF NOT EXISTS idx_catatan_bidang ON catatan_bidang(bidang, jenis, wilayah_id);`)
+  },
+  // v6 (§19): data generus sekolah, kelas sekolah, jilid Iqro' (kolom di akhir tabel)
+  (db) => {
+    tambahTabelDanKolom(db)
   },
 ]
 

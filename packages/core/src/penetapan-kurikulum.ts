@@ -76,7 +76,9 @@ function labelMateri(m: MateriEvaluasi): string {
 function daftarAda(db: Db, pasangan: readonly (readonly [string, string])[]): MateriEvaluasi[] {
   return pasangan.map(([j, k]) => materi(db, j, k)).filter((m): m is MateriEvaluasi => !!m)
 }
-const semuaJenjang = (kode: string) => KATEGORI_GENERUS.map((j) => [j, kode] as const)
+function semuaJenjang(kode: string) {
+  return KATEGORI_GENERUS.map((j) => [j, kode] as const)
+}
 
 /** Butir bentuk "angka per materi" (target). */
 function butirTarget(kode: string, judul: string, sumber: string, pasangan: readonly (readonly [string, string])[]): DefButir {
@@ -346,6 +348,19 @@ export const BUTIR_KURIKULUM: readonly DefButir[] = [
     },
     alasan: (_db, v) => (v === 'teks' || v === 'butir' || v === 'subjektif' ? null : 'Pilihan tidak dikenal.'),
     ringkas: (_db, v) => (v === 'butir' ? 'Semua per butir' : v === 'subjektif' ? 'Semua nilai penguji' : v === 'teks' ? 'Sesuai teks juknis' : 'Campuran (disunting manual)'),
+  },
+  {
+    // §19 (Fase 13, J-C1): target keaktifan bulanan per jenjang — dibaca semua hitungan lewat `targetKeaktifan`
+    ...butirTarget(
+      'K16',
+      'Target keaktifan bulanan per jenjang',
+      'Juknis menulis 20 kali/bulan (Pra Nikah 16), tetapi lembar cetakan daerah berkolom 24 (Pra Nikah 16) dan semua kelompok menghitung % = jumlah ÷ 24; sementara 20 (Pra Nikah 16) sampai Kurikulum menetapkan.',
+      semuaJenjang('keaktifan'),
+    ),
+    alasan: (_db, v) =>
+      objek(v) && Object.values(v).every((x) => typeof x === 'number' && Number.isInteger(x) && x >= 1 && x <= 31)
+        ? null
+        : 'Target keaktifan harus bilangan bulat 1–31 kali/bulan (satu hari dihitung satu kali) dan tidak boleh kosong.',
   },
 ]
 

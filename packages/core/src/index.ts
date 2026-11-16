@@ -103,3 +103,7 @@ export * from './bidang'
 export * from './kebijakan'
 export * from './musyawarah'
 export * from './penetapan-kurikulum'
+// §19 — cetakan laporan bulanan format lembar
+export * from './lembar-laporan'
+export * from './pdf-sederhana'
+export * from './raport-cetak'

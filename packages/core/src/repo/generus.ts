@@ -65,6 +65,51 @@ export interface Generus extends RekamanDasar {
   kategori_saran?: number | null
   wali_nama: string | null
   wali_no_hp: string | null
+  /** v6 (§19): nama sekolah, kelas sekolah, jilid Iqro' ('1'–'6') atau 'alquran'. Kosong = belum diketahui. */
+  sekolah?: string | null
+  kelas_sekolah?: string | null
+  iqro?: string | null
+}
+
+/** Nilai jilid Iqro' yang sah (§19, J-C12). */
+export const JILID_IQRO = ['1', '2', '3', '4', '5', '6', 'alquran'] as const
+export type JilidIqro = (typeof JILID_IQRO)[number]
+/** Panjang maksimum teks sekolah / kelas sekolah. */
+export const PANJANG_SEKOLAH = 100
+
+/** Teks lapangan ("Iqro 3", "IQRO' 3", "3", "Al-Qur'an", "AQ") → kode jilid; null = kosong; undefined = tidak dikenal. */
+export function normalIqro(teks: string | null | undefined): JilidIqro | null | undefined {
+  const t = String(teks ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (!t) return null
+  if (['alquran', 'quran', 'aq', 'alquraan', 'qur', 'quraan'].includes(t)) return 'alquran'
+  const m = /^(?:iqro|iqra|jilid)?([1-6])$/.exec(t)
+  return m ? (m[1] as JilidIqro) : undefined
+}
+
+/** Label jilid untuk tampilan & cetakan. */
+export function labelIqro(v: string | null | undefined): string {
+  if (!v) return ''
+  return v === 'alquran' ? "Al-Qur'an" : `Iqro' ${v}`
+}
+
+/**
+ * Saran jenjang dari jilid Iqro' (J-C13): Caberawit B yang sudah Al-Qur'an → C; Caberawit C yang masih Iqro' → B.
+ * Hanya saran — jenjang tetap ditetapkan admin/mubaligh.
+ */
+export function saranJenjangIqro(g: Pick<Generus, 'kategori' | 'iqro'>): KategoriGenerus | null {
+  if (!g.iqro) return null
+  if (g.kategori === 'caberawit_b' && g.iqro === 'alquran') return 'caberawit_c'
+  if (g.kategori === 'caberawit_c' && g.iqro !== 'alquran') return 'caberawit_b'
+  return null
+}
+
+function periksaDataSekolah(d: { sekolah?: unknown; kelas_sekolah?: unknown; iqro?: unknown }): void {
+  if (d.iqro !== undefined && d.iqro !== null && d.iqro !== '' && !(JILID_IQRO as readonly unknown[]).includes(d.iqro)) {
+    throw new GalatPpg('IQRO_TIDAK_SAH', "Jilid Iqro' harus 1–6 atau Al-Qur'an.")
+  }
+  for (const [k, v] of [['Sekolah', d.sekolah], ['Kelas sekolah', d.kelas_sekolah]] as const) {
+    if (v !== undefined && v !== null && (typeof v !== 'string' || v.length > PANJANG_SEKOLAH)) throw new GalatPpg('TEKS_TERLALU_PANJANG', `${k} maksimal ${PANJANG_SEKOLAH} huruf.`)
+  }
 }
 
 export interface Jamaah extends RekamanDasar {
@@ -84,6 +129,10 @@ export interface DataGenerusBaru {
   kategori?: KategoriGenerus | null
   waliNama?: string | null
   waliNoHp?: string | null
+  /** v6 (§19) */
+  sekolah?: string | null
+  kelasSekolah?: string | null
+  iqro?: string | null
   /** Tanggal mulai keanggotaan & status aktif (bawaan: hari ini). */
   mulai?: string
   /** Id tetap (Fase 9: id usulan Super Admin HP); bawaan ULID baru. */
@@ -127,6 +176,7 @@ function validasiGenerusRinci(db: Db, d: DataGenerusBaru): { kategori: KategoriG
     saran = true
   }
   if (!KATEGORI_SAH.includes(kategori)) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori ${kategori} tidak dikenal.`)
+  periksaDataSekolah({ sekolah: d.sekolah?.trim() || null, kelas_sekolah: d.kelasSekolah?.trim() || null, iqro: d.iqro || null })
   return { kategori, saran }
 }
 
@@ -146,6 +196,9 @@ export function tambahGenerus(db: Db, d: DataGenerusBaru): Generus {
       wali_nama: d.waliNama?.trim() || null,
       wali_no_hp: d.waliNoHp?.trim() || null,
       kategori_saran: saran ? 1 : null,
+      sekolah: d.sekolah?.trim() || null,
+      kelas_sekolah: d.kelasSekolah?.trim() || null,
+      iqro: d.iqro || null,
     }, d.id ? { id: d.id } : {})
     sisipkanRekaman(db, 'riwayat_keanggotaan', { generus_id: g.id, kelompok_id: d.kelompokId, mulai, selesai: null })
     sisipkanRekaman(db, 'riwayat_status', { generus_id: g.id, status: 'aktif', mulai, selesai: null, keterangan: null })
@@ -153,7 +206,7 @@ export function tambahGenerus(db: Db, d: DataGenerusBaru): Generus {
   })
 }
 
-const KOLOM_UBAH_GENERUS = ['nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'wali_nama', 'wali_no_hp'] as const
+const KOLOM_UBAH_GENERUS = ['nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'wali_nama', 'wali_no_hp', 'sekolah', 'kelas_sekolah', 'iqro'] as const
 
 /** Ubah data diri generus (admin). Pindah kelompok & status lewat siklus.ts. */
 export function ubahGenerus(db: Db, id: string, perubahan: Partial<Record<(typeof KOLOM_UBAH_GENERUS)[number], string | null>>): Generus {
@@ -165,8 +218,9 @@ export function ubahGenerus(db: Db, id: string, perubahan: Partial<Record<(typeo
     if (!(KOLOM_UBAH_GENERUS as readonly string[]).includes(k)) {
       throw new GalatPpg('KOLOM_TIDAK_SAH', `Kolom ${k} tidak bisa diubah di sini (pakai pindah kelompok / ubah status).`)
     }
-    p[k] = v
+    p[k] = (k === 'sekolah' || k === 'kelas_sekolah' || k === 'iqro') && typeof v === 'string' ? v.trim() || null : v
   }
+  periksaDataSekolah(p)
   if (p.kategori !== undefined && !KATEGORI_SAH.includes(p.kategori as KategoriGenerus)) {
     throw new GalatPpg('KATEGORI_TIDAK_SAH', 'Kategori tidak dikenal.')
   }

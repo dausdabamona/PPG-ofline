@@ -25,7 +25,7 @@ import { seedMateriEvaluasi } from './skema'
 import { alasanJabatanTidakSah, BIDANG_RAHASIA, bidangRahasiaDitulis, bidangRahasiaUntuk, type BidangRahasia, type Jabatan } from './kepengurusan'
 import { pembacaRahasiaDb } from './kebijakan'
 import { setujuiPenetapanKurikulum } from './penetapan-kurikulum'
-import { tambahGenerus, tambahJamaah, ubahGenerus, normalKategori, type KategoriGenerus, type StatusGenerus } from './repo/generus'
+import { tambahGenerus, tambahJamaah, ubahGenerus, normalKategori, normalIqro, type KategoriGenerus, type StatusGenerus } from './repo/generus'
 import { ambilPerangkat, catatPencabutan, daftarkanToken, daftarPerangkat, type PerangkatTerdaftar } from './repo/perangkat'
 import { adalahAdmin, ambilMeta, ambilRekaman, aturMeta, ID_ADMIN, sisipkanRekaman, ubahRekaman } from './repo/umum'
 import { tambahPengajian } from './repo/pengajian'
@@ -555,6 +555,9 @@ export function setujuiUsulan(db: Db, usulanId: string): { usulanId: string; has
           kategori: (d.kategori as KategoriGenerus) ?? null,
           waliNama: d.wali_nama ?? null,
           waliNoHp: d.wali_no_hp ?? null,
+          sekolah: typeof d.sekolah === 'string' ? d.sekolah : null,
+          kelasSekolah: typeof d.kelas_sekolah === 'string' ? d.kelas_sekolah : null,
+          iqro: typeof d.iqro === 'string' ? d.iqro : null,
         }).id
         break
       case 'ubah_generus':
@@ -633,7 +636,7 @@ export interface HasilImporCsv {
 }
 
 /** Kolom CSV generus (baris pertama = kepala). Kolom `mulai` opsional. */
-export const KOLOM_CSV_GENERUS = ['nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'kelompok_kode', 'wali_nama', 'wali_no_hp'] as const
+export const KOLOM_CSV_GENERUS = ['nama', 'jenis_kelamin', 'tanggal_lahir', 'kategori', 'kelompok_kode', 'wali_nama', 'wali_no_hp', 'sekolah', 'kelas_sekolah', 'iqro'] as const
 
 function normalJk(v: string): 'L' | 'P' | null {
   const s = v.trim().toLowerCase()
@@ -657,7 +660,7 @@ function normalTanggal(v: string): string | null | undefined {
 
 /**
  * Impor generus massal dari CSV (T9). Kolom: nama, jenis_kelamin (L/P), tanggal_lahir (YYYY-MM-DD atau DD/MM/YYYY),
- * kategori (kosong = dari umur), kelompok_kode, wali_nama, wali_no_hp, [mulai]. Baris gagal dilaporkan, baris lain tetap masuk.
+ * kategori (kosong = dari umur), kelompok_kode, wali_nama, wali_no_hp, [mulai], [sekolah], [kelas_sekolah], [iqro] (§19). Baris gagal dilaporkan, baris lain tetap masuk.
  */
 export function imporGenerusCsv(db: Db, teksCsv: string): HasilImporCsv {
   if (!adalahAdmin(db)) throw new GalatPpg('HANYA_ADMIN', 'Impor CSV hanya di aplikasi admin.')
@@ -679,6 +682,8 @@ export function imporGenerusCsv(db: Db, teksCsv: string): HasilImporCsv {
         if (kat === null) throw new GalatPpg('KATEGORI_TIDAK_SAH', `Kategori "${katTeks}" tidak dikenal.`)
         const kel = cariWilayahKode(db, b.kelompok_kode ?? '')
         if (!kel || kel.tingkat !== 'kelompok') throw new GalatPpg('KELOMPOK_TIDAK_SAH', `Kode kelompok "${b.kelompok_kode}" tidak ditemukan.`)
+        const iqro = normalIqro(b.iqro ?? '')
+        if (iqro === undefined) throw new GalatPpg('IQRO_TIDAK_SAH', `Jilid Iqro' "${b.iqro}" tidak dikenal (1–6 atau Al-Qur'an).`)
         const mulai = normalTanggal(b.mulai ?? '')
         if (mulai === undefined) throw new GalatPpg('TANGGAL_TIDAK_SAH', 'Tanggal mulai tidak dikenali.')
         const g = db.transaksi(() =>
@@ -691,6 +696,9 @@ export function imporGenerusCsv(db: Db, teksCsv: string): HasilImporCsv {
             waliNama: b.wali_nama || null,
             waliNoHp: b.wali_no_hp || null,
             mulai: mulai || undefined,
+            sekolah: b.sekolah || null,
+            kelasSekolah: b.kelas_sekolah || null,
+            iqro,
           }),
         )
         hasil.berhasil++

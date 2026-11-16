@@ -26,7 +26,7 @@ import {
 import { daftarProfil, statusProfil } from '../repo/profil'
 import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, peranInstalasi, seqBerikut, sisipkanRekaman, uraiJson, type Rekaman } from '../repo/umum'
 import { ambilWilayah, kelompokDalamWilayah } from '../repo/wilayah'
-import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, type KategoriGenerus } from '../repo/generus'
+import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, JILID_IQRO, type KategoriGenerus } from '../repo/generus'
 import { alasanKeaktifanTidakSah, alasanRekamanEvaluasiTidakSah, KODE_DESA_DAERAH, type KodeKeaktifan } from '../juknis'
 import { alasanLaporanBulananTidakSah, idLaporanBulanan } from '../rekap-juknis'
 import { alasanIsiCatatan, idKontrolMt, jabatanToken } from '../bidang'
@@ -609,7 +609,7 @@ function setujuiUsulanSuper(db: Db, rekaman: unknown[], pengirim: string, ditola
 }
 
 /**
- * §16 (J-T4): usulan `ubah_generus` yang HANYA mengubah jenjang (kategori), diajukan perangkat ber-hak `sahkan` di kelompok
+ * §16 (J-T4) & §19 (J-C14): usulan `ubah_generus` yang HANYA mengubah jenjang (kategori) dan/atau jilid Iqro', diajukan perangkat ber-hak `sahkan` di kelompok
  * generus itu (mubaligh / EXE kelompok, token tidak dicabut), disetujui otomatis di daerah.
  */
 function setujuiUbahJenjang(db: Db, rekaman: unknown[], ditolak: RingkasanImporSetor['ditolak']): number {
@@ -620,7 +620,11 @@ function setujuiUbahJenjang(db: Db, rekaman: unknown[], ditolak: RingkasanImporS
     const u = ambilUsulan(db, id)
     if (!u || u.status !== 'menunggu' || u.jenis !== 'ubah_generus') continue
     const perubahan = (u.data as { perubahan?: Record<string, unknown> }).perubahan ?? {}
-    if (Object.keys(perubahan).join() !== 'kategori' || !KATEGORI_GENERUS.includes(perubahan.kategori as KategoriGenerus)) continue
+    // §19 (J-C14): perubahan hanya jenjang dan/atau jilid Iqro' (data belajar milik mubaligh)
+    const kunci = Object.keys(perubahan)
+    if (!kunci.length || kunci.some((k) => k !== 'kategori' && k !== 'iqro')) continue
+    if ('kategori' in perubahan && !KATEGORI_GENERUS.includes(perubahan.kategori as KategoriGenerus)) continue
+    if ('iqro' in perubahan && !(JILID_IQRO as readonly unknown[]).includes(perubahan.iqro)) continue
     const g = ambilGenerus(db, String((u.data as { generus_id?: unknown }).generus_id ?? ''))
     if (!g || g.kelompok_id !== u.kelompok_id) continue
     const berhak = daftarPerangkat(db, { perangkatId: u.perangkat_id }).some(
