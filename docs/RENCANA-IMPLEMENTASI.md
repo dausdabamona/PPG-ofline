@@ -544,10 +544,13 @@ Lembar Evaluasi Penguasaan Materi dan Rekap Penguasaan Materi per jenjang). Doku
    `evaluasi_semester` (input mentah, persen dihitung core dari target terkini). Cara hitung: `hitungan`
    (dikuasai ÷ target), `juz` (per juz halaman makna penuh ÷ 20, dijumlah ÷ jumlah juz target), `kitab` (per kitab
    halaman ÷ halaman terakhir kitab, dijumlah ÷ jumlah kitab target), `subjektif` (1–75, **maksimal 75 ditegakkan
-   core**), `keaktifan` (dari data keaktifan, tidak diinput). TOTAL = rata-rata semua materi jenjang.
+   core**), `keaktifan` (dari data keaktifan, tidak diinput). ~~TOTAL = rata-rata semua materi jenjang.~~ Sejak Fase 14 (§20):
+   **Nilai Akhir** = rata-rata aspek Tri Sukses Generus (Alim-Faqih, Akhlaqul Karimah, Mandiri); butir belum dinilai tidak ikut
+   rata-rata; keaktifan menjadi data pendukung.
 4. **Rekap Penguasaan Materi** per kelompok per jenjang (No, Nama, kolom tiap materi, TOTAL) → se-desa → se-daerah (EXE,
-   dari setoran berjenjang yang ada), ekspor .xlsx dan cetak/PDF. **Laporan Hasil Belajar (raport)** per generus di HP
-   murid/orang tua dan cetak di EXE.
+   dari setoran berjenjang yang ada), ekspor .xlsx dan cetak/PDF (+ kolom ringkas Alim/Akhlak/Mandiri/Nilai Akhir, §20.5).
+   **Laporan Hasil Belajar (raport)** per generus di HP murid/orang tua dan cetak di EXE — disusun per aspek Tri Sukses +
+   Karakter Luhur (§20.4).
 5. **Laporan bulanan kelompok** = kegiatan baru `laporan_bulanan` (satu per kelompok per bulan): Musyawaroh 5 Unsur,
    Musyawaroh Muda/i (kelompok/desa/daerah), daftar NUNGGONI (nama, unsur: 4S Daerah/Desa/Kelompok, LDII, SENKOM,
    PERSINAS, MS; kelas; temuan/saran). Ikut SETOR ke desa → daerah, tampil di rekap desa/daerah.
@@ -581,7 +584,7 @@ hitungan bercentang → `{"butir": [0, 3, …]}` (dikuasai = jumlah centang).
 | J-T8 | **Kejar target**: mulai tanggal 20 (`HARI_KEJAR_TARGET`) dan keaktifan bulan berjalan < target → kartu peringatan di HP murid/orang tua & mubaligh (sisa kali yang dibutuhkan vs sisa hari) | Juknis: "menjelang akhir bulan … KEJAR TARGET" |
 | J-T9 | **Evaluasi menyimpan input mentah**, persen dihitung core dari target materi terkini (`hitungPersenMateri`); di HP/EXE pencatat dan di penerima (`imporSetor`) core menolak: `dikuasai` > target, subjektif < 1 atau > 75, halaman juz > 20 atau juz di luar target, halaman kitab > halaman terakhir kitab, materi/jenjang tidak dikenal. Input lebih besar dari target saat dibaca (target diturunkan kemudian) dibatasi ke target | Nilai tidak bisa dipalsukan dengan mengubah pembagi; satu rumus untuk HP, EXE, raport |
 | J-T10 | Evaluasi & keaktifan yang **disahkan** butuh hak `sahkan` di kelompok itu (mubaligh, EXE kelompok, daerah) — atau token `admin` desa/daerah untuk kode MS/DS/MR/DR; generus harus anggota kelompok rekaman pada tanggal kegiatan (T25 diperluas) | Mubaligh tidak bisa menilai/mengaktifkan generus kelompok lain; desa/daerah bisa mencatat kegiatan desa/daerah |
-| J-T11 | **TOTAL** = rata-rata persen semua materi jenjang (tanpa bobot), termasuk keaktifan; materi yang belum dinilai = 0 % (seperti contoh juknis "target hadits yang lain masih kosong"); materi yang **target-nya belum ditetapkan** Kurikulum (`target` NULL) tidak ikut dihitung dan diberi tanda | Juknis tidak menetapkan rumus TOTAL; rata-rata tanpa bobot paling sederhana dan mudah diubah (`hitungTotal`) |
+| J-T11 | ~~Digantikan §20 (J-R4, J-R5): belum dinilai tidak ikut rata-rata; Nilai Akhir = rata-rata 3 aspek.~~ **TOTAL** = rata-rata persen semua materi jenjang (tanpa bobot), termasuk keaktifan; materi yang belum dinilai = 0 % (seperti contoh juknis "target hadits yang lain masih kosong"); materi yang **target-nya belum ditetapkan** Kurikulum (`target` NULL) tidak ikut dihitung dan diberi tanda | Juknis tidak menetapkan rumus TOTAL; rata-rata tanpa bobot paling sederhana dan mudah diubah (`hitungTotal`) |
 | J-T12 | Daftar materi per jenjang mengikuti **Lembar Evaluasi (gambar)**; bila gambar lain berbeda, dipilih gabungan yang paling lengkap: Caberawit C = 22 butir (lembar 21 butir tanpa "Doa sesuai GBMTPG", rekap memuat doa GBMTPG tetapi tanpa "Nasehat BPI" → keduanya dipakai). Generus 1 = 21 butir, Generus 2 & 3 = 22 butir (+ Peramutan Jenazah). Jumlah target hitungan GBMTPG diambil dari contoh juknis; untuk Generus 2 & 3 juknis tidak memberi angka GBMTPG → `target` NULL (Kurikulum mengisi) | Sesuai arahan "pakai jumlah butir di Lembar Evaluasi"; tanpa mengarang angka |
 | J-T13 | Halaman kitab hadits yang tidak tertulis di juknis (`halaman` null) diisi Kurikulum; sebelum diisi, kitab itu bernilai 0 % tetapi tetap pembagi (sesuai contoh juknis) dan input halamannya ditolak | Tidak mengarang jumlah halaman |
 | J-T14 | Periode evaluasi = periode semester V-T10 (`YYYY-S1` evaluasi November, `YYYY-S2` evaluasi Mei). Bulan evaluasi bawaan disimpan di master `pengaturan` id `bulan_evaluasi` `{"S1": 11, "S2": 5}`, bisa diubah Kurikulum/daerah | Satu konsep periode untuk target capaian & evaluasi |
@@ -734,7 +737,7 @@ berbeda dari yang dipakai), bentuk isian, dan tombol **Tetapkan** (nilai sekaran
 | K06 | Hafalan surat PAUD (7 surat lembar) | konfirmasi daftar butir | `EVL-paud-surat` |
 | K07 | Hafalan surat Caberawit B (24) | konfirmasi daftar butir | `EVL-caberawit_b-surat` |
 | K08 | Nama jurus ASAD per jenjang | teks per jenjang | nama `EVL-*-asad` |
-| K09 | Rumus TOTAL | pilihan: rata-rata semua materi / tanpa keaktifan | `hitungTotal` raport & rekap |
+| K09 | Rumus Nilai Akhir (Fase 14, dahulu "Rumus TOTAL") | pilihan: rata-rata 3 aspek Tri Sukses (bawaan) / rata-rata semua butir materi | `rumusTotal` → `hitungTriSukses` raport, rekap, reward |
 | K10 | Surat Generus 2 & 3 | pilihan: 51 (lembar) / 45 (teks) | butir `EVL-remaja-surat`, `EVL-pranikah-surat` |
 | K11 | Target GBMTPG Generus 2 & 3 | angka per materi (14 isian) | target materi GBMTPG remaja & pranikah |
 | K12 | Halaman terakhir kitab hadits | angka per kitab (nama unik) | halaman kitab di semua materi `hadits` |
@@ -742,6 +745,8 @@ berbeda dari yang dipakai), bentuk isian, dan tombol **Tetapkan** (nilai sekaran
 | K14 | Butir Caberawit C | pilihan: 22 (gabungan) / 21 tanpa Do'a GBMTPG / 21 tanpa Nasehat BPI | hapus lunak/pulihkan materi |
 | K15 | Cara nilai wudhu & sholat | pilihan: sesuai teks / semua per butir / semua subjektif | cara `EVL-*-wudhu_sholat` |
 | K16 | Target keaktifan bulanan per jenjang (Fase 13) | angka per jenjang (1–31) | target `EVL-<jenjang>-keaktifan` (7 jenjang) |
+| K17 | Ambang predikat angka (Fase 14, §20) | angka: Sangat Baik ≥ 85, Baik ≥ 70, Cukup ≥ 55 | `predikatAngka` raport & rekap |
+| K18 | Pemetaan materi → aspek Tri Sukses (Fase 14, §20.1) | pilihan per kode materi (Alim·Mankul, Alim·Hafalan, Faqih·Kefahaman, Faqih·Praktik Ibadah, Akhlaqul Karimah, Mandiri) | `pemetaanAspek` raport & rekap |
 
 Status butir (dihitung, J-KR2): **Belum ditetapkan** (ada isian kosong) · **Sementara** (belum pernah ditetapkan, atau
 nilai berubah sesudah ditetapkan — ditandai) · **Ditetapkan Kurikulum** (tanggal + nama penetap).
@@ -777,7 +782,7 @@ kebijakan sementara, notulen menunggu pengesahan, musyawarah terakhir & berikutn
 | J-KR2 | Penetapan disimpan di master `pengaturan` id `kur:<kode>` (isi: nilai, penetap, tanggal, catatan, riwayat ≤ 50). Status dihitung: kosong → Belum ditetapkan; penetapan ada & nilai sekarang = nilai ditetapkan → Ditetapkan Kurikulum; selain itu Sementara (+ tanda "berubah sesudah ditetapkan") | Tanpa tabel baru: `pengaturan` sudah tersinkron ke KURIKULUM/MATERI/PAKET; suntingan Materi Evaluasi sesudahnya tidak bisa diam-diam mengaku "ditetapkan" |
 | J-KR3 | Penetap hanya **EXE Kurikulum** (langsung) dan **HP pengurus berjabatan Bidang Kurikulum** (usulan `tetapkan_kurikulum`, disetujui otomatis di daerah bila penulisnya memegang token jabatan kurikulum yang tidak dicabut). EXE Daerah tidak menetapkan (hanya meneruskan); persetujuan manual usulan itu ditolak | Arahan "diserahkan ke role kurikulum"; master tetap ditulis daerah (K5) |
 | J-KR4 | Materi berisian kosong (target null, atau ada kitab tanpa halaman) = **belum ditetapkan Kurikulum**: persen null, tidak ikut TOTAL; raport & rekap (layar, Excel, cetak) menulis "Materi X belum ditetapkan Kurikulum". Input halaman kitab yang sudah diketahui tetap boleh disimpan. Menggantikan J-T13 | Permintaan pemilik; anak tidak dirugikan oleh isian yang belum ada |
-| J-KR5 | Rumus TOTAL (K09) dibaca `rumusTotal(db)`: `rata_rata` (bawaan) atau `tanpa_keaktifan` | Satu fungsi `hitungTotal` untuk raport, rekap, reward |
+| J-KR5 | Rumus TOTAL (K09) dibaca `rumusTotal(db)`: ~~`rata_rata` (bawaan) atau `tanpa_keaktifan`~~ sejak Fase 14 `rata_aspek` (bawaan) atau `rata_materi` (J-R5) | Satu fungsi untuk raport, rekap, reward |
 | J-KR6 | Berkas KURIKULUM mengizinkan pengaturan `kur:*`; MATERI membawa `kur:*` & `pengaturan` kurikulum; PAKET membawa semua pengaturan. Baris `kur:*`/`kbj:*` dari PAKET EXE desa/kelompok **ditolak** (hanya dari daerah) | Desa tidak bisa memalsukan status penetapan/kebijakan |
 | J-KR7 | Butir pilihan yang mengubah struktur (K10, K14, K15) diterapkan core ke materi evaluasi terkait; hasil evaluasi lama tetap tersimpan dan dihitung menurut cara/target terbaru | Konsisten dengan J-T9 (persen dihitung dari target terkini) |
 | J-M1 | Register kebijakan = master `pengaturan` id `kbj:<kunci>:<lingkup>`; nilai sementara = katalog (bawaan), status Sementara / Belum ditetapkan (bawaan kosong) / Ditetapkan Musyawarah; isi menyimpan dasar (notulen, nomor, tanggal, jenis), pengesah, tanggal diterapkan, riwayat ≤ 50 | Tanpa skema baru (DB lama aman); turun bersama paket yang sudah ada |
@@ -845,7 +850,8 @@ Mubaligh memperbarui jilid Iqro' anak lewat usulan `ubah_generus` → **disetuju
   memakai tampilan resmi yang sama. Isi: kop "PENGGERAK PEMBINA GENERUS (PPG) · DAERAH <nama daerah>" + logo aplikasi, identitas (nama, jenis
   kelamin, jenjang, kelompok, desa, semester), tabel No · Materi · Target · Dikuasai · %, TOTAL, keaktifan semester, catatan "Materi …
   belum ditetapkan Kurikulum" dan sisa target jenjang sebelumnya, tempat & tanggal, tanda tangan MT/Mubaligh Kelompok, KI Kelompok,
-  Orang Tua/Wali.
+  Orang Tua/Wali. **Sejak Fase 14 (§20.4)**: halaman 1 ringkas (Tri Sukses Generus + Nilai Akhir, Karakter Luhur, keaktifan, catatan
+  mubaligh, tanda tangan) + halaman 2 lampiran "Rincian Penguasaan Materi" per aspek.
 - **HP** — mubaligh (Evaluasi Semester: **Semua raport kelas ini** + raport satu anak), pengurus kelompok (Data: **Raport semua generus
   kelompok**), murid & orang tua (Laporan Hasil Belajar anaknya sendiri): **Simpan PDF / Cetak** dan **Bagikan PDF (WA)**. PDF dibuat di HP
   tanpa internet oleh core (`raporPdf`, penulis PDF `pdf-sederhana.ts` tanpa pustaka luar, huruf Helvetica bawaan PDF).
@@ -858,7 +864,7 @@ Mubaligh memperbarui jilid Iqro' anak lewat usulan `ubah_generus` → **disetuju
 | J-C2 | Format cetakan bawaan **kolom tanggal 1–31**; urutan kegiatan (slot) jadi alternatif. Isi sel = kode-kode yang **dihitung** pada hari itu digabung (mis. "AB", seperti lembar Kaimana); ajuan murid yang belum disahkan tidak dicetak; izin dicetak "IZ" (abu-abu) hanya di format tanggal | Koreksi pemilik; lembar adalah bukti resmi |
 | J-C3 | **Hari libur** (arsir) = hari pekan yang tidak punya jadwal pengajian rutin kelompok untuk jenjang itu **dan** tidak ada kegiatan tercatat bagi jenjang itu; kelompok tanpa jadwal rutin → tanpa arsir | Meniru baris "Libur / Tidak" lembar Bantemi tanpa isian baru |
 | J-C4 | Jumlah slot format urutan = maks(target K16, 24; Pra Nikah 16, jumlah hari aktif terbanyak di jenjang itu) | Tetap mirip lembar; tidak memotong data |
-| J-C5 | % Keaktifan memakai target K16; **% Peng. Materi** = TOTAL raport periode evaluasi terakhir (≤ periode bulan itu) yang sudah punya nilai; kosong bila belum. **Total** = rata-rata kolom anak yang terisi | Juknis & lembar |
+| J-C5 | % Keaktifan memakai target K16; **% Peng. Materi** = TOTAL (sejak Fase 14: **Nilai Akhir**, §20.2) raport periode evaluasi terakhir (≤ periode bulan itu) yang sudah punya nilai; kosong bila belum. **Total** = rata-rata kolom anak yang terisi | Juknis & lembar |
 | J-C6 | Anak yang dicetak = generus **aktif** kelompok itu berjenjang tersebut (sama dengan rekap keaktifan bulanan), urut nama; jenjang lama `caberawit` dicetak di blok Caberawit A dengan tanda "(perlu ditetapkan)". Tiap blok minimal 10 baris (baris kosong seperti lembar); dua blok berurutan digabung satu halaman bila muat (≤ 24 baris) | Meniru lembar daerah (dua jenjang per halaman) |
 | J-C7 | NUNGGONI lembar pengurus = gabungan daftar NUNGGONI laporan bulanan kelompok + catatan NUNGGONI pengurus/mubaligh untuk kelompok itu pada bulan itu (ganda nama+tanggal dibuang). Dapukan = unsur (MS → Mubaligh/MS, 4S …) atau jabatan penulis; kolom Paraf selalu kosong | Lembar untuk ditandatangani manual |
 | J-C8 | Nama di PENYAKSIAN: **MT Kelompok** = nama token mubaligh aktif kelompok; **Kord PPG Desa** = pengurus jabatan PJ Desa; jabatan lain (KI, Wkl KI, Penerobos, Mubaligh Desa) kosong karena tidak ada di data. Sampul: "Ust. <mubaligh>" atau titik-titik | Tidak mengarang nama |
@@ -872,3 +878,126 @@ Mubaligh memperbarui jilid Iqro' anak lewat usulan `ubah_generus` → **disetuju
 | J-C16 | Raport EXE dicetak dari HTML (pratinjau layar penuh, `@page` bernama: lembar = A4 lanskap, raport & lembar pengurus = A4 tegak) dengan data yang sama (`dataRaportCetak`); tombol Simpan PDF memakai PDF core | Tampilan cetak rapi & konsisten dengan PDF HP |
 | J-C17 | Kop raport = "PENGGERAK PEMBINA GENERUS (PPG) / DAERAH <nama wilayah daerah>"; tempat tanda tangan = nama daerah + tanggal cetak; nama MT = token mubaligh aktif kelompok, nama Orang Tua = `wali_nama`, KI Kelompok kosong (tidak ada di data) | Tidak mengarang nama |
 | J-C18 | Pilihan "Cetak semua raport": generus **aktif** wilayah (kelompok/desa/daerah), saring jenjang atau kelas (pengajian rutin berkategori), urut kelompok → jenjang → nama (`generusUntukRaport`) | Satu PDF siap dibagikan per kelas |
+
+---
+
+## 20. Raport menurut Tri Sukses Generus + 29 Karakter Luhur (Fase 14, 16 Nov 2026)
+
+Keputusan pemilik: raport (Laporan Hasil Belajar) **disederhanakan per aspek Tri Sukses Generus** (Alim-Faqih, Akhlaqul Karimah,
+Mandiri — Alim-Faqih dirinci Alim & Faqih menurut GBMTPG Pembina Generus Pusat 2022) ditambah penilaian sikap **Karakter Luhur** (4 Tali Keimanan + 6 Thobiat Luhur). Rincian materi juknis tetap tampil di bawah
+tiap aspek (lampiran). Rekap per materi & cetakan lembar bulanan **tetap per materi**. Pemilik tidak ditanya: keputusan rinci diambil
+agen dan dicatat (J-R1–J-R16).
+
+### 20.1 Susunan aspek (nilai sementara = butir Kurikulum K18)
+
+Sumber susunan: **GBMTPG Pembina Generus Pusat 2022** (Garis-Garis Besar Materi dan Target Pembinaan Generus) — revisi pemilik
+setelah membaca buku itu; isi buku **tidak** disalin ke repo, hanya pengelompokan kode materi di bawah ini.
+Sebutan: **Tri Sukses Generus: Alim-Faqih, Akhlaqul Karimah, Mandiri**. Alim-Faqih dirinci menjadi dua aspek penilaian (Alim, Faqih).
+
+| Aspek / subbagian | Kode materi evaluasi (`materi_evaluasi.kode`) |
+|---|---|
+| **Alim — Mankul** | `iqro` (bacaan/Iqro'), `tajwid` (tajwid/materi pegon), `makna_quran`, `hadits`, `keilmuan`, `tadarus` |
+| **Alim — Hafalan** | `surat`, `doa_gbmtpg`, `doa_sorong`, `dalil_gbmtpg`, `dalil_sorong` |
+| **Faqih — Kefahaman** | `kefahaman` |
+| **Faqih — Praktik Ibadah** | `praktik_ibadah`, `wudhu_sholat`, `thoharoh`, `jenazah`, `kualitas_bacaan`, `pegon` |
+| **Akhlaqul Karimah** | `akhlak` (Akhlaq), `adab` (Adab/Tatakrama), `nasehat_bpi` |
+| **Mandiri** | `kemandirian`, `asad` (ditulis apa adanya "ASAD Beladiri …", tanpa label tambahan) |
+| (data pendukung, bukan aspek) | `keaktifan` |
+
+Materi hanya muncul di jenjang yang memilikinya (mis. Iqro' hanya PAUD–Caberawit B, tadarus & pegon hanya Caberawit C–Generus 3).
+Kode materi baru yang ditambah Kurikulum dan belum dipetakan → **Alim · Mankul** (sementara) dan tampil di isian K18.
+
+### 20.2 Aturan nilai
+
+1. **Persen per butir materi** tetap rumus juknis §16.1 butir 3 (`hitungPersenMateri`; batas praktik subjektif 75 % tetap).
+2. **Belum dinilai ≠ 0 %** (mengganti J-T11): butir yang belum pernah dinilai (tidak ada hasil evaluasi, periode ini atau
+   sebelumnya) → `persen = null`, ditulis **"belum dinilai"**, **tidak ikut rata-rata** apa pun. Materi **belum ditetapkan
+   Kurikulum** tetap dikecualikan (J-KR4). Subjektif yang tersimpan tanpa nilai = belum dinilai.
+3. **Nilai subbagian** = rata-rata butir yang dinilai. **Alim** = rata-rata subbagian Mankul & Hafalan yang punya nilai; **Faqih**
+   = rata-rata subbagian Kefahaman & Praktik Ibadah yang punya nilai (bobot sama per subbagian). **Alim-Faqih** = rata-rata Alim &
+   Faqih yang punya nilai. **Akhlaqul Karimah** & **Mandiri** = rata-rata butirnya yang dinilai.
+4. **NILAI AKHIR** = rata-rata 3 aspek Tri Sukses (Alim-Faqih, Akhlaqul Karimah, Mandiri) yang punya nilai — bobot sama (K09 bawaan
+   `rata_aspek`). Pilihan K09 lain: `rata_materi` = rata-rata semua butir materi yang dinilai (tanpa keaktifan). **Keaktifan tidak
+   lagi masuk nilai** — tetap tampil sebagai baris keaktifan semester dan sebagai data pendukung Tali Keimanan.
+5. **Predikat angka** per aspek, subbagian & nilai akhir (K17, sementara): ≥ 85 **Sangat Baik**, 70–84 **Baik**, 55–69 **Cukup**,
+   < 55 **Perlu Bimbingan**; tanpa nilai → "belum dinilai". Pembulatan satu desimal; perbandingan memakai nilai satu desimal.
+6. `Rapor.total` = **Nilai Akhir** (satu nama lama dipertahankan agar % Peng. Materi lembar bulanan §19 dan reward M02 otomatis
+   memakai nilai akhir).
+
+### 20.3 Karakter Luhur (penilaian sikap)
+
+- **4 Tali Keimanan**: Bersyukur atas hidayah (`syukur`), Mengagungkan hidayah (`agungkan`), Mempersungguh hidayah (`sungguh`),
+  Senantiasa berdoa (`doa`).
+- **Keterangan target jenjang** (istilah capaian GBMTPG Pembina Generus Pusat 2022, hanya keterangan, bukan predikat): PAUD
+  "Mengenal", Caberawit A/B/C "Tertanam", Pra Remaja "Terbiasa", Remaja "Terampil", Pra Nikah "Memiliki" — ditulis
+  "Target jenjang: Terbiasa" di judul tabel Karakter Luhur.
+- **6 Thobiat Luhur**: Jujur (`jujur`), Amanah (`amanah`), Mujhid-muzhid (`mujhid_muzhid`), Rukun (`rukun`), Kompak (`kompak`),
+  Kerja sama yang baik (`kerja_sama`) — dinilai dari **praktik sehari-hari**.
+- Penilai: **mubaligh** (HP, menu Evaluasi Semester → bagian **Karakter Luhur** per anak) atau **EXE kelompok/desa** (Evaluasi &
+  Keaktifan → Laporan Hasil Belajar → Karakter Luhur). Isian: **predikat sikap** Baik / Cukup / Perlu Bimbingan (tombol cepat ≥ 44 px)
+  + catatan singkat opsional (≤ 300 huruf) per butir; ditambah **Catatan mubaligh** semester (butir `catatan`, ≤ 1000 huruf).
+- **Tidak dicampur ke persen**: predikat sikap tidak dihitung ke nilai aspek/nilai akhir.
+- **Data pendukung** Tali Keimanan (hanya fakta dari data, tanpa kesimpulan):
+  - keaktifan pengajian semester (rata-rata %) → ditampilkan sebagai indikator di baris "Mempersungguh hidayah";
+  - catatan sholat 5 waktu dari Lembar Kontrol **bila orang tua mengisi di HP itu** (lokal, J-T17): "N hari tercatat, rata-rata X
+    waktu/hari" — sebagai keterangan saja; di EXE baris ini tidak muncul (data tidak pernah dikirim);
+  - jumlah hari kegiatan mandiri yang disahkan (kode B/TH/QR/HD) → keterangan di baris "Senantiasa berdoa"/hafalan mandiri.
+
+**Skema v7**: tabel kegiatan baru `penilaian_karakter(generus_id, kelompok_id, periode, butir, predikat, catatan, tanggal,
+penilai)`; id tetap `KRL-` + 40 heksa SHA-256(generus|periode|butir). Migrasi = `CREATE TABLE IF NOT EXISTS` + indeks (aman untuk DB
+lama; aplikasi lama mengabaikan tabel tak dikenal). Ikut **SETOR** (HP mubaligh / EXE kelompok → desa → daerah), **BALASAN** (HP
+murid/orang tua: raport anaknya) dan **PAKET** (wilayah). Validasi hak di core seperti `evaluasi_semester` (J-T19): penulis harus
+pemegang token ber-hak `sahkan` untuk kelompok itu, generus anggota kelompok pada tanggal penilaian, daerah/desa menolak rekaman di
+luar wilayah pengirim; isi divalidasi (`alasanPenilaianKarakterTidakSah`).
+
+### 20.4 Tampilan raport (EXE cetak, PDF HP, layar HP orang tua/murid)
+
+- **Halaman 1 (ringkas)**: kop + identitas; tabel **Tri Sukses Generus** — baris Alim-Faqih dengan dua baris di bawahnya (Alim,
+  Faqih), lalu Akhlaqul Karimah, Mandiri (nilai + predikat) + **Nilai Akhir**; tabel **Karakter Luhur** (4 Tali Keimanan & 6 Thobiat Luhur: predikat + catatan
+  singkat; data pendukung di bawah tabel Tali Keimanan); **keaktifan semester**; **catatan mubaligh**; tempat/tanggal & tanda tangan.
+- **Halaman 2 (lampiran) "Rincian Penguasaan Materi"** per aspek/subbagian: Materi · Target · Dikuasai · % (atau "belum dinilai" /
+  "belum ditetapkan"); catatan materi belum ditetapkan Kurikulum, sisa target jenjang sebelumnya, dan rumus nilai.
+- **HP orang tua/murid**: ringkasan dulu (Tri Sukses + Nilai Akhir, Karakter Luhur, keaktifan, catatan mubaligh); **Rincian
+  Penguasaan Materi** bisa dibuka (lipat, `<details>`).
+- Sebutan: "Tri Sukses Generus", "Karakter Luhur". Tidak ada kalimat penilaian otomatis di luar data (mis. tidak menulis "anak rajin").
+
+### 20.5 Rekap & Excel
+
+Rekap Penguasaan Materi per kelompok/desa (EXE layar, cetak, Excel) tetap berkolom per materi format juknis; sel butir yang belum
+dinilai ditulis **"bd"** (legenda: bd = belum dinilai, — = belum ditetapkan Kurikulum); ditambah **kolom ringkas Alim-Faqih ·
+Akhlaq · Mandiri · Nilai Akhir** (kolom TOTAL lama = Nilai Akhir). Ringkasan per desa/kelompok: rata-rata tiap aspek + nilai akhir. Lembar
+bulanan §19 tetap per materi; "% Peng. Materi" = Nilai Akhir.
+
+### 20.6 Butir baru "Perlu Ditetapkan Kurikulum"
+
+| Kode | Butir | Bentuk | Diterapkan ke |
+|---|---|---|---|
+| K09 (diperbarui) | **Rumus Nilai Akhir** | pilihan: rata-rata 3 aspek Tri Sukses (bawaan) / rata-rata semua butir materi | `rumusTotal` → `hitungTriSukses` |
+| K17 | Ambang predikat angka | angka: Sangat Baik ≥, Baik ≥, Cukup ≥ (1–100, menurun) | `predikatAngka` (raport, rekap, PDF) |
+| K18 | Pemetaan materi → aspek Tri Sukses | pilihan per kode materi (6 subbagian: Alim·Mankul, Alim·Hafalan, Faqih·Kefahaman, Faqih·Praktik Ibadah, Akhlaqul Karimah, Mandiri) | `pemetaanAspek` (raport, rekap, PDF) |
+
+K17 & K18 disimpan di penetapan `kur:K17` / `kur:K18` (master `pengaturan`, tersebar lewat KURIKULUM → daerah → MATERI/BALASAN/PAKET).
+Nilai sementara = katalog kode (J-KR1). Status **Sementara** sampai ditetapkan.
+
+### 20.7 Keputusan teknis otonom (Fase 14)
+
+| Kode | Keputusan | Alasan |
+|---|---|---|
+| J-R1 | Pemetaan K18 berkunci **kode materi** (berlaku sama di semua jenjang), bukan id per jenjang | Kurikulum cukup memindahkan satu butir sekali; 24 isian, bukan ±130 |
+| J-R2 | Kode materi tak dikenal pemetaan → Alim · Mankul (sementara) | Tidak ada nilai yang "hilang"; tampil di isian K18 agar Kurikulum memindahkan |
+| J-R3 | `keaktifan` tidak bisa dipetakan ke aspek (bukan isian K18) | Keputusan pemilik: keaktifan = data pendukung, tidak masuk nilai |
+| J-R4 | Butir "dinilai" = ada rekaman hasil evaluasi (periode ini atau sebelumnya, J-T15); subjektif tanpa nilai = belum dinilai | Membedakan "belum dinilai" dari nilai 0 yang sungguh diberikan (mis. hitungan 0 dikuasai) |
+| J-R5 | K09 lama (`rata_rata`/`tanpa_keaktifan`) tidak berlaku lagi: dibaca sebagai `rata_aspek`; butir K09 yang dahulu sudah ditetapkan menjadi **Sementara (berubah sesudah ditetapkan)** sampai Kurikulum menetapkan ulang | Rumus berubah atas keputusan pemilik; status jujur |
+| J-R6 | Ambang K17 wajib bilangan bulat 1–100 dan Sangat Baik > Baik > Cukup | Predikat tidak tumpang-tindih |
+| J-R7 | Predikat sikap = `baik` / `cukup` / `perlu_bimbingan`; tidak ada predikat "Sangat Baik" untuk sikap | Sesuai arahan pemilik (tiga pilihan cepat) |
+| J-R8 | Satu rekaman per (generus, periode, butir), id tetap → menyimpan ulang = memperbarui; menghapus = `dihapus = 1` (predikat & catatan dikosongkan) | Tidak ganda bila HP & EXE sama-sama mengisi; penulis terakhir menang (LWW) |
+| J-R9 | Penilai karakter = pemegang hak `sahkan` di kelompok generus (mubaligh / EXE kelompok / EXE desa / daerah), sama dengan `simpanEvaluasi`; nama penilai = nama profil pencatat | Konsisten J-T10/J-T19 |
+| J-R10 | Impor SETOR `penilaian_karakter`: kelompok dalam cakupan pengirim, penulis ber-hak `sahkan` untuk kelompok itu (pengirim atau terdaftar), generus anggota kelompok pada `tanggal`, periode/butir/predikat/catatan sah, id = id tetap | Hak ditegakkan penerima, bukan hanya UI |
+| J-R11 | Catatan sholat (lokal) dirangkum hanya bila ada ≥ 1 hari tercatat di bulan-bulan semester sampai hari ini; teks "diisi orang tua di HP ini — keterangan, tidak dinilai" | J-T17 tetap: privasi, tidak dikirim |
+| J-R12 | Data pendukung "Mempersungguh hidayah" = keaktifan semester (rata-rata %) + predikat angka K17-nya tidak ditampilkan (hanya persen) | Tidak mencampur angka keaktifan ke predikat sikap |
+| J-R13 | Rekap: sel belum dinilai = "bd"; rata-rata kolom/kelompok hanya dari anak yang dinilai | Konsisten aturan belum dinilai |
+| J-R14 | Raport EXE & PDF: halaman 1 ringkas + halaman 2 lampiran (lampiran boleh bersambung ke halaman 3 bila materi banyak); "Cetak semua raport" = 2 halaman per anak | Permintaan pemilik |
+| J-R15 | Predikat ditulis lengkap di cetakan (Sangat Baik/Baik/Cukup/Perlu Bimbingan) — bukan huruf A/B/C | Mudah dibaca orang tua |
+| J-R17 | Alim & Faqih = dua aspek penilaian di bawah Alim-Faqih; nilai Alim-Faqih = rata-rata keduanya; nilai akhir tetap rata-rata 3 aspek Tri Sukses (bukan 4) | Revisi pemilik (GBMTPG Pusat 2022): Tri Sukses tetap tiga |
+| J-R18 | Keterangan target jenjang Karakter Luhur dari istilah capaian GBMTPG (Mengenal/Tertanam/Terbiasa/Terampil/Memiliki); jenjang lama `caberawit` = Tertanam | Keterangan saja; predikat tetap Baik/Cukup/Perlu Bimbingan |
+| J-R16 | `Rapor.total` tetap ada = nilai akhir; `Rapor.triSukses` & `Rapor.karakter` baru | Pemakai lama (lembar bulanan, reward) otomatis konsisten |
