@@ -1,7 +1,8 @@
 // Layar 2: Beranda — sesuai peran instalasi.
 // Daerah: ringkasan + status setor tiap desa (+ setoran per kelompok); Desa: status setor tiap kelompok + Setor ke Daerah;
 // Kelompok: status setor tiap HP + Setor ke Desa; Kurikulum: periode aktif, target, berkas Kurikulum.
-import { buatKurikulum, ringkasanBerandaExe, type RingkasanBerandaExe } from '@ppg/core'
+import { buatKurikulum, daftarButirKurikulum, ringkasanBerandaExe, ringkasanMusyawarah, type RingkasanBerandaExe } from '@ppg/core'
+import { RingkasanMusyawarahExe } from './musyawarah'
 import { useApp, useData } from '../konteks'
 import { KeadaanData, Kartu, KepalaHalaman, Lencana, Tombol } from '../komponen/ui'
 import { KartuSetorKeAtas, TabelStatusSetor } from '../komponen/setor'
@@ -51,6 +52,7 @@ function BerandaDaerah(p: { r: RingkasanBerandaExe; pilih: (k: KunciMenu) => voi
         />
         <Angka judul="Desa terlambat setor" nilai={terlambat} sorot={terlambat > 0} />
       </div>
+      <KartuMusyawarah pilih={p.pilih} />
       <Kartu
         judul="Status setor tiap desa"
         aksi={
@@ -122,6 +124,7 @@ function BerandaBawah(p: { r: RingkasanBerandaExe; pilih: (k: KunciMenu) => void
         <Angka judul={desa ? 'Kelompok terlambat setor' : 'HP terlambat setor'} nilai={terlambat} sorot={terlambat > 0} />
       </div>
       <KartuSetorKeAtas ringkas />
+      {desa ? <KartuMusyawarah pilih={p.pilih} /> : null}
       <Kartu
         judul={desa ? 'Status setor tiap kelompok' : 'Status setor tiap HP pengurus/mubaligh'}
         aksi={
@@ -151,12 +154,20 @@ function BerandaBawah(p: { r: RingkasanBerandaExe; pilih: (k: KunciMenu) => void
 function BerandaKurikulum(p: { r: RingkasanBerandaExe; pilih: (k: KunciMenu) => void }) {
   const { db, platform, aksi, toast } = useApp()
   const k = p.r.kurikulum!
+  const belum = useData(() => daftarButirKurikulum(db).filter((b) => b.status !== 'ditetapkan').length, [db]).data ?? 0
   return (
     <>
       <div className="grid-angka">
         <Angka judul="Periode aktif" nilai={k.periode} catatan={labelPeriode(k.periode).replace(`${k.periode} `, '')} />
         <Angka judul="Materi target periode ini" nilai={k.jumlahTarget} />
         <Angka judul="Suntingan belum dikirim" nilai={k.suntinganBelumDikirim} sorot={k.suntinganBelumDikirim > 0} />
+        <Angka
+          judul="Butir belum ditetapkan"
+          nilai={belum}
+          sorot={belum > 0}
+          catatan="Perlu Ditetapkan Kurikulum"
+          aksi={<Tombol kecil varian="tipis" onClick={() => p.pilih('penetapan')}>Buka daftar</Tombol>}
+        />
       </div>
       <Kartu judul="Kirim kurikulum ke daerah">
         <p>
@@ -186,6 +197,17 @@ function BerandaKurikulum(p: { r: RingkasanBerandaExe; pilih: (k: KunciMenu) => 
         </div>
       </Kartu>
     </>
+  )
+}
+
+/** §18: ringkasan musyawarah & kebijakan (daerah/desa). */
+function KartuMusyawarah(p: { pilih: (k: KunciMenu) => void }) {
+  const { db, wilayahId } = useApp()
+  const r = useData(() => (wilayahId ? ringkasanMusyawarah(db, wilayahId) : null), [db, wilayahId])
+  return (
+    <Kartu judul="Musyawarah & kebijakan" aksi={<Tombol varian="kedua" onClick={() => p.pilih('musyawarah')}>Buka Musyawarah</Tombol>}>
+      <KeadaanData hasil={r}>{(x) => (x ? <RingkasanMusyawarahExe r={x} /> : null)}</KeadaanData>
+    </Kartu>
   )
 }
 

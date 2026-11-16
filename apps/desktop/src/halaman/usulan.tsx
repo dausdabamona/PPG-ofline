@@ -30,6 +30,8 @@ function uraian(db: Db, u: UsulanData): string {
       return `${d.tingkat === 'desa' ? 'Desa' : 'Kelompok'} ${s(d.nama)}${d.kode ? ` (kode ${s(d.kode)})` : ''} di ${ambilWilayah(db, u.kelompok_id)?.nama ?? '?'}`
     case 'tambah_pengajian':
       return `${s(d.nama)} di ${ambilWilayah(db, u.kelompok_id)?.nama ?? '?'}${typeof d.hari === 'number' ? `, hari ke-${d.hari}` : ''}${d.jam ? ` pukul ${s(d.jam)}` : ''}`
+    case 'tetapkan_kurikulum':
+      return `Penetapan Kurikulum ${s(d.kode)} oleh ${s(d.oleh)} — diterapkan otomatis bila pengusul memegang jabatan Bidang Kurikulum`
   }
 }
 

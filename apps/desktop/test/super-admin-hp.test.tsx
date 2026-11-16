@@ -95,7 +95,7 @@ describe('Fase 9 — Super Admin HP dari EXE Daerah', () => {
     await buka(u, 'Impor Setoran')
     pf.antreanBuka.push([{ nama: setor.nama, bytes: setor.bytes }])
     await u.click(screen.getByRole('button', { name: 'Pilih berkas setoran' }))
-    expect(await screen.findByText(/1 usulan Super Admin HP disetujui otomatis/, {}, { timeout: 20000 })).toBeTruthy()
+    expect(await screen.findByText(/1 usulan disetujui otomatis/, {}, { timeout: 20000 })).toBeTruthy()
     // (daerah memegang db di memori aplikasi; periksa lewat berkas tersimpan)
     await new Promise((r) => setTimeout(r, 50))
     const dbBaru = await bukaDb(pf.db!)

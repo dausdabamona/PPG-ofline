@@ -248,11 +248,11 @@ function EvaluasiGenerus(p: { g: GenerusRinci; periode: string; kembali: () => v
                     <span>{i.materi.nama}</span>
                     {i.materi.cara === 'keaktifan' ? (
                       <b>{fmt(i.persen)}</b>
-                    ) : i.persen === null ? (
-                      <small>Target belum ditetapkan</small>
+                    ) : i.persen === null && i.materi.cara !== 'kitab' ? (
+                      <small>Belum ditetapkan Kurikulum</small>
                     ) : (
                       <Tombol kecil varian={i.dinilai && !i.dariPeriode ? 'kedua' : 'utama'} onClick={() => setEdit(i)}>
-                        {i.dinilai ? fmt(i.persen) : 'Nilai'}
+                        {i.persen === null ? (i.dinilai ? 'Ubah (belum ditetapkan)' : 'Nilai (belum ditetapkan)') : i.dinilai ? fmt(i.persen) : 'Nilai'}
                       </Tombol>
                     )}
                   </div>

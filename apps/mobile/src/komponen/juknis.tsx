@@ -239,8 +239,11 @@ export function RaporHp(p: { generusId: string }) {
               <Kartu judul={`${LABEL_JENJANG[x!.jenjang] ?? x!.jenjang} · TOTAL ${fmt(x!.total)}`}>
                 <BilahPersen persen={x!.total ?? 0} label="Total penguasaan materi" />
                 <p className="keterangan">
-                  Evaluasi bulan {NAMA_BULAN[x!.bulanEvaluasi - 1]}. TOTAL = rata-rata semua materi; yang belum dinilai dihitung 0%.
+                  Evaluasi bulan {NAMA_BULAN[x!.bulanEvaluasi - 1]}. TOTAL = rata-rata semua materi{x!.rumusTotal === 'tanpa_keaktifan' ? ' tanpa keaktifan' : ''}; yang belum dinilai dihitung 0%.
                 </p>
+                {x!.belumDitetapkan.length ? (
+                  <Spanduk jenis="info">Materi {x!.belumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung di TOTAL.</Spanduk>
+                ) : null}
                 <ul className="daftar-rapor">
                   {x!.items.map((i) => (
                     <BarisRapor key={i.materi.id} i={i} />
@@ -270,7 +273,7 @@ function BarisRapor(p: { i: ItemRapor }) {
     <li>
       <div>
         <span>{i.materi.nama}</span>
-        <b>{i.persen === null ? 'Target belum ditetapkan' : fmt(i.persen)}</b>
+        <b>{i.persen === null ? 'Belum ditetapkan Kurikulum' : fmt(i.persen)}</b>
       </div>
       {i.persen !== null ? <BilahPersen kecil persen={i.persen} label={i.materi.nama} /> : null}
       {i.dariPeriode ? <small>Nilai dari {teksPeriode(i.dariPeriode)}</small> : !i.dinilai && i.materi.cara !== 'keaktifan' ? <small>Belum dinilai</small> : null}

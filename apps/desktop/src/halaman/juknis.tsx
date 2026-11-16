@@ -155,6 +155,11 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
                   <Lencana warna="kuning">{x.jenjangBelumDitetapkan} generus</Lencana> masih berjenjang "Caberawit" lama — tetapkan A/B/C di Generus & Jamaah.
                 </p>
               ) : null}
+              {x.materiBelumDitetapkan.length ? (
+                <p className="keterangan" role="note">
+                  <Lencana warna="kuning">Belum ditetapkan Kurikulum</Lencana> Materi {x.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — kolomnya “—” dan tidak ikut dihitung di TOTAL.
+                </p>
+              ) : null}
               {x.kolom.length === 0 ? (
                 <Kosong teks="Daftar materi evaluasi belum ada. Buka berkas MATERI terbaru dari daerah." />
               ) : x.baris.length === 0 ? (
@@ -233,7 +238,7 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
                       ))}
                     </tbody>
                   </table>
-                  <p className="keterangan">Nilai dalam persen. TOTAL = rata-rata semua materi (tanpa bobot); materi belum dinilai = 0; materi yang targetnya belum ditetapkan (—) tidak dihitung.</p>
+                  <p className="keterangan">Nilai dalam persen. TOTAL = rata-rata semua materi (tanpa bobot, sesuai rumus yang ditetapkan Kurikulum); materi belum dinilai = 0; materi yang belum ditetapkan Kurikulum (—) tidak dihitung.</p>
                 </>
               )}
             </>
@@ -536,7 +541,7 @@ function RaporExe(p: { wilayahId: string; periode: string }) {
                           <td className="angka">{i.persen === null ? '—' : fmt(i.persen)}</td>
                           <td>
                             <small>
-                              {i.persen === null ? 'Target belum ditetapkan' : !i.dinilai && i.materi.cara !== 'keaktifan' ? 'Belum dinilai' : i.dariPeriode ? `Nilai ${teksPeriode(i.dariPeriode)}` : ''}
+                              {i.persen === null ? 'Belum ditetapkan Kurikulum' : !i.dinilai && i.materi.cara !== 'keaktifan' ? 'Belum dinilai' : i.dariPeriode ? `Nilai ${teksPeriode(i.dariPeriode)}` : ''}
                             </small>
                           </td>
                         </tr>
@@ -556,6 +561,12 @@ function RaporExe(p: { wilayahId: string; periode: string }) {
                 ) : (
                   <Kosong teks="Jenjang belum ditetapkan atau daftar materi evaluasi belum ada." />
                 )}
+                {x.belumDitetapkan.length ? (
+                  <p className="keterangan" role="note">
+                    Materi {x.belumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung di TOTAL.
+                  </p>
+                ) : null}
+                {x.rumusTotal === 'tanpa_keaktifan' ? <p className="keterangan">TOTAL dihitung tanpa keaktifan (ditetapkan Kurikulum).</p> : null}
                 {x.sisaSebelumnya ? (
                   <>
                     <h3>Materi yang perlu dituntaskan dari {LABEL_JENJANG[x.sisaSebelumnya.jenjang]}</h3>

@@ -28,6 +28,9 @@ import {
   terbitkanToken,
   imporSetor,
   uraiToken,
+  sahkanNotulen,
+  simpanNotulen,
+  type Jabatan,
 } from '@ppg/core'
 import { App } from '../src/App'
 import { buatPlatformPalsu } from './platform-palsu'
@@ -297,4 +300,43 @@ describe('§17 kepengurusan (Fase 11)', () => {
     const tabel = await screen.findByRole('table', { name: 'Pengurus berjabatan' })
     expect(within(tabel).getByText('Bendahara, Bidang Tenaga Pendidik')).toBeTruthy()
   })
+})
+
+describe('§18 musyawarah & penetapan kurikulum (Fase 12)', () => {
+  it('EXE Daerah: keputusan disahkan diterapkan saat impor → Register Kebijakan & notulen; Perlu Ditetapkan Kurikulum hanya lihat', async () => {
+    const w = await dunia()
+    const d = w.db.nilai<string>("SELECT id FROM wilayah WHERE tingkat = 'daerah'")!
+    const hpBaru = async (label: string, jabatan: Jabatan[]) => {
+      const hp = await bukaDb()
+      const { kodePerangkat } = await inisialisasiPerangkat(hp, label)
+      await aktifkanProfil(hp, terbitkanToken(w.db, w.kunci, { kodePerangkat, role: 'pengurus', nama: label, wilayahId: d, jabatan }))
+      terapkanPaket(hp, buatPaket(w.db, d, w.kunci).bytes)
+      return hp
+    }
+    const sek = await hpBaru('Sekretaris', ['sekretaris'])
+    const ketua = await hpBaru('Ketua', ['ketua'])
+    const n = simpanNotulen(sek, { jenis_musyawarah: 'bersama', keputusan: [{ teks: 'Juara 4 santri', kunci: 'reward_juara', lingkup_id: d, nilai: { santri: 4, kelompok: 1, desa: 1 } }] })
+    imporSetor(w.db, buatSetor(sek).bytes, w.kunci)
+    terapkanPaket(ketua, buatPaket(w.db, d, w.kunci).bytes)
+    sahkanNotulen(ketua, n.id)
+    const u = userEvent.setup()
+    const pf = await masuk(u, simpanDb(w.db))
+    // impor setoran ketua lewat layar → keputusan diterapkan
+    await buka(u, 'Impor Setoran')
+    const f = buatSetor(ketua)
+    pf.antreanBuka.push([{ nama: f.nama, bytes: f.bytes }])
+    await u.click(screen.getByRole('button', { name: 'Pilih berkas setoran' }))
+    expect(await screen.findByText(/1 keputusan musyawarah diterapkan/, {}, { timeout: 10000 })).toBeTruthy()
+    await buka(u, 'Musyawarah & Kebijakan')
+    const reg = await screen.findByRole('table', { name: 'Register kebijakan' }, { timeout: 5000 })
+    expect(within(reg).getAllByText('Sementara').length).toBeGreaterThan(0)
+    expect(within(reg).getByText('Ditetapkan Musyawarah')).toBeTruthy()
+    expect(within(reg).getByText(/4 santri per jenjang/)).toBeTruthy()
+    const notulen = screen.getByRole('table', { name: 'Notulen musyawarah' })
+    expect(within(notulen).getByText(/1 kebijakan/)).toBeTruthy()
+    expect(screen.getByLabelText('Teks undangan + agenda (WA)')).toBeTruthy()
+    await buka(u, 'Perlu Ditetapkan Kurikulum')
+    expect(await screen.findByText('K12 · Halaman terakhir kitab hadits')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Tetapkan \/ ubah|Isi & tetapkan/ })).toBeNull()
+  }, 30000)
 })

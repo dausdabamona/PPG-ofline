@@ -23,22 +23,25 @@ export const MENU = {
   evaluasi: { teks: 'Evaluasi & Keaktifan', ikon: '★' },
   materiEvaluasi: { teks: 'Materi Evaluasi', ikon: '☰' },
   kepengurusan: { teks: 'Kepengurusan', ikon: '♜' },
+  musyawarah: { teks: 'Musyawarah & Kebijakan', ikon: '⚖' },
+  penetapan: { teks: 'Perlu Ditetapkan Kurikulum', ikon: '✔' },
   pengaturan: { teks: 'Pengaturan', ikon: '⚙' },
 } as const
 export type KunciMenu = keyof typeof MENU
 
 /** Menu tiap peran (urut tampil). */
 export const MENU_PERAN: Record<PeranExe, KunciMenu[]> = {
-  daerah: ['beranda', 'wilayah', 'generus', 'pengajian', 'materi', 'target', 'materiEvaluasi', 'perangkat', 'jadwal', 'impor', 'usulan', 'koreksi', 'paket', 'rekap', 'evaluasi', 'kepengurusan', 'pengaturan'],
-  desa: ['beranda', 'setor', 'impor', 'bukaPaket', 'paket', 'balasan', 'perangkat', 'generus', 'rekap', 'evaluasi', 'kepengurusan', 'pengaturan'],
+  daerah: ['beranda', 'wilayah', 'generus', 'pengajian', 'materi', 'target', 'materiEvaluasi', 'perangkat', 'jadwal', 'impor', 'usulan', 'koreksi', 'paket', 'rekap', 'evaluasi', 'kepengurusan', 'musyawarah', 'penetapan', 'pengaturan'],
+  desa: ['beranda', 'setor', 'impor', 'bukaPaket', 'paket', 'balasan', 'perangkat', 'generus', 'rekap', 'evaluasi', 'kepengurusan', 'musyawarah', 'pengaturan'],
   kelompok: ['beranda', 'absen', 'impor', 'setor', 'bukaPaket', 'balasan', 'rekap', 'evaluasi', 'pengaturan'],
-  kurikulum: ['beranda', 'materi', 'target', 'materiEvaluasi', 'bukaPaket', 'pengaturan'],
+  kurikulum: ['beranda', 'penetapan', 'materi', 'target', 'materiEvaluasi', 'bukaPaket', 'pengaturan'],
 }
 
 /** Teks menu sesuai peran (mis. "Setor ke Daerah", "Buka Berkas Materi"). */
 export function teksMenu(k: KunciMenu, peran: PeranExe): string {
   if (k === 'setor') return peran === 'kelompok' ? 'Setor ke Desa' : 'Setor ke Daerah'
   if (k === 'bukaPaket' && peran === 'kurikulum') return 'Buka Berkas Materi'
+  if (k === 'musyawarah' && peran === 'desa') return 'Musyawarah Desa'
   if (k === 'generus' && peran === 'desa') return 'Generus & Data'
   return MENU[k].teks
 }

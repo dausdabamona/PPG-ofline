@@ -45,6 +45,7 @@ import type { PropHalaman } from '../kerangka'
 import { AreaTeks, Angka, Isian, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, MenuDaftar, Modal, Pilihan, Spanduk, Tombol } from '../komponen/ui'
 import { KartuPengingatSetor } from './absen'
 import { LaporanBulananHp } from './juknis'
+import { KartuMusyawarahHp, MusyawarahHp, PerluDitetapkanHp } from './musyawarah'
 import { label, LABEL_KATEGORI, tanggalTeks } from '../utils/label'
 
 const rp = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `Rp${n.toLocaleString('id-ID')}`)
@@ -385,8 +386,22 @@ function KartuKas(p: { bolehUbah: boolean; penggalang?: boolean }) {
                   <li key={`${t.desa_id}-${t.peruntukan}`}>
                     <span>
                       {t.desa} · {t.peruntukan.replace(/_/g, ' ')}: {rp(t.disetor)} / {rp(t.target)}
+                      <br />
+                      <small>{t.sumber === 'musyawarah' ? 'Target ditetapkan musyawarah' : t.sumber === 'bendahara' ? 'Target dari bendahara' : 'Target sementara (belum ditetapkan musyawarah)'}</small>
                     </span>
                     <Lencana warna={t.disetor >= t.target ? 'hijau' : 'kuning'}>{t.disetor >= t.target ? 'Lunas' : 'Belum'}</Lencana>
+                  </li>
+                ))}
+              </ul>
+            </Kartu>
+          ) : null}
+          {x.kebutuhanDana.length ? (
+            <Kartu judul="Kebutuhan dana kegiatan (kebijakan musyawarah)">
+              <ul className="daftar-sederhana">
+                {x.kebutuhanDana.map((d) => (
+                  <li key={d.nama}>
+                    <span>{d.nama}</span>
+                    <b>{rp(d.nominal)}</b>
                   </li>
                 ))}
               </ul>
@@ -638,11 +653,15 @@ interface ItemBidang {
 }
 
 const ITEM: ItemBidang[] = [
-  { kunci: 'ringkasan', teks: 'Ringkasan PPG', ket: 'Semua bidang, musyawarah, setor', ikon: '◎', jabatan: ['ketua', 'wakil_ketua'], isi: () => <><KartuRingkasanKetua /><RekapKeaktifanBidang /><DaftarCatatan judul="Notulen musyawarah" jenis={['notulen']} /></> },
-  { kunci: 'sekretariat', teks: 'Sekretariat', ket: 'Notulen, rekap → WA grup, database', ikon: '✎', jabatan: ['sekretaris'], isi: () => <><KartuPengingatLaporan /><DaftarCatatan judul="Notulen musyawarah" jenis={['notulen']} /><RekapKeaktifanBidang kirimWa /><DataGenerusJenjang /><DaftarCatatan judul="Database mubaligh/mubalighot" jenis={['mubaligh']} /></> },
+  { kunci: 'ringkasan', teks: 'Ringkasan PPG', ket: 'Semua bidang, musyawarah, setor', ikon: '◎', jabatan: ['ketua', 'wakil_ketua'], isi: () => <><KartuRingkasanKetua /><RekapKeaktifanBidang /></> },
+  // §18: musyawarah — notulen (sekretaris, PJ desa/kelompok), pengesahan & mandat (ketua/wakil), register kebijakan
+  { kunci: 'musyawarah', teks: 'Musyawarah & Kebijakan', ket: 'Notulen, pengesahan, agenda & undangan WA', ikon: '⚖', jabatan: ['ketua', 'wakil_ketua', 'sekretaris', 'pj_desa', 'pj_kelompok'], isi: () => <MusyawarahHp /> },
+  { kunci: 'sekretariat', teks: 'Sekretariat', ket: 'Rekap → WA grup, database', ikon: '✎', jabatan: ['sekretaris'], isi: () => <><KartuPengingatLaporan /><RekapKeaktifanBidang kirimWa /><DataGenerusJenjang /><DaftarCatatan judul="Database mubaligh/mubalighot" jenis={['mubaligh']} /></> },
   { kunci: 'kas', teks: 'Keuangan', ket: 'Buku kas, tabungan desa, dana masuk', ikon: 'Rp', jabatan: ['bendahara'], isi: () => <><KartuKas bolehUbah /><DaftarCatatan judul="Catatan kas" jenis={['kas', 'target_tabungan']} /></> },
   { kunci: 'kas_lihat', teks: 'Keuangan (lihat)', ket: 'Saldo & laporan bendahara', ikon: 'Rp', jabatan: ['ketua', 'wakil_ketua'], isi: () => <><KartuKas bolehUbah={false} /><DaftarCatatan judul="Catatan kas" jenis={['kas']} bolehTambah={false} /></> },
   { kunci: 'dana', teks: 'Penggalangan Dana', ket: 'Dana masuk → setor ke bendahara', ikon: '♥', jabatan: ['penggalang_dana'], isi: () => <><KartuKas bolehUbah={false} penggalang /><DaftarCatatan judul="Dana masuk" jenis={['dana_masuk']} ket="Tercatat di kas setelah dikonfirmasi bendahara." /></> },
+  // §18: butir materi/penilaian yang diserahkan ke Bidang Kurikulum
+  { kunci: 'penetapan', teks: 'Perlu Ditetapkan Kurikulum', ket: 'Target, halaman kitab, rumus TOTAL, …', ikon: '✔', jabatan: ['kurikulum'], isi: () => <PerluDitetapkanHp /> },
   { kunci: 'reward', teks: 'Reward Hasil Belajar', ket: 'Santri, kelompok & desa terbaik', ikon: '★', jabatan: ['kurikulum', 'ketua', 'wakil_ketua'], isi: () => <RewardBidang /> },
   { kunci: 'pendidik', teks: 'Tenaga Pendidik', ket: 'Data & kebutuhan MT, SDM, kontrol MT', ikon: '☺', jabatan: ['tenaga_pendidik'], isi: () => <><RekapKontrolMtBidang /><DaftarCatatan judul="Data mubaligh/mubalighot" jenis={['mubaligh']} /><DaftarCatatan judul="Kebutuhan pengajar" jenis={['kebutuhan_pengajar']} /><DaftarCatatan judul="Program peningkatan SDM" jenis={['program_sdm']} /></> },
   { kunci: 'sarpras', teks: 'Sarana & Prasarana', ket: 'Inventaris & usulan pengadaan', ikon: '▦', jabatan: ['sarpras'], isi: () => <><DaftarCatatan judul="Inventaris per kelompok" jenis={['inventaris']} /><DaftarCatatan judul="Usulan pengadaan ke bendahara" jenis={['usulan_pengadaan']} /></> },
@@ -694,6 +713,7 @@ export function BerandaBidang(p: PropHalaman) {
       <KartuPengingatSetor />
       {jabatan.some((j) => j === 'sekretaris' || j === 'pj_desa' || j === 'ketua' || j === 'wakil_ketua') ? <KartuPengingatLaporan /> : null}
       {jabatan.some((j) => j === 'ketua' || j === 'wakil_ketua') ? <KartuRingkasanKetua /> : null}
+      {jabatan.some((j) => j === 'ketua' || j === 'wakil_ketua' || j === 'sekretaris') ? <KartuMusyawarahHp buka={() => p.pergi('bidang')} /> : null}
       <div className="tumpuk">
         <Tombol penuh onClick={() => p.pergi('bidang')}>
           Buka menu bidang

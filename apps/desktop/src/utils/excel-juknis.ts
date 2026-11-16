@@ -33,6 +33,10 @@ export async function buatExcelPenguasaan(r: RekapPenguasaan, judul: string): Pr
     gayaKepala(h)
     h.height = 90
     baris.forEach((b, i) => ws.addRow([i + 1, b.nama, ...b.nilai.map(angka), angka(b.total)]))
+    if (r.materiBelumDitetapkan.length) {
+      ws.addRow([])
+      ws.addRow([`Catatan: materi ${r.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — kolom kosong dan tidak ikut dihitung di TOTAL.`]).font = { italic: true }
+    }
     ws.getColumn(1).width = 5
     ws.getColumn(2).width = 28
     for (let i = 0; i < r.kolom.length + 1; i++) ws.getColumn(3 + i).width = 11
@@ -47,6 +51,7 @@ export async function buatExcelPenguasaan(r: RekapPenguasaan, judul: string): Pr
   for (const d of r.perDesa) ring.addRow(['Desa', d.nama, d.jumlah, ...d.rata.map(angka), angka(d.rataTotal)])
   for (const k of r.perKelompok) ring.addRow(['Kelompok', k.nama, k.jumlah, ...k.rata.map(angka), angka(k.rataTotal)])
   ring.addRow(['Wilayah', 'Seluruh', r.baris.length, ...r.rata.map(angka), angka(r.rataTotal)]).font = { bold: true }
+  if (r.materiBelumDitetapkan.length) ring.addRow([`Catatan: materi ${r.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung di TOTAL.`]).font = { italic: true }
   ring.getColumn(2).width = 24
   return new Uint8Array(await wb.xlsx.writeBuffer())
 }

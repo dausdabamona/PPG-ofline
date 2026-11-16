@@ -1270,3 +1270,20 @@ button.baris-progres {
 .kisi-isian { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .isian-musyawarah { padding: 8px 0; border-bottom: 1px solid #eef2f1; }
 .aksi-baris { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* §18 musyawarah: butir keputusan dalam formulir notulen & pilihan jabatan */
+.kartu-dalam {
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 8px 0;
+  background: var(--kertas);
+}
+.kotak-centang {
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+.kotak-centang .centang {
+  min-height: 44px;
+}

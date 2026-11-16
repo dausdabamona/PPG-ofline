@@ -134,7 +134,7 @@ function RingkasanBerkas(p: { h: HasilImporBanyak }) {
       </div>
       <p>
         Pengirim: <strong>{r.pengirim.join(', ') || r.pengirimPerangkatId}</strong> · urut {r.urut} · {r.total.ditambah} ditambah, {r.total.diperbarui}{' '}
-        diperbarui, {r.total.diabaikan} diabaikan, {r.total.bentrok} bentrok · {r.usulanBaru} usulan baru{r.usulanOtomatis ? ` · ${r.usulanOtomatis} usulan Super Admin HP disetujui otomatis` : ''} · {r.tokenDilaporkan} token dilaporkan
+        diperbarui, {r.total.diabaikan} diabaikan, {r.total.bentrok} bentrok · {r.usulanBaru} usulan baru{r.usulanOtomatis ? ` · ${r.usulanOtomatis} usulan disetujui otomatis` : ''}{r.keputusanDiterapkan ? ` · ${r.keputusanDiterapkan} keputusan musyawarah diterapkan` : ''}{r.kunciKeuanganDiganti ? ' · kunci keuangan diganti (kirim paket daerah)' : ''} · {r.tokenDilaporkan} token dilaporkan
         {r.gabungan ? ` · ${r.perangkatBawah} perangkat di bawahnya` : ''}
       </p>
       {tabel.length ? (
