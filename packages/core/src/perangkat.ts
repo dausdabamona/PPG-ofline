@@ -35,6 +35,7 @@ import {
 } from './token'
 import { sekarangIso, tambahHariIso } from './waktu'
 import { wajibBuktiWilayahDb, wilayahMencakupDb } from './rantai'
+import { JABATAN_PIN_WAJIB, penugasanDari } from './kepengurusan'
 
 /** Identitas kriptografis HP ini. */
 export interface IdentitasPerangkat {
@@ -255,6 +256,14 @@ export function pilihProfil(db: Db, id: string, pin?: string): Profil {
   return ambilProfil(db, id)!
 }
 
+function pinWajibToken(teks: string): boolean {
+  try {
+    return penugasanDari(uraiToken(teks).payload).some((x) => JABATAN_PIN_WAJIB.includes(x.jabatan))
+  } catch {
+    return false
+  }
+}
+
 /** Atur atau hapus (null) PIN profil; bila profil sudah ber-PIN, PIN lama wajib benar. */
 export function aturPin(db: Db, id: string, pinBaru: string | null, pinLama?: string): void {
   const b = barisProfil(db, id)
@@ -263,6 +272,8 @@ export function aturPin(db: Db, id: string, pinBaru: string | null, pinLama?: st
     throw new GalatPpg('PIN_SALAH', 'PIN lama salah.')
   }
   if (pinBaru === null) {
+    // §21.1: profil pengurus ber-BK/bendahara/penggalang dana wajib ber-PIN (HP bersama orang tua–anak)
+    if (b.role === 'pengurus' && pinWajibToken(b.token)) throw new GalatPpg('PIN_WAJIB', 'Profil BK/Bendahara/Penggalang Dana wajib memakai PIN.')
     db.jalankan('UPDATE profil SET pin_hash = NULL, pin_garam = NULL WHERE id = ?', [id])
     return
   }

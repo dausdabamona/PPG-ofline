@@ -165,6 +165,10 @@ describe('Penugasan berjenjang di token (§21.1, J-BJ1)', () => {
     expect(perluPinWajib(bk.profil)).toBe(true)
     expect(perluPinWajib(ben.profil)).toBe(true)
     expect(perluPinWajib(sar.profil)).toBe(false)
+    const { aturPin } = await import('../src/index')
+    aturPin(bk.db, bk.profil.id, '1234')
+    expect(() => aturPin(bk.db, bk.profil.id, null, '1234')).toThrow(/wajib memakai PIN/)
+    aturPin(bk.db, bk.profil.id, '5678', '1234')
   })
 })
 
