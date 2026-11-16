@@ -263,6 +263,36 @@ Praktik Ibadah, Akhlaqul Karimah, Mandiri) berisi **Materi · Target · Dikuasai
 2. Pada baris perangkat tekan **Bekukan** (sementara), **Cairkan**, atau **Cabut** (permanen).
 3. Kirim paket ke wilayahnya agar pencabutan sampai ke bawah.
 
+### 2.13a Token pengurus dengan penugasan jabatan (Fase 15)
+
+Bidang PPG ada di daerah **dan** di desa/kelompok sebagai **perwakilan daerah**. Ketua, Wakil Ketua, Sekretaris, Bendahara, dan
+Kurikulum hanya di daerah; di desa/kelompok sekretariat dipegang **PJ Desa / PJ Kelompok**. Bidang lain (Tenaga Pendidik, Penggalang
+Dana, Sarana & Prasarana, Muda/i, Olahraga & Seni, Kemandirian, Keputrian, BK, Tahfidz) ada di semua tingkat. **Rangkap boleh** —
+satu orang cukup **satu token**.
+
+1. **Perangkat & Token** → tempel **Kode Perangkat** → Untuk **Pengurus** → isi **Nama pemegang**.
+2. Bagian **Penugasan jabatan / bidang PPG**: pilih **Wilayah penugasan** → centang jabatannya → **Tambah penugasan**. Ulangi untuk
+   wilayah lain. Contoh: Sarpras daerah + Sarpras Desa Sorong + BK Kelompok Remu.
+3. **Wilayah token otomatis** = wilayah terendah yang mencakup semua penugasan (tidak perlu dipilih).
+4. Bila ada penugasan **BK**: isi **Nomor WA BK** (opsional, disarankan nomor khusus BK). Nomor ini muncul di tombol **Hubungi BK**
+   HP orang tua & generus SMA ke atas (tanpa nama).
+5. **Terbitkan token** → kirim ke HP pengurus. Tanpa penugasan = pengurus biasa (pilih **Wilayah tugas**).
+
+Kunci rahasia per wilayah: BK di wilayah W hanya bisa membaca konseling **W**; penggalang dana desa/kelompok hanya keuangan wilayahnya;
+Ketua/Wakil/Bendahara/Penggalang Dana daerah (kebijakan M04) membaca keuangan semua wilayah. Profil HP pengurus BK/Bendahara/Penggalang
+Dana **wajib ber-PIN**.
+
+### 2.13b Struktur & Kursi Kosong, ganti kunci per wilayah
+
+1. Menu **Kepengurusan** → **Struktur & Kursi Kosong**: tabel tiap wilayah × jabatan. Kursi tanpa pemegang tertulis merah **Perlu
+   ditunjuk**; pemegang rangkapan dari tingkat atas diberi tanda **perwakilan daerah/desa**. Centang **Tampilkan kursi kosong saja**
+   untuk daftar yang perlu ditunjuk. (EXE Desa melihat wilayah desanya.)
+2. **Kepengurusan → Ringkasan & Bidang → Kunci bidang rahasia (per wilayah)**: bila BK atau penggalang dana suatu wilayah diganti/dicabut,
+   pilih **Bidang** dan **Wilayah** → **Ganti kunci wilayah ini** (mis. hanya konseling Kelompok Remu). **Ganti kunci semua wilayah**
+   bila pembaca keuangan daerah berganti. Lalu **Kirim Paket**.
+3. Ringkasan bidang menampilkan jumlah catatan konseling & **rujukan BK se-daerah** (bulan ini, belum ditanggapi, total) — tidak
+   dirinci per wilayah dan isinya tidak pernah dibuka di laptop.
+
 ---
 
 ## 3. Admin Desa (laptop)
@@ -459,6 +489,15 @@ Menu **Materi**: target semester per kelas, capaian tiap generus, dan materi yan
 6. **Laporan Pekanan** → kirim WA ke orang tua.
 7. **Setor ke …** → tombol **Setor ke …**; **Setor Akhir** (di **Pilihan lain**) hanya saat serah terima tugas.
 8. **Buka Berkas** → paket dari desa, setoran generus, dan berkas lain.
+9. **Rujuk ke BK** (Fase 15) — untuk generus yang perlu bimbingan: pilih **Generus** → **Kategori** (Belajar · Keaktifan · Perilaku ·
+   Pergaulan · Keluarga · Lainnya) → **Uraian singkat** → centang **Segera** bila perlu cepat (boleh **Kirim langsung ke BK Daerah**) →
+   **Kirim rujukan**. Tujuan dipilih otomatis (BK kelompok → bila belum ada BK desa → BK daerah; bila BK kelompok kerabat anak itu,
+   langsung ke tingkat atasnya) dan tertulis "Akan diterima: …". Tekan **Kirim berkas rujukan ke BK (WA)** agar cepat sampai;
+   rujukan juga ikut **Setor**. Bila **Segera**: hubungi BK atau pengurus lewat telepon; bila menyangkut keselamatan anak, segera hubungi
+   orang tua/pihak berwenang. Di **Rujukan saya** hanya terlihat tanggal, tujuan, dan status (Terkirim · Diterima BK · Sedang ditangani ·
+   Selesai) — isi hanya dibaca BK.
+10. Kartu **Rujuk ke BK?** di atas menu Lainnya muncul untuk anak yang keaktifannya **di bawah 50 % dua bulan berturut-turut** →
+    **Rujuk** (formulir terisi anak itu) atau **Tutup** (muncul lagi bulan depan bila masih rendah).
 
 ### 6.6 Keaktifan (Lembar Kontrol) — Juknis 2025
 
@@ -526,43 +565,50 @@ Menu bawah: **Beranda · Absen · Data · Rekap · Sinkron**.
 5. **Rekap**: kehadiran dan kemajuan wilayah Anda.
 6. **Sinkron** → **Setor ke …** → kirim berkasnya; buka paket baru dari desa lewat **Buka Berkas**.
 7. Pengurus kelompok: **Beranda → Laporan Bulanan (Musyawaroh & NUNGGONI)** — sama seperti 6.8.
+8. **Beranda → Rujuk ke BK**: semua pengurus boleh merujuk generus wilayahnya ke BK — sama seperti 6.5 butir 9.
 
 ### 7A. Pengurus PPG per jabatan/bidang
 
-Admin Daerah menerbitkan token pengurus berjabatan: **Perangkat & Token** → Untuk **Pengurus** → Wilayah (daerah untuk pengurus
-daerah, desa untuk PJ desa, kelompok untuk PJ kelompok) → centang **Jabatan / bidang PPG** (boleh lebih dari satu, mis. Wakil Ketua +
-Tenaga Pendidik) → **Terbitkan token**. Orang tua yang juga pengurus: tambah profil kedua di HP yang sama (bagian 8).
+Admin Daerah menerbitkan token pengurus berjabatan dengan **penugasan** (jabatan + wilayah, boleh rangkap di daerah, desa, dan
+kelompok sekaligus — lihat 2.13a). Orang tua yang juga pengurus: tambah profil kedua di HP yang sama (bagian 8).
 
-Di HP, menu bawah pengurus berjabatan: **Beranda · Bidang · Data · Sinkron** (PJ kelompok juga **Absen**). Menu **Bidang** hanya
-berisi tugas jabatan Anda:
+Di HP, menu bawah pengurus berjabatan: **Beranda · Bidang · Data · Sinkron** (PJ kelompok juga **Absen**). Menu **Bidang**
+dikelompokkan **per penugasan**, mis. "Bidang Sarana & Prasarana · Desa Sorong", "Bidang Bimbingan Konseling · Kelompok Remu"; tiap
+penugasan mengolah catatan wilayahnya (dan wilayah di bawahnya). Kelompok **Semua pengurus** berisi **Rujuk ke BK** dan **NUNGGONI**.
+Profil yang memegang **BK, Bendahara, atau Penggalang Dana** wajib memasang PIN: saat pertama membuka **Bidang** muncul **Pasang PIN
+dulu** → isi **PIN baru (4 angka)** dan **Ulangi PIN** → **Pasang PIN**; PIN diminta setiap membuka profil itu dan tidak bisa dihapus.
+Menu tiap jabatan:
 
 | Jabatan | Yang dikerjakan di HP |
 |---|---|
 | Ketua / Wakil | **Ringkasan PPG** (keaktifan, kelompok belum lapor, NUNGGONI, jumlah kasus BK, saldo), rekap; **Musyawarah & Kebijakan** → **Sahkan** notulen; Ketua memberi **mandat** ke Wakil (7B) |
 | Sekretaris | **Musyawarah & Kebijakan** (notulen berbutir keputusan, undangan & hasil WA — 7B), rekap keaktifan → **Bagikan ke grup WA**, database generus per jenjang & mubaligh, pengingat kelompok yang belum lapor |
 | Bendahara | **Keuangan**: + Buku kas (pemasukan/pengeluaran, rupiah bulat), tabungan desa (target = kebijakan musyawarah; sebelum ditetapkan dipakai nilai sementara Sorong 700.000 & Aimas 600.000), **Konfirmasi** dana masuk dari penggalang dana |
-| Penggalang Dana | + Dana masuk (wali/aghniya/lain) → masuk kas setelah dikonfirmasi bendahara |
+| Penggalang Dana | + Dana masuk (wali/aghniya/lain) → masuk kas setelah dikonfirmasi bendahara daerah. Di desa/kelompok: dana masuk wilayahnya saja (hanya terbaca penggalang dana wilayah itu dan pembaca keuangan daerah) |
 | Kurikulum | **Perlu Ditetapkan Kurikulum** (5.2b) dan **Reward Hasil Belajar**: santri terbaik per jenjang, kelompok & desa terbaik (jumlah juara & bobot skor = kebijakan musyawarah) |
 | Tenaga Pendidik | Data mubaligh/mubalighot (tugasan/setempat), kebutuhan pengajar, program SDM, rekap **Kontrol Keaktifan MT** |
 | Sarana & Prasarana | Inventaris per kelompok (kondisi, tanggal cek), usulan pengadaan |
 | Muda/i & Kepramukaan | 10 group pembinaan, agenda (LDK, CAI, pengajian muda/i daerah, …) → **Catat hadir** = keaktifan MR/DR/AA/AS peserta |
 | Olahraga & Seni · Kemandirian · Keputrian | Agenda program; kemandirian juga data lulus/dropout, bakat & minat, info kerja; keputrian hanya generus putri |
-| Bimbingan Konseling | Catatan konseling — **hanya BK yang bisa membaca** (ketua melihat jumlah kasus saja) |
+| Bimbingan Konseling | **Rujukan masuk** (dari berkas `PPG_RUJUKAN_…` lewat **Sinkron → Buka Berkas**, atau lewat paket): **Terima** → **Tangani** → **Selesai**; **Jadikan catatan konseling** (isian terisi dari rujukan); **Naikkan** ke BK Desa/Daerah (tulis ulang uraian — isi asli tidak ikut terbuka); rujukan **Segera** yang belum diterima ≥ 3 hari diberi peringatan di Beranda. Catatan konseling — **hanya BK wilayah itu** yang bisa membaca (BK tingkat atas tidak membaca kasus di bawahnya; Ketua hanya melihat jumlah se-daerah). Catatan konseling & rujukan Selesai dihapus otomatis setelah **24 bulan** (kebijakan M08) |
 | Tahfidz | Peserta, **ujian** (centang surat yang lulus, 2 penguji, poin otomatis), peringkat |
-| PJ Desa / PJ Kelompok | Pengingat akhir bulan "kejar absensi & laporan", temuan keaktifan < 50%; laporan KBM bulanan kelompok; notulen musyawarah desa/5 unsur wilayahnya |
-| Semua | **NUNGGONI** — catat setelah menunggui 1 KBM (Semua Pengurus & Mubaligh Peduli) |
+| PJ Desa / PJ Kelompok | Pengingat akhir bulan "kejar absensi & laporan", temuan keaktifan < 50%; laporan KBM bulanan kelompok; notulen musyawarah desa/5 unsur wilayahnya (PJ tidak melihat hitungan konseling) |
+| Semua | **NUNGGONI** — catat setelah menunggui 1 KBM (Semua Pengurus & Mubaligh Peduli); **Rujuk ke BK** |
 
 Semua catatan ikut **Setor** seperti biasa. Mubaligh mengisi **Lainnya → Kontrol Keaktifan MT** (sholat subuh/tahajud/dhuha, kolom
 hafalan, tadarus) setiap hari; diperiksa pengajian MT minggu pertama.
 
-Di EXE Daerah/Desa: menu **Kepengurusan** — daftar pengurus berjabatan, ringkasan bidang, keuangan & tabungan desa, reward, kontrol MT,
-tahfidz, catatan bidang. Bila bendahara/BK lama dicabut: **Ganti kunci keuangan/konseling**, lalu **Kirim Paket** seluruh daerah.
+Di EXE Daerah/Desa: menu **Kepengurusan** — **Ringkasan & Bidang** (daftar pengurus beserta penugasannya, ringkasan bidang, keuangan &
+tabungan desa, reward, kontrol MT, tahfidz, catatan bidang) dan **Struktur & Kursi Kosong** (2.13b). Bila BK/penggalang dana suatu
+wilayah diganti: **Ganti kunci wilayah ini** (2.13b), lalu **Kirim Paket**.
 
 ### 7B. Musyawarah & Kebijakan (Fase 12)
 
 Kebijakan yang bukan urusan kurikulum diputuskan lewat **musyawaroh**. Daftar kebijakan (**Register Kebijakan**): M01 tabungan bulanan
 tiap desa, M02 rumus skor reward, M03 jumlah juara reward, M04 hak baca keuangan, M05 jadwal musyawarah rutin (sebulan sekali: ganjil
-bersama, genap PPG muda/i), M06 kebutuhan dana kegiatan, M07 tanggal pengingat laporan. Status: **Sementara** (nilai sementara masih
+bersama, genap PPG muda/i), M06 kebutuhan dana kegiatan, M07 tanggal pengingat laporan, **M08 masa simpan catatan konseling &
+rujukan** (sementara 24 bulan), **M09 nomor WA khusus BK** per wilayah (belum ditetapkan; sementara dipakai nomor yang diisi saat token
+BK diterbitkan). Status: **Sementara** (nilai sementara masih
 dipakai), **Belum ditetapkan** (mis. tabungan Fakfak & Kaimana), **Ditetapkan Musyawarah** (nomor & tanggal musyawarah, pengesah).
 
 Alur:
@@ -656,6 +702,8 @@ Menu bawah: **Target · Materiku · Catat · Jadwal · Setor**.
    **Karakter Luhur**, keaktifan & catatan mubaligh; ketuk **Rincian Penguasaan Materi** untuk membuka nilai tiap materi →
    **Simpan PDF / Cetak** atau **Bagikan PDF (WA)**.
 10. Kakak-adik di satu HP: **Profil & HP** → **+ Tambah Profil** untuk anak berikutnya (lihat bagian 8).
+11. **Hubungi BK** (jenjang Remaja & Pra Nikah): di bawah menu **Target** ada kartu **Hubungi BK** → **Hubungi BK** → pilih **BK
+    Kelompok / BK Desa / BK Daerah** → WhatsApp terbuka dengan kalimat pembuka. Tulis sendiri ceritamu; tidak ada yang tercatat di aplikasi.
 
 ---
 
@@ -674,6 +722,9 @@ Menu bawah: **Target · Laporan · Kemajuan · Kehadiran · Berkas**.
    dibuka; **Simpan PDF / Cetak** raport anak sendiri.
    Bila banyak kolom kosong menjelang akhir bulan,
    bantu anak mengaji di rumah atau hubungi mubaligh.
+7. **Hubungi BK**: kartu di bawah **Target** → **Hubungi BK** → pilih **BK Kelompok / BK Desa / BK Daerah** (yang punya nomor) →
+   WhatsApp terbuka dengan kalimat pembuka. Percakapan langsung dengan BK, tidak tercatat di aplikasi. Bila tombol BK belum ada: buka
+   berkas Balasan terbaru dari mubaligh, atau tanyakan nomor BK ke mubaligh.
 
 ---
 
@@ -690,6 +741,7 @@ Menu bawah: **Target · Laporan · Kemajuan · Kehadiran · Berkas**.
 | Bulanan (sesudah tanggal 5) | Admin Daerah | **Impor Setoran** → **Usulan** → **Kirim Paket** semua desa → **Beranda** (status setor) |
 | Sesudah paket daerah datang | Admin Desa | **Buka Paket** → **Kirim Paket** semua kelompok |
 | Awal semester (Juli & Januari) | Petugas Kurikulum | **Target Capaian** periode baru → **Jadikan periode aktif** → **Buat berkas Kurikulum** |
+| Setiap menerima berkas `PPG_RUJUKAN_…` / paket baru | Pengurus BK | **Buka Berkas** → **Bidang → Bimbingan Konseling** → **Terima** → tangani → **Selesai** → **Setor** (status sampai ke perujuk) |
 | Bulanan | Semua laptop | **Pengaturan → Simpan cadangan database** |
 | Bulanan | Semua HP | **Profil & HP → Cadangkan data HP** |
 
@@ -722,3 +774,9 @@ Menu bawah: **Target · Laporan · Kemajuan · Kehadiran · Berkas**.
 | HP hilang / rusak | Dengan cadangan: pasang APK → **Profil & HP** → **Pulihkan dari cadangan**. Tanpa cadangan: admin **Cabut** token lama, lalu aktivasi ulang dari Kode Perangkat HP baru. |
 | Token kedaluwarsa ("Masa berlaku profil habis") | Kirim Kode Perangkat ke penerbit token → terima token baru → **+ Tambah Profil** → **Aktifkan**. |
 | Daerah memulihkan database lama | Minta desa **Setor ke Daerah → Pilihan lain → Kirim ulang semua data**. |
+| Menu **Bidang** menampilkan **Pasang PIN dulu** | Profil BK/Bendahara/Penggalang Dana wajib ber-PIN. Isi PIN 4 angka dua kali → **Pasang PIN**. PIN tidak bisa dihapus; untuk mengganti: **Profil & HP → Ubah / hapus PIN**. |
+| **Rujuk ke BK**: "Belum ada pengurus BK aktif" atau "Data BK belum ada di HP ini" | Buka paket terbaru dari desa/daerah (**Buka Berkas**). Bila tetap: Admin Daerah perlu menunjuk BK (lihat **Struktur & Kursi Kosong**). |
+| Rujukan tertulis "HP BK tujuan belum dikenal" | Tidak apa-apa: rujukan tetap sampai lewat **Setor** → daerah → paket BK. |
+| BK: berkas rujukan "bukan untuk HP ini" / "untuk BK wilayah lain" | Berkas itu ditujukan ke BK lain (mis. BK desa). Teruskan ke BK yang benar, atau minta perujuk mengirim ulang. |
+| BK suatu wilayah diganti | Admin Daerah: **Cabut** token BK lama → **Kepengurusan → Ganti kunci wilayah ini** (Konseling, wilayah itu) → terbitkan token BK baru → **Kirim Paket**. BK lama tidak bisa membaca catatan baru; BK baru membaca catatan lama dan baru wilayahnya. |
+| Orang tua/generus: tombol **Hubungi BK** tidak ada nomor | Nomor BK belum diisi Admin Daerah, atau Balasan terbaru belum dibuka. Tanyakan ke mubaligh. |
