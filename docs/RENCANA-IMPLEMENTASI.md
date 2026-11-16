@@ -1001,3 +1001,97 @@ Nilai sementara = katalog kode (J-KR1). Status **Sementara** sampai ditetapkan.
 | J-R17 | Alim & Faqih = dua aspek penilaian di bawah Alim-Faqih; nilai Alim-Faqih = rata-rata keduanya; nilai akhir tetap rata-rata 3 aspek Tri Sukses (bukan 4) | Revisi pemilik (GBMTPG Pusat 2022): Tri Sukses tetap tiga |
 | J-R18 | Keterangan target jenjang Karakter Luhur dari istilah capaian GBMTPG (Mengenal/Tertanam/Terbiasa/Terampil/Memiliki); jenjang lama `caberawit` = Tertanam | Keterangan saja; predikat tetap Baik/Cukup/Perlu Bimbingan |
 | J-R16 | `Rapor.total` tetap ada = nilai akhir; `Rapor.triSukses` & `Rapor.karakter` baru | Pemakai lama (lembar bulanan, reward) otomatis konsisten |
+
+---
+
+## 21. Bidang berjenjang (perwakilan daerah di desa & kelompok) + Rujukan BK (Fase 15, 16 Nov 2026)
+
+Keputusan pemilik (percakapan 16 Nov 2026):
+
+- Bidang PPG (BK, Penggalang Dana, Sarana & Prasarana, dan bidang lain) **ada juga di desa dan kelompok sebagai perwakilan daerah**.
+  **Ketua, Wakil Ketua, Sekretaris, Bendahara hanya di daerah**; di desa/kelompok tugas sekretariat tetap dipegang PJ Desa/PJ Kelompok.
+- Orang terbatas → **rangkap jabatan boleh di semua tingkat** (pengurus daerah biasa juga duduk di desa & kelompok; di kelompok satu
+  orang boleh BK + Sarpras sekaligus orang tua generus). Kursi yang tidak dirangkap **ditunjuk orangnya** → aplikasi menampilkan
+  kursi kosong.
+- **Rujukan ke BK** dengan bentuk paling sederhana (kajian di Google Docs "Kajian Rujukan BK & Bidang Berjenjang"): formulir hanya
+  untuk mubaligh & pengurus; orang tua dan generus SMA ke atas cukup tombol **Hubungi BK** (WA langsung, tanpa data di aplikasi).
+
+### 21.1 Penugasan berjenjang
+
+- **Token pengurus membawa daftar penugasan** `PayloadToken.penugasan?: { jabatan: Jabatan; wilayah_id: string }[]` (format token
+  tetap `v: 1`). Token lama `jabatan[]` dibaca sebagai penugasan pada wilayah token (kompatibel). Satu orang = satu token = satu
+  profil walau memegang penugasan di daerah, desa, dan kelompok sekaligus.
+- **Wilayah token** = wilayah terendah yang mencakup semua penugasan (leluhur bersama); cakupan paket & setor mengikuti wilayah token
+  seperti biasa. Token berpenugasan tetap **hanya diterbitkan EXE Daerah** (J-K2).
+- **Jabatan per tingkat:** daerah = 14 jabatan §17. Desa = `pj_desa` + bidang perwakilan. Kelompok = `pj_kelompok` + bidang
+  perwakilan. **Bidang perwakilan** = `tenaga_pendidik`, `penggalang_dana`, `sarpras`, `muda_mudi`, `olahraga_seni`, `kemandirian`,
+  `keputrian`, `bk`, `tahfidz`. `ketua`, `wakil_ketua`, `sekretaris`, `bendahara`, `kurikulum` hanya daerah.
+- **Menu Bidang HP** dikelompokkan per penugasan ("Sarpras · Desa Klasaman"); tiap penugasan mengolah catatan wilayahnya.
+- **Bidang terbuka** (sarpras, agenda, tahfidz, data mubaligh, kemandirian, …): catatan wilayah W ditulis pemegang bidang itu di W;
+  pemegang bidang yang sama di wilayah leluhur W membaca (rekap naik lewat Setor seperti biasa) dan boleh menulis untuk W.
+- **Struktur & Kursi Kosong** (EXE Daerah & Desa, menu Kepengurusan): tabel wilayah × jabatan dari token aktif; pemegang rangkapan
+  dari tingkat atas diberi tanda *perwakilan daerah/desa*; kursi tanpa pemegang tampil merah **Perlu ditunjuk**. Rangkap tidak
+  diperingatkan.
+- **PIN wajib** untuk profil pengurus yang memegang `bk`, `bendahara`, atau `penggalang_dana` (HP bersama orang tua–anak): menu
+  Bidang terkunci sampai PIN dipasang; PIN diminta tiap membuka profil itu.
+
+### 21.2 Kunci rahasia per wilayah
+
+- Kunci bidang rahasia (`keuangan`, `konseling`) dibuat **per wilayah** (kunci wilayah daerah = kunci lama versi yang berlaku →
+  catatan lama tetap terbaca). Pasangan kunci tetap dibuat & disimpan EXE Daerah (J-K5).
+- **Keuangan:** tidak ada bendahara di desa/kelompok. Penggalang Dana desa/kelompok mencatat dana masuk wilayahnya dengan kunci
+  keuangan wilayahnya dan menerima kunci baca **wilayahnya saja**. Pembaca keuangan daerah menurut M04 (bawaan ketua, wakil,
+  bendahara, penggalang dana daerah) menerima kunci **semua wilayah**. Bendahara daerah mengonfirmasi semua dana masuk.
+- **Konseling:** BK di wilayah W menerima kunci konseling **W saja**. BK di atas **tidak** otomatis membaca kasus di bawah.
+- Paket membawa **kunci publik** konseling & keuangan tiap wilayah + penanda "ada pemegang BK aktif" + kontak BK (lihat 21.4).
+- Ganti kunci bidang **per wilayah** (mis. BK Kelompok Remu diganti → hanya kunci konseling Remu berganti).
+
+### 21.3 Rujukan ke BK
+
+- **Perujuk:** mubaligh & semua pengurus (berjabatan atau tidak) — menu Lainnya/Bidang → **Rujuk ke BK**. Orang tua & generus
+  tidak memakai formulir.
+- **Isian (1 layar):** generus (dipilih dari daftar wilayah perujuk), kategori (belajar · keaktifan · perilaku · pergaulan · keluarga
+  · lainnya), uraian singkat, centang **Segera**, dan (hanya bila Segera) **Kirim langsung ke BK Daerah**.
+- **Tujuan otomatis:** BK kelompok generus → bila kosong BK desa → bila kosong BK daerah. Bila generus termasuk **kerabat BK
+  kelompok** (generus yang token wali-nya terpasang di perangkat yang sama dengan token BK itu — daerah menghitung dari daftar
+  perangkat, dibawa paket sebagai daftar pengecualian per wilayah) → dilewati ke tingkat di atasnya. Perujuk tidak memilih tujuan.
+- **Penyimpanan:** `catatan_bidang` bidang `konseling` jenis `rujukan`, `isi_rahasia` disegel ke kunci konseling wilayah tujuan;
+  kolom terbuka hanya `wilayah_id` tujuan, tanggal, perujuk (perangkat). HP perujuk tidak menyimpan salinan terbaca; yang tampil
+  "Rujukan ke BK — tanggal — status".
+- **Pengiriman:** (1) **jalur cepat** — berkas `PPG_RUJUKAN_….ppg` (amplop ke perangkat BK tujuan) dibagikan lewat WA langsung ke BK;
+  BK membukanya di Buka Berkas; (2) **jalur cadangan** — rekaman ikut Setor biasa dan turun ke BK lewat paket. Duplikat diabaikan.
+- **BK:** daftar rujukan masuk → **Terima** → **Tangani** → **Selesai**; **Jadikan catatan konseling** (isian terisi);
+  **Naikkan ke BK Desa/Daerah** = rujukan baru disegel ke kunci wilayah atas, merujuk ke rujukan asal (isi asal tidak ikut terbuka
+  untuk atas kecuali yang ditulis ulang BK).
+- **Status ke perujuk:** rekaman terbuka jenis `status_rujukan` `{ rujukan_id, status }` (tanpa isi), turun lewat paket.
+- **Segera:** setelah Kirim, HP perujuk menampilkan *"Hubungi BK atau pengurus sekarang lewat telepon. Bila menyangkut keselamatan
+  anak, segera hubungi orang tua/pihak berwenang."* Rujukan Segera yang belum Diterima ≥ 3 hari → pengingat di HP BK tujuan.
+- **Pemicu otomatis:** generus berkeaktifan < 50 % (target K16) dua bulan berturut-turut → kartu saran *"Rujuk ke BK?"* di HP
+  mubaligh kelompoknya (sekali per anak per bulan; bisa ditutup).
+- **Ringkasan Ketua/Wakil:** jumlah rujukan & kasus **se-daerah saja** (bulan ini, belum ditanggapi, total) — mengganti hitungan
+  per wilayah. PJ Desa/Kelompok tidak melihat hitungan konseling.
+
+### 21.4 Hubungi BK (orang tua & generus SMA ke atas)
+
+- Admin Daerah mengisi **nomor WA BK** (opsional, disarankan nomor khusus BK) saat menerbitkan token BK; paket membawa kontak
+  `{ wilayah_id, nomor }` per BK aktif (tanpa nama).
+- Profil **wali** dan profil **generus jenjang Remaja & Pra Nikah**: tombol **Hubungi BK** → pilih **BK Kelompok / BK Desa / BK
+  Daerah** (yang ada nomornya) → membuka WA dengan kalimat pembuka. **Tidak ada rekaman** di aplikasi.
+
+### 21.5 Kebijakan baru
+
+| Kode | Kunci | Lingkup | Nilai sementara | Konsumen |
+|---|---|---|---|---|
+| M08 | `simpan_konseling` | daerah | catatan konseling & rujukan Selesai disimpan **24 bulan**, lalu dihapus otomatis di HP BK (tanda hapus ikut Setor) | `bersihkanKonseling` |
+| M09 | `kontak_bk` | daerah | belum ditetapkan (nomor WA khusus BK per tingkat) | Hubungi BK |
+
+### 21.6 Keputusan teknis otonom (Fase 15)
+
+| Kode | Keputusan | Alasan |
+|---|---|---|
+| J-BJ1 | `penugasan[]` di token menggantikan `jabatan[]` untuk token baru; pembaca menerima keduanya | Kompatibel dengan HP Fase 11–14 |
+| J-BJ2 | Wewenang impor `catatan_bidang` (J-K6) diperluas: penulis memegang penugasan jabatan yang berwenang di wilayah rekaman **atau leluhurnya**; rujukan oleh token pengurus/mubaligh mana pun di cakupan generus | Hak tetap ditegakkan di penerima |
+| J-BJ3 | Kunci bidang berkunci `(bidang, wilayah_id, versi)`; kunci lama tanpa wilayah = wilayah daerah | Catatan lama tetap terbaca |
+| J-BJ4 | Berkas RUJUKAN = jenis berkas baru `rujukan` (amplop `segelKe` ke `box_pub` perangkat BK tujuan + rekaman bertanda tangan perujuk); diimpor ke `catatan_bidang` dengan aturan J-BJ2 | Jalur WA langsung tanpa menunggu Setor |
+| J-BJ5 | Kerabat BK = generus yang token wali/generus-nya terdaftar pada `perangkat_id` yang sama dengan token BK; dihitung EXE Daerah saat buat paket | Tidak perlu isian manual; BK tetap bisa Naikkan manual |
+| J-BJ6 | Hitungan konseling ringkasan hanya agregat daerah | Mencegah kasus tertebak di wilayah kecil |
