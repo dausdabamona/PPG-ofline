@@ -6,7 +6,10 @@ import { GalatPpg } from './galat'
 import { HALAMAN_PER_JUZ, LABEL_JENJANG, raporGenerus, type ItemRapor, type Rapor } from './juknis'
 import { namaMubalighKelompok } from './lembar-laporan'
 import { DokumenPdf, bungkusTeks, lebarTeks, type HalamanPdf, type Warna } from './pdf-sederhana'
-import { ambilGenerus } from './repo/generus'
+import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, kategoriCocok, type Generus } from './repo/generus'
+import { kategoriKelas } from './repo/pengajian'
+import { ambilRekaman } from './repo/umum'
+import { kelompokDalamWilayah } from './repo/wilayah'
 import { ambilWilayah, leluhurWilayah } from './repo/wilayah'
 import { tanggalHariIni } from './waktu'
 
@@ -248,4 +251,22 @@ export function raporPdf(db: Db, o: { generusIds: string[]; periode: string; tan
   const dok = new DokumenPdf('Laporan Hasil Belajar Generus')
   for (const id of o.generusIds) halamanRaport(dok, dataRaportCetak(db, id, o))
   return dok.bytes()
+}
+
+/**
+ * Generus aktif untuk "Cetak semua raport" (§19): satu wilayah (kelompok/desa/daerah), opsional satu jenjang atau satu
+ * kelas (pengajian rutin berkategori). Urut kelompok, jenjang, nama.
+ */
+export function generusUntukRaport(db: Db, o: { wilayahId: string; jenjang?: string | null; pengajianId?: string | null }): Generus[] {
+  const kelas = o.pengajianId ? kategoriKelas(ambilRekaman<{ kategori_generus: string | null }>(db, 'pengajian', o.pengajianId)) : null
+  const urutKel = new Map(kelompokDalamWilayah(db, o.wilayahId).map((id) => [id, ambilWilayah(db, id)?.nama ?? '']))
+  return daftarGenerus(db, { kelompokIds: [...urutKel.keys()], status: 'aktif' })
+    .filter((g) => !o.jenjang || kategoriCocok(g.kategori, o.jenjang))
+    .filter((g) => !kelas || kelas.some((k) => kategoriCocok(g.kategori, k)))
+    .sort(
+      (a, b) =>
+        urutKel.get(a.kelompok_id)!.localeCompare(urutKel.get(b.kelompok_id)!) ||
+        KATEGORI_GENERUS.indexOf(a.kategori) - KATEGORI_GENERUS.indexOf(b.kategori) ||
+        a.nama.localeCompare(b.nama),
+    )
 }

@@ -45,6 +45,7 @@ import {
   tetapkanButirKurikulum,
   ubahGenerus,
   dataRaportCetak,
+  generusUntukRaport,
   raporPdf,
   lebarTeks,
   bungkusTeks,
@@ -379,6 +380,13 @@ describe('Cetak raport resmi (PDF offline, satu anak per halaman)', () => {
     const off = [...teks.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) => Number(m[1]))
     off.forEach((o, i) => expect(teks.slice(o, o + `${i + 1} 0 obj`.length)).toBe(`${i + 1} 0 obj`))
     expect(() => raporPdf(db, { generusIds: [], periode: '2026-S1' })).toThrow(/minimal/)
+    // pilihan cetak semua: per wilayah / jenjang / kelas
+    ubahGenerus(db, w.g[2]!.id, { kategori: 'praremaja' })
+    expect(generusUntukRaport(db, { wilayahId: w.desa.id }).map((g) => g.nama)).toEqual(['Ali', 'Budi', 'Citra'])
+    expect(generusUntukRaport(db, { wilayahId: w.k1.id, jenjang: 'praremaja' }).map((g) => g.nama)).toEqual(['Citra'])
+    const kelas = tambahPengajian(db, { wilayahId: w.k1.id, nama: 'Kelas Caberawit', kategoriGenerus: ['caberawit_a', 'caberawit_b'] })
+    expect(generusUntukRaport(db, { wilayahId: w.k1.id, pengajianId: kelas.id }).map((g) => g.nama)).toEqual(['Ali', 'Budi'])
+    expect(generusUntukRaport(db, { wilayahId: w.k2.id })).toEqual([])
   })
 
   it('penulis PDF: lebar & bungkus teks, karakter khusus', () => {
