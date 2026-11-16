@@ -21,6 +21,13 @@ function gayaKepala(row: import('exceljs').Row): void {
 
 const angka = (n: number | null) => (n === null ? '' : n)
 
+/** §20.5: kolom ringkas per aspek Tri Sukses Generus. */
+const KOLOM_ASPEK = ['Alim-Faqih', 'Akhlaqul Karimah', 'Mandiri', 'Nilai Akhir']
+export const legendaRekap = (rumus: RekapPenguasaan['rumus']) =>
+  `Nilai dalam persen. bd = belum dinilai (tidak ikut rata-rata); kosong = belum ditetapkan Kurikulum. Nilai Akhir = ${
+    rumus === 'rata_materi' ? 'rata-rata semua butir materi yang dinilai' : 'rata-rata 3 aspek Tri Sukses Generus (Alim-Faqih, Akhlaqul Karimah, Mandiri)'
+  } (Kurikulum K09); keaktifan tidak masuk nilai.`
+
 /** Rekap Penguasaan Materi satu jenjang: lembar per kelompok seperti lembar juknis + ringkasan per kelompok/desa. */
 export async function buatExcelPenguasaan(r: RekapPenguasaan, judul: string): Promise<Uint8Array> {
   const wb = await bukuBaru()
@@ -29,17 +36,19 @@ export async function buatExcelPenguasaan(r: RekapPenguasaan, judul: string): Pr
     ws.addRow([judul])
     ws.getRow(1).font = { bold: true, size: 13 }
     ws.addRow([`Kelompok/Desa: ${nama}`])
-    const h = ws.addRow(['No', 'Nama', ...r.kolom.map((m, i) => `${i + 1}. ${m.nama}`), 'TOTAL'])
+    const h = ws.addRow(['No', 'Nama', ...r.kolom.map((m, i) => `${i + 1}. ${m.nama}`), ...KOLOM_ASPEK])
     gayaKepala(h)
     h.height = 90
-    baris.forEach((b, i) => ws.addRow([i + 1, b.nama, ...b.nilai.map(angka), angka(b.total)]))
+    // §20.5: sel belum dinilai = "bd"; kolom ringkas per aspek Tri Sukses + Nilai Akhir
+    baris.forEach((b, i) => ws.addRow([i + 1, b.nama, ...b.nilai.map((v, k) => (b.belumDinilai[k] ? 'bd' : angka(v))), angka(b.alimFaqih), angka(b.akhlak), angka(b.mandiri), angka(b.total)]))
+    ws.addRow([])
+    ws.addRow([legendaRekap(r.rumus)]).font = { italic: true }
     if (r.materiBelumDitetapkan.length) {
-      ws.addRow([])
-      ws.addRow([`Catatan: materi ${r.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — kolom kosong dan tidak ikut dihitung di TOTAL.`]).font = { italic: true }
+      ws.addRow([`Catatan: materi ${r.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — kolom kosong dan tidak ikut dihitung.`]).font = { italic: true }
     }
     ws.getColumn(1).width = 5
     ws.getColumn(2).width = 28
-    for (let i = 0; i < r.kolom.length + 1; i++) ws.getColumn(3 + i).width = 11
+    for (let i = 0; i < r.kolom.length + KOLOM_ASPEK.length; i++) ws.getColumn(3 + i).width = 11
     ws.views = [{ state: 'frozen', ySplit: 3, xSplit: 2 }]
   }
   const perKel = new Map<string, RekapPenguasaan['baris']>()
@@ -47,11 +56,13 @@ export async function buatExcelPenguasaan(r: RekapPenguasaan, judul: string): Pr
   for (const [, l] of perKel) tulisTabel(l[0]!.kelompok, l)
   const ring = wb.addWorksheet('Ringkasan')
   ring.addRow([`${judul} — ringkasan`]).font = { bold: true, size: 13 }
-  gayaKepala(ring.addRow(['Tingkat', 'Nama', 'Jumlah generus', ...r.kolom.map((m) => m.nama), 'Rata-rata TOTAL']))
-  for (const d of r.perDesa) ring.addRow(['Desa', d.nama, d.jumlah, ...d.rata.map(angka), angka(d.rataTotal)])
-  for (const k of r.perKelompok) ring.addRow(['Kelompok', k.nama, k.jumlah, ...k.rata.map(angka), angka(k.rataTotal)])
-  ring.addRow(['Wilayah', 'Seluruh', r.baris.length, ...r.rata.map(angka), angka(r.rataTotal)]).font = { bold: true }
-  if (r.materiBelumDitetapkan.length) ring.addRow([`Catatan: materi ${r.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung di TOTAL.`]).font = { italic: true }
+  gayaKepala(ring.addRow(['Tingkat', 'Nama', 'Jumlah generus', ...r.kolom.map((m) => m.nama), ...KOLOM_ASPEK.map((k) => `Rata-rata ${k}`)]))
+  const aspek = (x: { rataAspek: RekapPenguasaan['rataAspek']; rataTotal: number | null }) => [angka(x.rataAspek.alimFaqih), angka(x.rataAspek.akhlak), angka(x.rataAspek.mandiri), angka(x.rataTotal)]
+  for (const d of r.perDesa) ring.addRow(['Desa', d.nama, d.jumlah, ...d.rata.map(angka), ...aspek(d)])
+  for (const k of r.perKelompok) ring.addRow(['Kelompok', k.nama, k.jumlah, ...k.rata.map(angka), ...aspek(k)])
+  ring.addRow(['Wilayah', 'Seluruh', r.baris.length, ...r.rata.map(angka), ...aspek(r)]).font = { bold: true }
+  ring.addRow([legendaRekap(r.rumus)]).font = { italic: true }
+  if (r.materiBelumDitetapkan.length) ring.addRow([`Catatan: materi ${r.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung.`]).font = { italic: true }
   ring.getColumn(2).width = 24
   return new Uint8Array(await wb.xlsx.writeBuffer())
 }

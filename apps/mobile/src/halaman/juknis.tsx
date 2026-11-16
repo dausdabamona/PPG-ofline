@@ -22,6 +22,13 @@ import {
   labelIqro,
   ringkasTargetKeaktifan,
   saranJenjangIqro,
+  simpanPenilaianKarakter,
+  PREDIKAT_SIKAP,
+  LABEL_PREDIKAT_SIKAP,
+  PANJANG_CATATAN_BUTIR,
+  type BarisKarakter,
+  type KarakterRapor,
+  type PredikatSikap,
   type GenerusRinci,
   type IsiLaporanBulanan,
   type ItemRapor,
@@ -174,7 +181,7 @@ export function EvaluasiMubaligh(p: { kembali: () => void }) {
   if (pilih) return <EvaluasiGenerus g={pilih} periode={per} kembali={() => setPilih(null)} />
   return (
     <>
-      <JudulHalaman judul="Evaluasi Semester" keterangan="Penguasaan materi per anak (juknis). Nilai praktik maksimal 75%." kembali={p.kembali} />
+      <JudulHalaman judul="Evaluasi Semester" keterangan="Penguasaan materi per aspek Tri Sukses Generus + Karakter Luhur per anak. Nilai praktik maksimal 75%." kembali={p.kembali} />
       <Kartu>
         {aktif ? (
           <Pilihan label="Semester" nilai={per} ubah={setPeriode} pilihan={[aktif, periodeSebelumnya(aktif)].map((x) => ({ nilai: x, teks: teksPeriode(x) }))} />
@@ -250,44 +257,58 @@ function EvaluasiGenerus(p: { g: GenerusRinci; periode: string; kembali: () => v
       <KartuIqro g={p.g} />
       <KeadaanData hasil={r} kosong={(d) => !d || !d.jenjang || d.items.length === 0} teksKosong="Jenjang belum ditetapkan atau daftar materi evaluasi belum ada (buka berkas materi terbaru).">
         {(x) => (
-          <Kartu judul={`TOTAL ${fmt(x!.total)}`} aksi={<Tombol kecil varian="kedua" onClick={() => setRapor(true)}>Raport</Tombol>}>
-            <BilahPersen persen={x!.total ?? 0} label="Total" />
-            <ul className="daftar-rapor">
-              {x!.items.map((i) => (
-                <li key={i.materi.id}>
-                  <div>
-                    <span>{i.materi.nama}</span>
-                    {i.materi.cara === 'keaktifan' ? (
-                      <b>{fmt(i.persen)}</b>
-                    ) : i.persen === null && i.materi.cara !== 'kitab' ? (
-                      <small>Belum ditetapkan Kurikulum</small>
-                    ) : (
-                      <Tombol kecil varian={i.dinilai && !i.dariPeriode ? 'kedua' : 'utama'} onClick={() => setEdit(i)}>
-                        {i.persen === null ? (i.dinilai ? 'Ubah (belum ditetapkan)' : 'Nilai (belum ditetapkan)') : i.dinilai ? fmt(i.persen) : 'Nilai'}
-                      </Tombol>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            {x!.sisaSebelumnya ? (
-              <>
-                <h3>Belum tuntas dari {LABEL_JENJANG[x!.sisaSebelumnya.jenjang]}</h3>
-                <ul className="daftar-rapor">
-                  {x!.sisaSebelumnya.items.map((i) => (
-                    <li key={i.materi.id}>
-                      <div>
-                        <span>{i.materi.nama}</span>
-                        <Tombol kecil varian="kedua" onClick={() => setEdit(i)}>
-                          {fmt(i.persen)}
-                        </Tombol>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-          </Kartu>
+          <>
+            <Kartu judul={`Nilai Akhir ${fmt(x!.total)}`} aksi={<Tombol kecil varian="kedua" onClick={() => setRapor(true)}>Raport</Tombol>}>
+              {x!.total !== null ? <BilahPersen persen={x!.total} label="Nilai Akhir" /> : <p className="keterangan">Belum ada materi yang dinilai.</p>}
+              <p className="keterangan">
+                Alim-Faqih {fmt(x!.triSukses.alimFaqih)} · Akhlaqul Karimah {fmt(x!.triSukses.akhlak)} · Mandiri {fmt(x!.triSukses.mandiri)}. Keaktifan semester{' '}
+                {fmt(x!.keaktifan?.persen)} (data pendukung, tidak masuk nilai).
+              </p>
+              {x!.triSukses.bagian
+                .filter((b) => b.items.length)
+                .map((b) => (
+                  <section key={b.kode} className="rincian-bagian">
+                    <h3 className="judul-kecil">
+                      {b.judul} <small>· {fmt(b.nilai)}</small>
+                    </h3>
+                    <ul className="daftar-rapor">
+                      {b.items.map((i) => (
+                        <li key={i.materi.id}>
+                          <div>
+                            <span>{i.materi.nama}</span>
+                            {i.belumDitetapkan && i.materi.cara !== 'kitab' ? (
+                              <small>Belum ditetapkan Kurikulum</small>
+                            ) : (
+                              <Tombol kecil varian={i.dinilai && !i.dariPeriode ? 'kedua' : 'utama'} onClick={() => setEdit(i)}>
+                                {i.belumDitetapkan ? (i.dinilai ? 'Ubah (belum ditetapkan)' : 'Nilai (belum ditetapkan)') : i.dinilai ? fmt(i.persen) : 'Nilai'}
+                              </Tombol>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              {x!.sisaSebelumnya ? (
+                <>
+                  <h3>Belum tuntas dari {LABEL_JENJANG[x!.sisaSebelumnya.jenjang]}</h3>
+                  <ul className="daftar-rapor">
+                    {x!.sisaSebelumnya.items.map((i) => (
+                      <li key={i.materi.id}>
+                        <div>
+                          <span>{i.materi.nama}</span>
+                          <Tombol kecil varian="kedua" onClick={() => setEdit(i)}>
+                            {fmt(i.persen)}
+                          </Tombol>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </Kartu>
+            <KartuKarakterLuhur generusId={p.g.id} periode={p.periode} karakter={x!.karakter} />
+          </>
         )}
       </KeadaanData>
       {edit ? <EditorEvaluasi generusId={p.g.id} item={edit} periode={p.periode} selesai={() => setEdit(null)} /> : null}
@@ -297,6 +318,64 @@ function EvaluasiGenerus(p: { g: GenerusRinci; periode: string; kembali: () => v
         </Modal>
       ) : null}
     </>
+  )
+}
+
+// ---------------------------------------------------------------- Karakter Luhur (§20.3)
+
+const PILIH_SIKAP = PREDIKAT_SIKAP.map((k) => ({ nilai: k, teks: LABEL_PREDIKAT_SIKAP[k] }))
+
+/** Penilaian sikap per anak: 4 Tali Keimanan + 6 Thobiat Luhur — ketuk predikat (langsung tersimpan), catatan opsional. */
+function KartuKarakterLuhur(p: { generusId: string; periode: string; karakter: KarakterRapor | null }) {
+  const { db, aksi } = useApp()
+  const [catatan, setCatatan] = useState<string | null>(null)
+  const [catatanMt, setCatatanMt] = useState(p.karakter?.catatanMubaligh ?? '')
+  const k = p.karakter
+  if (!k) return null
+  const simpan = (butir: string, predikat: PredikatSikap | null, cat: string | null) =>
+    void aksi(() => simpanPenilaianKarakter(db, { generusId: p.generusId, periode: p.periode, butir, predikat, catatan: cat }))
+  const baris = (b: BarisKarakter) => (
+    <li key={b.kode} className="karakter-isi">
+      <div className="karakter-kepala">
+        <span>{b.nama}</span>
+        <Tombol kecil varian="tipis" onClick={() => setCatatan(catatan === b.kode ? null : b.kode)} label={`Catatan ${b.nama}`}>
+          {b.catatan ? '✎' : '+ catatan'}
+        </Tombol>
+      </div>
+      <Segmen label={b.nama} kecil nilai={b.predikat} ubah={(v) => simpan(b.kode, v, b.catatan)} pilihan={PILIH_SIKAP} />
+      {b.catatan && catatan !== b.kode ? <small>{b.catatan}</small> : null}
+      {catatan === b.kode ? <CatatanKarakter awal={b.catatan ?? ''} simpan={(v) => (simpan(b.kode, b.predikat, v), setCatatan(null))} /> : null}
+    </li>
+  )
+  return (
+    <Kartu judul={`Karakter Luhur${k.targetJenjang ? ` · Target jenjang: ${k.targetJenjang}` : ''}`}>
+      <p className="keterangan">Dinilai dari praktik sehari-hari. Ketuk predikat — langsung tersimpan. Tidak dihitung ke Nilai Akhir. Sudah dinilai: {k.dinilai}/10.</p>
+      <h3 className="judul-kecil">4 Tali Keimanan</h3>
+      <ul className="daftar-karakter">{k.tali.map(baris)}</ul>
+      <h3 className="judul-kecil">6 Thobiat Luhur</h3>
+      <ul className="daftar-karakter">{k.thobiat.map(baris)}</ul>
+      <AreaTeks label="Catatan mubaligh semester ini (tampil di raport)" nilai={catatanMt} ubah={setCatatanMt} baris={3} />
+      <Tombol
+        penuh
+        varian="kedua"
+        disabled={catatanMt.trim() === (k.catatanMubaligh ?? '')}
+        onClick={() => void aksi(() => simpanPenilaianKarakter(db, { generusId: p.generusId, periode: p.periode, butir: 'catatan', predikat: null, catatan: catatanMt }), 'Catatan tersimpan. Jangan lupa Setor.')}
+      >
+        Simpan catatan mubaligh
+      </Tombol>
+    </Kartu>
+  )
+}
+
+function CatatanKarakter(p: { awal: string; simpan: (v: string) => void }) {
+  const [v, setV] = useState(p.awal)
+  return (
+    <div className="catatan-karakter">
+      <Isian label="Catatan singkat" nilai={v} ubah={setV} maxLength={PANJANG_CATATAN_BUTIR} />
+      <Tombol kecil onClick={() => p.simpan(v)}>
+        Simpan
+      </Tombol>
+    </div>
   )
 }
 

@@ -1291,3 +1291,27 @@ button.baris-progres {
 /* §19 — dua tombol berdampingan (PDF raport: cetak / bagikan) */
 .aksi-dua { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
 .aksi-dua .tombol { min-height: 44px; }
+
+/* §20 (Fase 14) — raport Tri Sukses Generus + Karakter Luhur */
+.nilai-akhir { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 6px; font-size: 1.05rem; }
+.nilai-akhir b { font-size: 1.6rem; color: var(--teal-tua); }
+.daftar-aspek { list-style: none; margin: 8px 0 0; padding: 0; }
+.daftar-aspek .aspek { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--garis); min-height: 44px; box-sizing: border-box; }
+.daftar-aspek .aspek > span { font-weight: 600; }
+.daftar-aspek .aspek-sub > span { font-weight: 400; padding-left: 16px; color: var(--tinta-lembut); }
+.daftar-aspek .aspek small { color: var(--tinta-lembut); }
+.judul-kecil { font-size: 0.95rem; color: var(--teal-tua); margin: 12px 0 4px; }
+.judul-kecil small { color: var(--tinta-lembut); font-weight: 400; }
+.daftar-karakter { list-style: none; margin: 0; padding: 0; }
+.daftar-karakter li { padding: 8px 0; border-bottom: 1px solid var(--garis); }
+.daftar-karakter li > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 32px; }
+.daftar-karakter li > small { display: block; color: var(--tinta-lembut); margin-top: 2px; }
+.karakter-isi .segmen { margin-top: 6px; }
+.karakter-kepala span { font-weight: 600; }
+.catatan-karakter { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
+.catatan-karakter > :first-child { flex: 1; }
+.catatan-mt { white-space: pre-wrap; background: var(--kertas); border: 1px solid var(--garis); border-radius: 10px; padding: 10px; margin: 6px 0 0; }
+.rincian-lipat { background: var(--kertas); border: 1px solid var(--garis); border-radius: var(--radius); padding: 0 14px; margin: 12px 0; }
+.rincian-lipat > summary { min-height: 48px; display: flex; align-items: center; font-weight: 700; color: var(--teal-tua); cursor: pointer; }
+.rincian-lipat[open] > summary { border-bottom: 1px solid var(--garis); }
+.rincian-bagian { margin-bottom: 8px; }

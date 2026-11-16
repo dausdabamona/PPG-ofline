@@ -450,7 +450,7 @@ function FormButirHp(p: { b: BarisButirKurikulum; tutup: () => void }) {
         ? pilih
         : b.bentuk === 'angka'
           ? Object.fromEntries(Object.entries(isian).map(([k, v]) => [k, v.trim() === '' ? null : Number(v)]))
-          : b.bentuk === 'teks'
+          : b.bentuk === 'teks' || b.bentuk === 'pemetaan'
             ? isian
             : undefined
   const simpan = () =>
@@ -479,6 +479,11 @@ function FormButirHp(p: { b: BarisButirKurikulum; tutup: () => void }) {
               nilai={isian[i.kunci] ?? ''}
               ubah={(v) => setIsian({ ...isian, [i.kunci]: v })}
             />
+          ))
+        : null}
+      {b.bentuk === 'pemetaan'
+        ? b.isian.map((i) => (
+            <Pilihan key={i.kunci} label={i.label} nilai={isian[i.kunci] ?? ''} ubah={(v) => setIsian({ ...isian, [i.kunci]: v })} pilihan={b.opsi.map(([n, t]) => ({ nilai: n, teks: t }))} />
           ))
         : null}
       {b.bentuk === 'konfirmasi' ? (

@@ -129,6 +129,18 @@
 .rp-ttd { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; text-align: center; margin-bottom: 8mm; }
 .rp-ttd div { display: flex; flex-direction: column; justify-content: space-between; height: 30mm; }
 .rp-ttd b { border-top: 1px solid #333; padding-top: 1mm; }
+/* §20.4 Tri Sukses Generus & Karakter Luhur */
+.rp-bagian { margin: 2mm 0 0; font-size: 10pt; color: var(--lb-teal); display: flex; justify-content: space-between; align-items: baseline; }
+.rp-bagian small { color: #666; font-weight: normal; font-size: 8pt; }
+.rp-tri td:first-child { width: 55%; }
+.rp-tri .rp-aspek td, .rp-tri .rp-akhir td { font-weight: bold; }
+.rp-tri .rp-sub td:first-child { padding-left: 7mm; }
+.rp-tri .rp-akhir td { background: #cceee8 !important; border-color: var(--lb-teal); font-size: 9.5pt; }
+.rp-karakter td:first-child { width: 34%; }
+.rp-karakter td:nth-child(2) { width: 18%; }
+.rp-baris { margin: 1mm 0 0; }
+.rp-catatan-mt { margin: 0.5mm 0 0; min-height: 8mm; white-space: pre-wrap; }
+.rp-lampiran .rp-tabel { margin-bottom: 1mm; }
 
 /* layar: pratinjau di atas latar abu */
 .pratinjau-cetak { position: fixed; inset: 0; z-index: 1000; background: #6b7280; overflow: auto; padding: 0 0 10mm; }

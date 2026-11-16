@@ -38,7 +38,7 @@ describe('APK — musyawarah & penetapan kurikulum (§18)', () => {
     expect(screen.getAllByText(/Menunggu pengesahan Ketua/).length).toBeGreaterThan(0)
   })
 
-  it('HP Bidang Kurikulum: Perlu Ditetapkan Kurikulum → tetapkan rumus TOTAL (diajukan ke daerah)', async () => {
+  it('HP Bidang Kurikulum: Perlu Ditetapkan Kurikulum → tetapkan rumus Nilai Akhir (diajukan ke daerah); K18 pemetaan tampil', async () => {
     const w = await siapkanAdmin()
     const daerah = ambilWilayah(w.db, ambilWilayah(w.db, w.k1.induk_id!)!.induk_id!)!
     const u = userEvent.setup()
@@ -50,10 +50,11 @@ describe('APK — musyawarah & penetapan kurikulum (§18)', () => {
     await nav(u, 'Bidang')
     await u.click(screen.getByRole('button', { name: /Perlu Ditetapkan Kurikulum/ }))
     expect(await screen.findByText(/K12 Halaman terakhir kitab hadits/)).toBeTruthy()
-    const baris = screen.getByText(/K09 Rumus TOTAL/).closest('li')!
+    expect(screen.getByText(/K18 Pemetaan materi evaluasi/)).toBeTruthy()
+    const baris = screen.getByText(/K09 Rumus Nilai Akhir/).closest('li')!
     await u.click(within(baris).getByRole('button', { name: 'Tetapkan' }))
     const dlg = await screen.findByRole('dialog', { name: /K09/ })
-    await u.selectOptions(within(dlg).getByLabelText('Pilihan'), 'tanpa_keaktifan')
+    await u.selectOptions(within(dlg).getByLabelText('Pilihan'), 'rata_materi')
     await u.click(within(dlg).getByRole('button', { name: 'Simpan & tetapkan' }))
     await tungguTeks(/Penetapan diajukan/)
     expect(await screen.findByText('Diajukan ke Daerah')).toBeTruthy()

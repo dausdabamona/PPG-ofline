@@ -3,6 +3,7 @@
 // bulan evaluasi).
 import { useState } from 'react'
 import {
+  ambilGenerus,
   ambilLaporanBulanan,
   ambilWilayah,
   aturBulanEvaluasi,
@@ -29,6 +30,16 @@ import {
   ringkasTargetKeaktifan,
   daftarPengajian,
   kategoriKelas,
+  predikatAngka,
+  ambangPredikat,
+  teksAmbang,
+  simpanPenilaianKarakter,
+  PREDIKAT_SIKAP,
+  LABEL_PREDIKAT_SIKAP,
+  PANJANG_CATATAN_BUTIR,
+  TALI_KEIMANAN,
+  THOBIAT_LUHUR,
+  type PredikatSikap,
   type FormatLembar,
   type IsiLaporanBulanan,
   type KategoriGenerus,
@@ -39,7 +50,7 @@ import {
 import { useApp, useData } from '../konteks'
 import { AreaTeks, Isian, KeadaanData, Kartu, KepalaHalaman, Kosong, Lencana, Modal, Pilihan, Tombol } from '../komponen/ui'
 import { PilihWilayah } from '../komponen/wilayah'
-import { buatExcelKeaktifan, buatExcelLaporanBulanan, buatExcelPenguasaan } from '../utils/excel-juknis'
+import { buatExcelKeaktifan, buatExcelLaporanBulanan, buatExcelPenguasaan, legendaRekap } from '../utils/excel-juknis'
 import { buatExcelLembar } from '../utils/excel-lembar'
 import { LembarLaporan, LembarRaport } from '../komponen/lembar-laporan'
 import { PratinjauCetak } from '../komponen/pratinjau-cetak'
@@ -172,7 +183,7 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
               ) : null}
               {x.materiBelumDitetapkan.length ? (
                 <p className="keterangan" role="note">
-                  <Lencana warna="kuning">Belum ditetapkan Kurikulum</Lencana> Materi {x.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — kolomnya “—” dan tidak ikut dihitung di TOTAL.
+                  <Lencana warna="kuning">Belum ditetapkan Kurikulum</Lencana> Materi {x.materiBelumDitetapkan.join(', ')} belum ditetapkan Kurikulum — kolomnya “—” dan tidak ikut dihitung.
                 </p>
               ) : null}
               {x.kolom.length === 0 ? (
@@ -194,7 +205,10 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
                               </span>
                             </th>
                           ))}
-                          <th>TOTAL</th>
+                          <th className="kolom-aspek">Alim-Faqih</th>
+                          <th className="kolom-aspek">Akhlaqul Karimah</th>
+                          <th className="kolom-aspek">Mandiri</th>
+                          <th className="kolom-aspek">Nilai Akhir</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -206,10 +220,13 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
                               <small className="blok">{b.kelompok}</small>
                             </td>
                             {b.nilai.map((v, i) => (
-                              <td key={i} className="angka">
-                                {fmt(v)}
+                              <td key={i} className={b.belumDinilai[i] ? 'angka sel-bd' : 'angka'} title={b.belumDinilai[i] ? 'belum dinilai' : undefined}>
+                                {b.belumDinilai[i] ? 'bd' : fmt(v)}
                               </td>
                             ))}
+                            <td className="angka">{fmt(b.alimFaqih)}</td>
+                            <td className="angka">{fmt(b.akhlak)}</td>
+                            <td className="angka">{fmt(b.mandiri)}</td>
                             <td className="angka">
                               <b>{fmt(b.total)}</b>
                             </td>
@@ -225,6 +242,9 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
                               {fmt(v)}
                             </td>
                           ))}
+                          <td className="angka">{fmt(x.rataAspek.alimFaqih)}</td>
+                          <td className="angka">{fmt(x.rataAspek.akhlak)}</td>
+                          <td className="angka">{fmt(x.rataAspek.mandiri)}</td>
                           <td className="angka">
                             <b>{fmt(x.rataTotal)}</b>
                           </td>
@@ -239,7 +259,11 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
                         <th>Tingkat</th>
                         <th>Nama</th>
                         <th>Generus</th>
-                        <th>Rata-rata TOTAL (%)</th>
+                        <th>Alim-Faqih</th>
+                        <th>Akhlaqul Karimah</th>
+                        <th>Mandiri</th>
+                        <th>Nilai Akhir (%)</th>
+                        <th>Predikat</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -248,12 +272,16 @@ function RekapPenguasaanExe(p: { wilayahId: string; periode: string }) {
                           <td>{d.tingkat === 'desa' ? 'Desa' : 'Kelompok'}</td>
                           <td>{d.nama}</td>
                           <td>{d.jumlah}</td>
+                          <td>{fmt(d.rataAspek.alimFaqih)}</td>
+                          <td>{fmt(d.rataAspek.akhlak)}</td>
+                          <td>{fmt(d.rataAspek.mandiri)}</td>
                           <td>{fmt(d.rataTotal)}</td>
+                          <td>{predikatAngka(d.rataTotal, x.ambang) ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <p className="keterangan">Nilai dalam persen. TOTAL = rata-rata semua materi (tanpa bobot, sesuai rumus yang ditetapkan Kurikulum); materi belum dinilai = 0; materi yang belum ditetapkan Kurikulum (—) tidak dihitung.</p>
+                  <p className="keterangan">{legendaRekap(x.rumus)} — = belum ditetapkan Kurikulum. {teksAmbang(x.ambang)}</p>
                 </>
               )}
             </>
@@ -621,7 +649,7 @@ function CetakSemuaRaport(p: { wilayahId: string; periode: string }) {
           ]}
         />
       </div>
-      <p className="keterangan">Satu anak per halaman A4: kop PPG Daerah, identitas, tabel materi · target · dikuasai · %, TOTAL, keaktifan semester, dan kolom tanda tangan MT, KI Kelompok, Orang Tua/Wali.</p>
+      <p className="keterangan">Per anak dua halaman A4: (1) ringkas — kop PPG Daerah, identitas, Tri Sukses Generus + Nilai Akhir, Karakter Luhur, keaktifan, catatan mubaligh, tanda tangan MT, KI Kelompok, Orang Tua/Wali; (2) lampiran Rincian Penguasaan Materi per aspek.</p>
       {buka ? (
         <PratinjauCetak
           judul={`Raport ${nama} — ${teksPeriode(p.periode)} (${buka.length} anak)`}
@@ -632,7 +660,7 @@ function CetakSemuaRaport(p: { wilayahId: string; periode: string }) {
             </Tombol>
           }
         >
-          <LembarRaport data={buka.map((id) => dataRaportCetak(db, id, { periode: p.periode }))} />
+          <LembarRaport data={buka.map((id) => dataRaportCetak(db, id, { periode: p.periode }))} ambang={teksAmbang(ambangPredikat(db))} />
         </PratinjauCetak>
       ) : null}
     </Kartu>
@@ -640,23 +668,26 @@ function CetakSemuaRaport(p: { wilayahId: string; periode: string }) {
 }
 
 function RaporExe(p: { wilayahId: string; periode: string }) {
-  const { db } = useApp()
+  const { db, peran } = useApp()
   const [cari, setCari] = useState('')
   const [gid, setGid] = useState('')
   const daftar = useData(() => cariGenerus(db, { wilayahId: p.wilayahId, status: 'aktif', cari }), [db, p.wilayahId, cari])
-  const r = useData(() => (gid ? raporGenerus(db, gid, { periode: p.periode }) : null), [db, gid, p.periode])
+  const r = useData(() => (gid ? dataRaportCetak(db, gid, { periode: p.periode }) : null), [db, gid, p.periode])
   const [cetak, setCetak] = useState(false)
+  const [karakter, setKarakter] = useState(false)
   const { platform, aksi, toast } = useApp()
+  // §20.3: penilaian Karakter Luhur oleh EXE kelompok/desa/daerah (hak sahkan ditegakkan core); Kurikulum hanya melihat
+  const bolehNilai = peran !== 'kurikulum'
   const simpanPdf = async () => {
     const bytes = await aksi(() => raporPdf(db, { generusIds: [gid], periode: p.periode }))
     if (!bytes) return
-    if (await aksi(() => platform.simpanBerkas(`Raport_${slug(r.data?.generus.nama ?? 'generus')}_${p.periode}.pdf`, bytes))) toast('sukses', 'PDF raport disimpan.')
+    if (await aksi(() => platform.simpanBerkas(`Raport_${slug(r.data?.nama ?? 'generus')}_${p.periode}.pdf`, bytes))) toast('sukses', 'PDF raport disimpan.')
   }
   return (
     <>
       {cetak && gid ? (
         <PratinjauCetak judul="Laporan Hasil Belajar" tutup={() => setCetak(false)}>
-          <LembarRaport data={[dataRaportCetak(db, gid, { periode: p.periode })]} />
+          <LembarRaport data={[dataRaportCetak(db, gid, { periode: p.periode })]} ambang={teksAmbang(ambangPredikat(db))} />
         </PratinjauCetak>
       ) : null}
       <CetakSemuaRaport wilayahId={p.wilayahId} periode={p.periode} />
@@ -665,6 +696,11 @@ function RaporExe(p: { wilayahId: string; periode: string }) {
         aksi={
           gid ? (
             <span className="tidak-cetak aksi-baris">
+              {bolehNilai ? (
+                <Tombol varian="kedua" onClick={() => setKarakter(true)}>
+                  Nilai Karakter Luhur
+                </Tombol>
+              ) : null}
               <Tombol onClick={() => setCetak(true)}>Cetak / PDF</Tombol>
               <Tombol varian="kedua" onClick={() => simpanPdf()}>
                 Simpan PDF
@@ -683,95 +719,95 @@ function RaporExe(p: { wilayahId: string; periode: string }) {
             pilihan={(daftar.data ?? []).map((g) => ({ nilai: g.id, teks: `${g.nama} · ${g.kelompok_nama} · ${label(LABEL_KATEGORI, g.kategori)}` }))}
           />
         </div>
+        <p className="keterangan">
+          Raport disusun per aspek <b>Tri Sukses Generus</b> (Alim-Faqih, Akhlaqul Karimah, Mandiri) + <b>Karakter Luhur</b>; rincian materi ada di lampiran.
+        </p>
       </Kartu>
       {gid ? (
         <KeadaanData hasil={r}>
-          {(x) =>
-            x ? (
-              <div className="lembar-rapor">
-                <h2>LAPORAN HASIL BELAJAR GENERUS</h2>
-                <dl className="rincian">
-                  <dt>Nama</dt>
-                  <dd>{x.generus.nama}</dd>
-                  <dt>Jenjang</dt>
-                  <dd>{x.jenjang ? LABEL_JENJANG[x.jenjang] : 'Belum ditetapkan'}</dd>
-                  <dt>Kelompok / Desa</dt>
-                  <dd>
-                    {x.generus.kelompok} / {x.generus.desa}
-                  </dd>
-                  <dt>Periode</dt>
-                  <dd>
-                    {teksPeriode(x.periode)} — evaluasi {NAMA_BULAN[x.bulanEvaluasi - 1]}
-                  </dd>
-                </dl>
-                {x.items.length ? (
-                  <table className="tabel" aria-label="Laporan hasil belajar">
-                    <thead>
-                      <tr>
-                        <th>No</th>
-                        <th>Materi</th>
-                        <th>Penguasaan (%)</th>
-                        <th>Keterangan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {x.items.map((i, n) => (
-                        <tr key={i.materi.id}>
-                          <td>{n + 1}</td>
-                          <td>{i.materi.nama}</td>
-                          <td className="angka">{i.persen === null ? '—' : fmt(i.persen)}</td>
-                          <td>
-                            <small>
-                              {i.persen === null ? 'Belum ditetapkan Kurikulum' : !i.dinilai && i.materi.cara !== 'keaktifan' ? 'Belum dinilai' : i.dariPeriode ? `Nilai ${teksPeriode(i.dariPeriode)}` : ''}
-                            </small>
-                          </td>
-                        </tr>
-                      ))}
-                      <tr className="baris-total">
-                        <td />
-                        <td>
-                          <b>TOTAL</b>
-                        </td>
-                        <td className="angka">
-                          <b>{fmt(x.total)}</b>
-                        </td>
-                        <td />
-                      </tr>
-                    </tbody>
-                  </table>
-                ) : (
-                  <Kosong teks="Jenjang belum ditetapkan atau daftar materi evaluasi belum ada." />
-                )}
-                {x.belumDitetapkan.length ? (
-                  <p className="keterangan" role="note">
-                    Materi {x.belumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung di TOTAL.
-                  </p>
-                ) : null}
-                {x.rumusTotal === 'tanpa_keaktifan' ? <p className="keterangan">TOTAL dihitung tanpa keaktifan (ditetapkan Kurikulum).</p> : null}
-                {x.sisaSebelumnya ? (
-                  <>
-                    <h3>Materi yang perlu dituntaskan dari {LABEL_JENJANG[x.sisaSebelumnya.jenjang]}</h3>
-                    <ul>
-                      {x.sisaSebelumnya.items.map((i) => (
-                        <li key={i.materi.id}>
-                          {i.materi.nama}: {fmt(i.persen)}%
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
-                {x.keaktifan ? (
-                  <p>
-                    Keaktifan bulanan:{' '}
-                    {x.keaktifan.bulan.map((b) => `${NAMA_BULAN[Number(b.bulan.slice(5)) - 1]!.slice(0, 3)} ${fmt(b.persen)}%`).join(' · ') || '—'}
-                  </p>
-                ) : null}
-              </div>
-            ) : null
-          }
+          {(x) => (x ? <div className="raport-layar">{<LembarRaport data={[x]} ambang={teksAmbang(ambangPredikat(db))} />}</div> : null)}
         </KeadaanData>
       ) : null}
+      {karakter && gid ? <FormKarakterExe generusId={gid} periode={p.periode} tutup={() => setKarakter(false)} /> : null}
     </>
+  )
+}
+
+const PILIH_PREDIKAT = [
+  { nilai: '', teks: '— belum dinilai —' },
+  ...PREDIKAT_SIKAP.map((k) => ({ nilai: k, teks: LABEL_PREDIKAT_SIKAP[k] })),
+]
+
+/** §20.3 — isian Karakter Luhur (4 Tali Keimanan, 6 Thobiat Luhur, catatan mubaligh) satu anak. */
+function FormKarakterExe(p: { generusId: string; periode: string; tutup: () => void }) {
+  const { db, aksi } = useApp()
+  const g = ambilGenerus(db, p.generusId)
+  const awal = raporGenerus(db, p.generusId, { periode: p.periode })?.karakter
+  const mula = Object.fromEntries([...(awal?.tali ?? []), ...(awal?.thobiat ?? [])].map((b) => [b.kode, { predikat: b.predikat ?? '', catatan: b.catatan ?? '' }]))
+  const [isi, setIsi] = useState<Record<string, { predikat: string; catatan: string }>>(mula)
+  const [catatan, setCatatan] = useState(awal?.catatanMubaligh ?? '')
+  const ubah = (k: string, v: Partial<{ predikat: string; catatan: string }>) => setIsi({ ...isi, [k]: { ...(isi[k] ?? { predikat: '', catatan: '' }), ...v } })
+  const simpan = async () => {
+    const r = await aksi(() => {
+      let n = 0
+      for (const [k, v] of Object.entries(isi)) {
+        const lama = mula[k] ?? { predikat: '', catatan: '' }
+        if (lama.predikat === v.predikat && lama.catatan === v.catatan) continue
+        if (!v.predikat && !v.catatan.trim() && !lama.predikat && !lama.catatan) continue
+        simpanPenilaianKarakter(db, { generusId: p.generusId, periode: p.periode, butir: k, predikat: (v.predikat || null) as PredikatSikap | null, catatan: v.catatan })
+        n++
+      }
+      if (catatan.trim() !== (awal?.catatanMubaligh ?? '') && (catatan.trim() || awal?.catatanMubaligh)) {
+        simpanPenilaianKarakter(db, { generusId: p.generusId, periode: p.periode, butir: 'catatan', predikat: null, catatan })
+        n++
+      }
+      return n
+    }, (n) => `${n} isian Karakter Luhur tersimpan.`)
+    if (r !== undefined) p.tutup()
+  }
+  const baris = (judul: string, l: readonly { kode: string; nama: string }[]) => (
+    <>
+      <h3>{judul}</h3>
+      <table className="tabel" aria-label={judul}>
+        <thead>
+          <tr>
+            <th>Butir</th>
+            <th>Predikat</th>
+            <th>Catatan singkat (opsional)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {l.map((b) => (
+            <tr key={b.kode}>
+              <td>{b.nama}</td>
+              <td>
+                <select aria-label={`Predikat ${b.nama}`} value={isi[b.kode]?.predikat ?? ''} onChange={(e) => ubah(b.kode, { predikat: e.target.value })}>
+                  {PILIH_PREDIKAT.map((o) => (
+                    <option key={o.nilai} value={o.nilai}>
+                      {o.teks}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <input aria-label={`Catatan ${b.nama}`} maxLength={PANJANG_CATATAN_BUTIR} value={isi[b.kode]?.catatan ?? ''} onChange={(e) => ubah(b.kode, { catatan: e.target.value })} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  )
+  return (
+    <Modal judul={`Karakter Luhur — ${g?.nama ?? ''} — ${teksPeriode(p.periode)}`} tutup={p.tutup} lebar aksi={<Tombol onClick={simpan}>Simpan</Tombol>}>
+      <p className="keterangan">
+        Dinilai dari praktik sehari-hari: Baik · Cukup · Perlu Bimbingan. Tidak dihitung ke Nilai Akhir.
+        {awal?.targetJenjang ? ` Target jenjang (GBMTPG): ${awal.targetJenjang}.` : ''}
+      </p>
+      {baris('4 Tali Keimanan', TALI_KEIMANAN)}
+      {baris('6 Thobiat Luhur', THOBIAT_LUHUR)}
+      <AreaTeks label="Catatan mubaligh semester ini (opsional)" nilai={catatan} ubah={setCatatan} baris={3} />
+    </Modal>
   )
 }
 
@@ -892,7 +928,7 @@ function FormMateriEvaluasi(p: { m: MateriEvaluasi; tutup: () => void }) {
       }
     >
       <Isian label="Nama materi" nilai={nama} ubah={setNama} lebar />
-      {bisaTarget && !p.m.rincian.butir ? <Isian label={`Target (${p.m.satuan ?? ''})`} type="number" min={1} nilai={target} ubah={setTarget} bantuan="Kosongkan bila belum ditetapkan (tidak ikut TOTAL)." /> : null}
+      {bisaTarget && !p.m.rincian.butir ? <Isian label={`Target (${p.m.satuan ?? ''})`} type="number" min={1} nilai={target} ubah={setTarget} bantuan="Kosongkan bila belum ditetapkan (tidak ikut dihitung)." /> : null}
       {p.m.rincian.butir ? <AreaTeks label="Butir (satu per baris; target = jumlah butir)" nilai={butir} ubah={setButir} baris={10} /> : null}
       {p.m.cara === 'kitab' ? (
         <table className="tabel">

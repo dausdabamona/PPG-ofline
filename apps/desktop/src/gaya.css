@@ -814,6 +814,9 @@ img.merek-logo { display: block; background: none; object-fit: contain; }
 .aksi-baris { display: inline-flex; gap: 8px; }
 .baris-isian { margin-bottom: 8px; }
 .lembar-rapor { background: #fff; padding: 24px; border-radius: 12px; }
+/* §20.4: raport resmi ditampilkan di layar (sama dengan cetakan) */
+.raport-layar { background: #e5e7eb; padding: 12px; border-radius: 12px; overflow-x: auto; }
+.raport-layar .lb-halaman { box-shadow: 0 1px 4px rgba(0,0,0,.15); padding: 6mm; }
 .lembar-rapor h2 { text-align: center; margin-top: 0; }
 @media print {
   .bilah-samping, .tidak-cetak, .kepala-halaman .aksi, nav { display: none !important; }
@@ -824,3 +827,7 @@ img.merek-logo { display: block; background: none; object-fit: contain; }
   body { background: #fff !important; }
   .tabel-rekap { font-size: 9pt; }
 }
+/* §20 K18: pemetaan materi → aspek (dua kolom) */
+.kisi-pemetaan { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; }
+.sel-bd { color: #8a8a8a; font-style: italic; }
+.kolom-aspek { background: #0b5f59 !important; }

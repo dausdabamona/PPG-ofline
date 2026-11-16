@@ -398,94 +398,180 @@ export function LembarLaporan(p: { data: LembarLaporanKelompok[]; format: Format
   )
 }
 
-// ---------------------------------------------------------------- Raport resmi (A4 tegak, satu anak per halaman)
+// ---------------------------------------------------------------- Raport resmi (§20.4: halaman ringkas + lampiran, A4 tegak)
 
-export function LembarRaport(p: { data: RaportCetak[]; logo?: string }) {
+function KopRaport(p: { d: RaportCetak; logo?: string }) {
+  return (
+    <header className="rp-kop">
+      <img src={p.logo ?? './logo.svg'} alt="" />
+      <div>
+        <p className="rp-org">{p.d.kop.organisasi}</p>
+        <p className="rp-daerah">{p.d.kop.daerah}</p>
+        <p className="rp-ket">Pembinaan &amp; Evaluasi Hasil Belajar Generus</p>
+      </div>
+    </header>
+  )
+}
+
+function IdentitasRaport(p: { d: RaportCetak; judul: string }) {
+  const { d } = p
+  return (
+    <>
+      <h2 className="rp-judul">{p.judul}</h2>
+      <p className="rp-semester">{d.semester}</p>
+      <dl className="rp-identitas">
+        <dt>Nama</dt>
+        <dd>
+          <b>{d.nama}</b>
+        </dd>
+        <dt>Jenis kelamin</dt>
+        <dd>{d.jenisKelamin}</dd>
+        <dt>Jenjang</dt>
+        <dd>{d.jenjang}</dd>
+        <dt>Kelompok</dt>
+        <dd>{d.kelompok}</dd>
+        <dt>Desa</dt>
+        <dd>{d.desa}</dd>
+        <dt>Semester</dt>
+        <dd>{d.periode.endsWith('S1') ? 'Semester 1' : 'Semester 2'}</dd>
+      </dl>
+    </>
+  )
+}
+
+function TabelKarakter(p: { judul: string; baris: RaportCetak['karakter']['tali'] }) {
+  return (
+    <table className="rp-tabel rp-karakter" aria-label={p.judul}>
+      <thead>
+        <tr>
+          <th>{p.judul}</th>
+          <th>Predikat</th>
+          <th>Catatan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {p.baris.map((b) => (
+          <tr key={b.nama} className={b.predikat === 'belum dinilai' ? 'rp-belum' : ''}>
+            <td>{b.nama}</td>
+            <td className="lb-tengah lb-tebal">{b.predikat}</td>
+            <td>{b.catatan}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+export function LembarRaport(p: { data: RaportCetak[]; logo?: string; ambang?: string }) {
   return (
     <div className="lb-dokumen">
       {p.data.map((d) => (
-        <section key={d.generus_id} className="lb-halaman lb-tegak rp-halaman">
-          <header className="rp-kop">
-            <img src={p.logo ?? './logo.svg'} alt="" />
-            <div>
-              <p className="rp-org">{d.kop.organisasi}</p>
-              <p className="rp-daerah">{d.kop.daerah}</p>
-              <p className="rp-ket">Pembinaan &amp; Evaluasi Hasil Belajar Generus</p>
-            </div>
-          </header>
-          <h2 className="rp-judul">LAPORAN HASIL BELAJAR GENERUS</h2>
-          <p className="rp-semester">{d.semester}</p>
-          <dl className="rp-identitas">
-            <dt>Nama</dt>
-            <dd>
-              <b>{d.nama}</b>
-            </dd>
-            <dt>Jenis kelamin</dt>
-            <dd>{d.jenisKelamin}</dd>
-            <dt>Jenjang</dt>
-            <dd>{d.jenjang}</dd>
-            <dt>Kelompok</dt>
-            <dd>{d.kelompok}</dd>
-            <dt>Desa</dt>
-            <dd>{d.desa}</dd>
-            <dt>Semester</dt>
-            <dd>{d.semester}</dd>
-          </dl>
-          <table className="rp-tabel" aria-label={`Raport ${d.nama}`}>
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Materi</th>
-                <th>Target</th>
-                <th>Dikuasai</th>
-                <th>%</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.baris.map((b) => (
-                <tr key={b.no} className={b.belumDitetapkan ? 'rp-belum' : ''}>
-                  <td className="lb-tengah">{b.no}</td>
-                  <td>
-                    {b.materi}
-                    {b.catatan ? <small> ({b.catatan})</small> : null}
-                  </td>
-                  <td className="lb-tengah">{b.target}</td>
-                  <td className="lb-tengah">{b.dikuasai}</td>
-                  <td className="lb-tengah lb-tebal">{b.persen}</td>
+        <Fragment key={d.generus_id}>
+          <section className="lb-halaman lb-tegak rp-halaman">
+            <KopRaport d={d} logo={p.logo} />
+            <IdentitasRaport d={d} judul="LAPORAN HASIL BELAJAR GENERUS" />
+            <h3 className="rp-bagian">
+              A. TRI SUKSES GENERUS <small>Alim-Faqih · Akhlaqul Karimah · Mandiri</small>
+            </h3>
+            <table className="rp-tabel rp-tri" aria-label={`Tri Sukses Generus ${d.nama}`}>
+              <thead>
+                <tr>
+                  <th>Aspek</th>
+                  <th>Nilai</th>
+                  <th>Predikat</th>
                 </tr>
-              ))}
-              <tr className="rp-total">
-                <td />
-                <td colSpan={3}>TOTAL PENGUASAAN MATERI</td>
-                <td className="lb-tengah">{d.total}</td>
-              </tr>
-            </tbody>
-          </table>
-          <p>
-            <b>Keaktifan semester:</b> {d.keaktifan}
-          </p>
-          {d.catatanBelumDitetapkan ? <p className="rp-catatan">Catatan: {d.catatanBelumDitetapkan}</p> : null}
-          {d.sisaSebelumnya ? (
-            <p className="rp-catatan">
-              Catatan: Belum tuntas dari {d.sisaSebelumnya.jenjang}: {d.sisaSebelumnya.materi.join(', ')}.
+              </thead>
+              <tbody>
+                {d.triSukses.map((b) => (
+                  <tr key={b.label} className={`rp-${b.jenis}${b.nilai === 'belum dinilai' ? ' rp-belum' : ''}`}>
+                    <td>{b.label}</td>
+                    <td className="lb-tengah">{b.nilai}</td>
+                    <td className="lb-tengah">{b.predikat}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {p.ambang ? <p className="rp-catatan">{p.ambang} Rincian tiap materi pada Lampiran.</p> : null}
+            <h3 className="rp-bagian">
+              B. KARAKTER LUHUR {d.karakter.targetJenjang ? <small>Target jenjang: {d.karakter.targetJenjang}</small> : null}
+            </h3>
+            <TabelKarakter judul="4 Tali Keimanan" baris={d.karakter.tali} />
+            {d.karakter.pendukung.length ? <p className="rp-catatan">Data pendukung: {d.karakter.pendukung.join(' ')}</p> : null}
+            <TabelKarakter judul="6 Thobiat Luhur (praktik sehari-hari)" baris={d.karakter.thobiat} />
+            <p className="rp-catatan">Predikat sikap dinilai mubaligh: Baik · Cukup · Perlu Bimbingan. Tidak dihitung ke Nilai Akhir.</p>
+            <p className="rp-baris">
+              <b>C. Keaktifan semester:</b> {d.keaktifan}
             </p>
-          ) : null}
-          <p className="rp-tempat">{d.tempatTanggal}</p>
-          <div className="rp-ttd">
-            {(
-              [
-                ['MT / Mubaligh Kelompok', d.tandaTangan.mubaligh],
-                ['KI Kelompok', d.tandaTangan.ki],
-                ['Orang Tua / Wali', d.tandaTangan.wali],
-              ] as const
-            ).map(([j, n]) => (
-              <div key={j}>
-                <span>{j}</span>
-                <b>{n || ' '}</b>
-              </div>
+            <div className="rp-baris">
+              <b>D. Catatan mubaligh:</b>
+              <p className="rp-catatan-mt">{d.catatanMubaligh ?? '—'}</p>
+            </div>
+            <p className="rp-tempat">{d.tempatTanggal}</p>
+            <div className="rp-ttd">
+              {(
+                [
+                  ['MT / Mubaligh Kelompok', d.tandaTangan.mubaligh],
+                  ['KI Kelompok', d.tandaTangan.ki],
+                  ['Orang Tua / Wali', d.tandaTangan.wali],
+                ] as const
+              ).map(([j, n]) => (
+                <div key={j}>
+                  <span>{j}</span>
+                  <b>{n || ' '}</b>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="lb-halaman lb-tegak rp-halaman rp-lampiran">
+            <KopRaport d={d} logo={p.logo} />
+            <IdentitasRaport d={d} judul="LAMPIRAN — RINCIAN PENGUASAAN MATERI" />
+            {d.lampiran.length === 0 ? <p className="rp-catatan">Jenjang belum ditetapkan atau daftar materi evaluasi belum ada.</p> : null}
+            {d.lampiran.map((l) => (
+              <Fragment key={l.judul}>
+                <h3 className="rp-bagian">
+                  {l.judul}{' '}
+                  <small>
+                    nilai {l.nilai}
+                    {l.predikat !== '—' ? ` · ${l.predikat}` : ''}
+                  </small>
+                </h3>
+                <table className="rp-tabel" aria-label={`${l.judul} ${d.nama}`}>
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Materi</th>
+                      <th>Target</th>
+                      <th>Dikuasai</th>
+                      <th>%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {l.baris.map((b) => (
+                      <tr key={b.no} className={b.belumDitetapkan || b.belumDinilai ? 'rp-belum' : ''}>
+                        <td className="lb-tengah">{b.no}</td>
+                        <td>
+                          {b.materi}
+                          {b.catatan ? <small> ({b.catatan})</small> : null}
+                        </td>
+                        <td className="lb-tengah">{b.target}</td>
+                        <td className="lb-tengah">{b.dikuasai}</td>
+                        <td className="lb-tengah lb-tebal">{b.persen}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Fragment>
             ))}
-          </div>
-        </section>
+            {d.catatanBelumDitetapkan ? <p className="rp-catatan">Catatan: {d.catatanBelumDitetapkan}</p> : null}
+            {d.sisaSebelumnya ? (
+              <p className="rp-catatan">
+                Catatan: Belum tuntas dari {d.sisaSebelumnya.jenjang}: {d.sisaSebelumnya.materi.join(', ')}.
+              </p>
+            ) : null}
+            <p className="rp-catatan">Catatan: {d.keteranganRumus}</p>
+            <p className="rp-catatan">Nilai praktik penguji dibatasi 75% (juknis). “belum dinilai” = belum diuji; “—” = belum ditetapkan Kurikulum.</p>
+          </section>
+        </Fragment>
       ))}
     </div>
   )

@@ -48,6 +48,23 @@ describe('APK — juknis pembinaan (mubaligh)', () => {
     await tungguTeks(/Nilai tersimpan/)
     expect(screen.getByRole('button', { name: '5,1%' })).toBeTruthy() // 2/39
     expect(screen.getByRole('button', { name: '75%' })).toBeTruthy()
+    // §20: dikelompokkan per aspek; Karakter Luhur — ketuk predikat langsung tersimpan
+    expect(screen.getByText('Faqih — Praktik Ibadah')).toBeTruthy()
+    expect(screen.getByText(/Target jenjang: Tertanam/)).toBeTruthy()
+    await u.click(within(screen.getByRole('radiogroup', { name: 'Jujur' })).getByRole('radio', { name: 'Baik' }))
+    await u.click(within(screen.getByRole('radiogroup', { name: 'Bersyukur atas hidayah' })).getByRole('radio', { name: 'Perlu Bimbingan' }))
+    await tungguTeks(/Sudah dinilai: 2\/10/)
+    await u.type(screen.getByLabelText(/Catatan mubaligh semester ini/), 'Rajin hadir.')
+    await u.click(screen.getByRole('button', { name: 'Simpan catatan mubaligh' }))
+    await tungguTeks(/Catatan tersimpan/)
+    // raport HP: ringkasan dulu, rincian dilipat
+    await u.click(screen.getByRole('button', { name: 'Raport' }))
+    const rp = await screen.findByRole('dialog', { name: /Laporan Hasil Belajar Ali/ })
+    expect(within(rp).getByText(/Tri Sukses Generus · Caberawit C/)).toBeTruthy()
+    expect(within(rp).getByText('Rajin hadir.')).toBeTruthy()
+    expect(within(rp).getAllByText('Perlu Bimbingan').length).toBeGreaterThan(0)
+    expect(within(rp).getByText('Rincian Penguasaan Materi').closest('details')!.open).toBe(false)
+    await u.click(within(rp).getByRole('button', { name: /Tutup/ }))
 
     // --- Keaktifan: catat kegiatan B untuk semua
     await nav(u, 'Lainnya')

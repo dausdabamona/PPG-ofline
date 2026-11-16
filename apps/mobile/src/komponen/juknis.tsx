@@ -23,6 +23,10 @@ import {
   HALAMAN_PER_JUZ,
   LABEL_JENJANG,
   WAKTU_SHOLAT,
+  predikatAngka,
+  type AmbangPredikat,
+  type BarisKarakter,
+  type Rapor,
   type HasilEvaluasiInput,
   type ItemRapor,
   type KodeKeaktifan,
@@ -247,7 +251,43 @@ export function TombolPdfRaport(p: { generusIds: string[]; periode: string; nama
   )
 }
 
-/** Laporan Hasil Belajar (raport) per semester — tampil di HP murid & orang tua dan mubaligh. */
+const fmtNilai = (n: number | null | undefined) => (n === null || n === undefined ? 'belum dinilai' : `${String(n).replace('.', ',')}`)
+
+/** Satu baris ringkas aspek: label · nilai · predikat (K17). */
+function BarisAspek(p: { label: string; nilai: number | null; ambang: AmbangPredikat; sub?: boolean; akhir?: boolean }) {
+  const pr = predikatAngka(p.nilai, p.ambang)
+  return (
+    <li className={`aspek${p.sub ? ' aspek-sub' : ''}${p.akhir ? ' aspek-akhir' : ''}`}>
+      <span>{p.label}</span>
+      <b>{fmtNilai(p.nilai)}</b>
+      {pr ? <Lencana warna={pr === 'Perlu Bimbingan' ? 'kuning' : pr === 'Cukup' ? 'abu' : 'hijau'}>{pr}</Lencana> : <small>—</small>}
+    </li>
+  )
+}
+
+function DaftarKarakter(p: { judul: string; baris: BarisKarakter[] }) {
+  return (
+    <>
+      <h3 className="judul-kecil">{p.judul}</h3>
+      <ul className="daftar-karakter">
+        {p.baris.map((b) => (
+          <li key={b.kode}>
+            <div>
+              <span>{b.nama}</span>
+              {b.label ? <Lencana warna={b.predikat === 'perlu_bimbingan' ? 'kuning' : b.predikat === 'cukup' ? 'abu' : 'hijau'}>{b.label}</Lencana> : <small>belum dinilai</small>}
+            </div>
+            {b.catatan ? <small>{b.catatan}</small> : null}
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+/**
+ * Laporan Hasil Belajar (raport) per semester — §20.4: ringkasan Tri Sukses Generus + Nilai Akhir, Karakter Luhur,
+ * keaktifan, catatan mubaligh; Rincian Penguasaan Materi bisa dibuka (lipat). Tampil di HP murid/orang tua & mubaligh.
+ */
 export function RaporHp(p: { generusId: string }) {
   const { db } = useApp()
   const aktif = useData(() => periodeAktif(db), []).data ?? ''
@@ -272,34 +312,83 @@ export function RaporHp(p: { generusId: string }) {
           ) : x!.items.length === 0 ? (
             <Spanduk jenis="info">Daftar materi evaluasi belum ada di HP ini. Buka berkas materi/balasan terbaru.</Spanduk>
           ) : (
-            <>
-              <Kartu judul={`${LABEL_JENJANG[x!.jenjang] ?? x!.jenjang} · TOTAL ${fmt(x!.total)}`}>
-                <BilahPersen persen={x!.total ?? 0} label="Total penguasaan materi" />
-                <p className="keterangan">
-                  Evaluasi bulan {NAMA_BULAN[x!.bulanEvaluasi - 1]}. TOTAL = rata-rata semua materi{x!.rumusTotal === 'tanpa_keaktifan' ? ' tanpa keaktifan' : ''}; yang belum dinilai dihitung 0%.
-                </p>
-                {x!.belumDitetapkan.length ? (
-                  <Spanduk jenis="info">Materi {x!.belumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung di TOTAL.</Spanduk>
-                ) : null}
-                <ul className="daftar-rapor">
-                  {x!.items.map((i) => (
-                    <BarisRapor key={i.materi.id} i={i} />
-                  ))}
-                </ul>
-              </Kartu>
-              {x!.sisaSebelumnya ? (
-                <Kartu judul={`Belum tuntas dari ${LABEL_JENJANG[x!.sisaSebelumnya.jenjang]}`}>
-                  <ul className="daftar-rapor">
-                    {x!.sisaSebelumnya.items.map((i) => (
-                      <BarisRapor key={i.materi.id} i={i} />
-                    ))}
-                  </ul>
-                </Kartu>
-              ) : null}
-            </>
+            <IsiRaporHp r={x!} />
           )
         }
       </KeadaanData>
+    </>
+  )
+}
+
+function IsiRaporHp(p: { r: Rapor }) {
+  const x = p.r
+  const t = x.triSukses
+  const k = x.karakter
+  const pendukung: string[] = []
+  if (x.pendukung.keaktifan !== null) pendukung.push(`Keaktifan pengajian semester ${fmt(x.pendukung.keaktifan)} — data pendukung "Mempersungguh hidayah".`)
+  if (x.pendukung.mandiriHari > 0) pendukung.push(`Kegiatan mandiri tercatat & disahkan: ${x.pendukung.mandiriHari} hari.`)
+  if (x.pendukung.sholat) pendukung.push(`Catatan sholat di HP ini: ${x.pendukung.sholat.hari} hari, rata-rata ${String(x.pendukung.sholat.rataWaktu).replace('.', ',')} waktu/hari (keterangan, tidak dinilai).`)
+  return (
+    <>
+      <Kartu judul={`Tri Sukses Generus · ${LABEL_JENJANG[x.jenjang!] ?? x.jenjang}`}>
+        <p className="nilai-akhir">
+          Nilai Akhir <b>{fmtNilai(x.total)}</b> {predikatAngka(x.total, x.ambang) ? <Lencana warna="teal">{predikatAngka(x.total, x.ambang)}</Lencana> : null}
+        </p>
+        {x.total !== null ? <BilahPersen persen={x.total} label="Nilai Akhir" /> : null}
+        <ul className="daftar-aspek">
+          <BarisAspek label="1. Alim-Faqih" nilai={t.alimFaqih} ambang={x.ambang} />
+          <BarisAspek label="Alim (mankul & hafalan)" nilai={t.alim} ambang={x.ambang} sub />
+          <BarisAspek label="Faqih (kefahaman & praktik ibadah)" nilai={t.faqih} ambang={x.ambang} sub />
+          <BarisAspek label="2. Akhlaqul Karimah" nilai={t.akhlak} ambang={x.ambang} />
+          <BarisAspek label="3. Mandiri" nilai={t.mandiri} ambang={x.ambang} />
+        </ul>
+        <p className="keterangan">
+          Evaluasi bulan {NAMA_BULAN[x.bulanEvaluasi - 1]}. {t.rumus === 'rata_materi' ? 'Nilai Akhir = rata-rata semua butir materi yang dinilai.' : 'Nilai Akhir = rata-rata 3 aspek Tri Sukses Generus.'} Butir yang
+          belum dinilai tidak ikut dihitung.
+        </p>
+      </Kartu>
+      {k ? (
+        <Kartu judul={`Karakter Luhur${k.targetJenjang ? ` · Target jenjang: ${k.targetJenjang}` : ''}`}>
+          <DaftarKarakter judul="4 Tali Keimanan" baris={k.tali} />
+          {pendukung.length ? <p className="keterangan">Data pendukung: {pendukung.join(' ')}</p> : null}
+          <DaftarKarakter judul="6 Thobiat Luhur (praktik sehari-hari)" baris={k.thobiat} />
+          <p className="keterangan">Dinilai mubaligh: Baik · Cukup · Perlu Bimbingan. Tidak dihitung ke Nilai Akhir.</p>
+        </Kartu>
+      ) : null}
+      <Kartu judul="Keaktifan & catatan mubaligh">
+        <p>
+          Keaktifan semester: <b>{x.keaktifan?.persen === null || x.keaktifan?.persen === undefined ? 'belum ada data' : fmt(x.keaktifan.persen)}</b>
+        </p>
+        <p className="catatan-mt">{k?.catatanMubaligh ?? 'Belum ada catatan mubaligh.'}</p>
+      </Kartu>
+      <details className="rincian-lipat">
+        <summary>Rincian Penguasaan Materi</summary>
+        {x.belumDitetapkan.length ? <Spanduk jenis="info">Materi {x.belumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung.</Spanduk> : null}
+        {t.bagian
+          .filter((b) => b.items.length)
+          .map((b) => (
+            <section key={b.kode} className="rincian-bagian">
+              <h3 className="judul-kecil">
+                {b.judul} <small>· {fmtNilai(b.nilai)}</small>
+              </h3>
+              <ul className="daftar-rapor">
+                {b.items.map((i) => (
+                  <BarisRapor key={i.materi.id} i={i} />
+                ))}
+              </ul>
+            </section>
+          ))}
+        {x.sisaSebelumnya ? (
+          <section className="rincian-bagian">
+            <h3 className="judul-kecil">Belum tuntas dari {LABEL_JENJANG[x.sisaSebelumnya.jenjang]}</h3>
+            <ul className="daftar-rapor">
+              {x.sisaSebelumnya.items.map((i) => (
+                <BarisRapor key={i.materi.id} i={i} />
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </details>
     </>
   )
 }
@@ -310,10 +399,10 @@ function BarisRapor(p: { i: ItemRapor }) {
     <li>
       <div>
         <span>{i.materi.nama}</span>
-        <b>{i.persen === null ? 'Belum ditetapkan Kurikulum' : fmt(i.persen)}</b>
+        <b>{i.belumDitetapkan ? 'Belum ditetapkan Kurikulum' : i.persen === null ? 'belum dinilai' : fmt(i.persen)}</b>
       </div>
       {i.persen !== null ? <BilahPersen kecil persen={i.persen} label={i.materi.nama} /> : null}
-      {i.dariPeriode ? <small>Nilai dari {teksPeriode(i.dariPeriode)}</small> : !i.dinilai && i.materi.cara !== 'keaktifan' ? <small>Belum dinilai</small> : null}
+      {i.dariPeriode ? <small>Nilai dari {teksPeriode(i.dariPeriode)}</small> : null}
     </li>
   )
 }

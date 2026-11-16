@@ -1,4 +1,4 @@
-// §18 — EXE: daftar "Perlu Ditetapkan Kurikulum" (K01–K15). EXE Kurikulum menetapkan / mengubah lalu menetapkan; EXE Daerah
+// §18 — EXE: daftar "Perlu Ditetapkan Kurikulum" (K01–K18; K18 = pemetaan materi → aspek Tri Sukses, §20). EXE Kurikulum menetapkan / mengubah lalu menetapkan; EXE Daerah
 // hanya melihat (penetapan diserahkan ke role Kurikulum). Nilai sementara = data yang sedang dipakai hitungan.
 import { useState } from 'react'
 import { daftarButirKurikulum, formatTanggal, LABEL_STATUS_BUTIR, tetapkanButirKurikulum, type BarisButirKurikulum, type StatusButir } from '@ppg/core'
@@ -127,6 +127,7 @@ function FormButir(p: { b: BarisButirKurikulum; selesai: () => void }) {
       case 'angka':
         return Object.fromEntries(Object.entries(isian).map(([k, v]) => [k, v.trim() === '' ? null : Number(v)]))
       case 'teks':
+      case 'pemetaan':
         return Object.fromEntries(Object.entries(isian).map(([k, v]) => [k, v]))
       default:
         return undefined
@@ -155,10 +156,17 @@ function FormButir(p: { b: BarisButirKurikulum; selesai: () => void }) {
               min={b.bentuk === 'angka' ? 1 : undefined}
               nilai={isian[i.kunci] ?? ''}
               ubah={(v) => setIsian({ ...isian, [i.kunci]: v })}
-              bantuan={b.bentuk === 'angka' && !isian[i.kunci] ? 'Kosong = belum ditetapkan (tidak ikut TOTAL).' : undefined}
+              bantuan={b.bentuk === 'angka' && !isian[i.kunci] ? 'Kosong = belum ditetapkan (tidak ikut dihitung).' : undefined}
             />
           ))
         : null}
+      {b.bentuk === 'pemetaan' ? (
+        <div className="kisi-pemetaan">
+          {b.isian.map((i) => (
+            <Pilihan key={i.kunci} label={i.label} nilai={isian[i.kunci] ?? ''} ubah={(v) => setIsian({ ...isian, [i.kunci]: v })} pilihan={b.opsi.map(([n, t]) => ({ nilai: n, teks: t }))} />
+          ))}
+        </div>
+      ) : null}
       {b.bentuk === 'konfirmasi' ? (
         <ul>
           {b.isian.map((i) => (

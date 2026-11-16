@@ -509,7 +509,7 @@ function RewardBidang() {
   return (
     <Kartu judul="Reward hasil belajar terbaik">
       <Pilihan label="Jenjang" nilai={jenjang} ubah={(v) => setJenjang(v as KategoriGenerus)} pilihan={KATEGORI_GENERUS.map((k) => ({ nilai: k, teks: LABEL_JENJANG[k]! }))} />
-      <p className="keterangan">Skor = rata-rata keaktifan semester & TOTAL penguasaan materi.</p>
+      <p className="keterangan">Skor = rata-rata keaktifan semester & Nilai Akhir (Tri Sukses Generus).</p>
       <KeadaanData hasil={r} kosong={(d) => d.daerah.length === 0} teksKosong="Belum ada generus berjenjang ini.">
         {(x) => (
           <>
@@ -661,7 +661,7 @@ const ITEM: ItemBidang[] = [
   { kunci: 'kas_lihat', teks: 'Keuangan (lihat)', ket: 'Saldo & laporan bendahara', ikon: 'Rp', jabatan: ['ketua', 'wakil_ketua'], isi: () => <><KartuKas bolehUbah={false} /><DaftarCatatan judul="Catatan kas" jenis={['kas']} bolehTambah={false} /></> },
   { kunci: 'dana', teks: 'Penggalangan Dana', ket: 'Dana masuk → setor ke bendahara', ikon: '♥', jabatan: ['penggalang_dana'], isi: () => <><KartuKas bolehUbah={false} penggalang /><DaftarCatatan judul="Dana masuk" jenis={['dana_masuk']} ket="Tercatat di kas setelah dikonfirmasi bendahara." /></> },
   // §18: butir materi/penilaian yang diserahkan ke Bidang Kurikulum
-  { kunci: 'penetapan', teks: 'Perlu Ditetapkan Kurikulum', ket: 'Target, halaman kitab, rumus TOTAL, …', ikon: '✔', jabatan: ['kurikulum'], isi: () => <PerluDitetapkanHp /> },
+  { kunci: 'penetapan', teks: 'Perlu Ditetapkan Kurikulum', ket: 'Target, halaman kitab, rumus Nilai Akhir, pemetaan aspek, …', ikon: '✔', jabatan: ['kurikulum'], isi: () => <PerluDitetapkanHp /> },
   { kunci: 'reward', teks: 'Reward Hasil Belajar', ket: 'Santri, kelompok & desa terbaik', ikon: '★', jabatan: ['kurikulum', 'ketua', 'wakil_ketua'], isi: () => <RewardBidang /> },
   { kunci: 'pendidik', teks: 'Tenaga Pendidik', ket: 'Data & kebutuhan MT, SDM, kontrol MT', ikon: '☺', jabatan: ['tenaga_pendidik'], isi: () => <><RekapKontrolMtBidang /><DaftarCatatan judul="Data mubaligh/mubalighot" jenis={['mubaligh']} /><DaftarCatatan judul="Kebutuhan pengajar" jenis={['kebutuhan_pengajar']} /><DaftarCatatan judul="Program peningkatan SDM" jenis={['program_sdm']} /></> },
   { kunci: 'sarpras', teks: 'Sarana & Prasarana', ket: 'Inventaris & usulan pengadaan', ikon: '▦', jabatan: ['sarpras'], isi: () => <><DaftarCatatan judul="Inventaris per kelompok" jenis={['inventaris']} /><DaftarCatatan judul="Usulan pengadaan ke bendahara" jenis={['usulan_pengadaan']} /></> },

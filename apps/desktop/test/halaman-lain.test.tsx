@@ -258,9 +258,20 @@ describe('§16 juknis (Fase 10)', () => {
     await u.click(screen.getByRole('tab', { name: 'Caberawit B' }))
     const tabel = await screen.findByRole('table', { name: 'Rekap penguasaan materi' })
     expect(within(tabel).getByText('Ahmad')).toBeTruthy()
-    expect(within(tabel).getAllByRole('columnheader').length).toBe(14 + 3) // No, Nama, 14 materi, TOTAL
+    expect(within(tabel).getAllByRole('columnheader').length).toBe(14 + 6) // No, Nama, 14 materi, Alim-Faqih, Akhlaq, Mandiri, Nilai Akhir (§20.5)
+    expect(within(tabel).getAllByText('bd').length).toBeGreaterThan(0) // belum dinilai
     await u.click(screen.getByRole('button', { name: 'Ekspor Excel' }))
     await waitFor(() => expect(pf.tersimpan.some((b) => b.nama.startsWith('Rekap_Penguasaan_') && b.nama.endsWith('.xlsx'))).toBe(true))
+    // §20: raport satu anak (Tri Sukses Generus) + isian Karakter Luhur
+    await u.click(screen.getByRole('tab', { name: 'Laporan Hasil Belajar' }))
+    await pilihOpsi(u, 'Generus', /Ahmad/)
+    await screen.findByRole('table', { name: /Tri Sukses Generus Ahmad/ })
+    await u.click(screen.getByRole('button', { name: 'Nilai Karakter Luhur' }))
+    const kar = await screen.findByRole('dialog', { name: /Karakter Luhur — Ahmad/ })
+    await u.selectOptions(within(kar).getByLabelText('Predikat Jujur'), 'baik')
+    await u.type(within(kar).getByLabelText('Catatan Jujur'), 'Berkata benar.')
+    await u.click(within(kar).getByRole('button', { name: 'Simpan' }))
+    await waitFor(() => expect(within(screen.getByRole('table', { name: '6 Thobiat Luhur (praktik sehari-hari)' })).getByText('Berkata benar.')).toBeTruthy())
     await u.click(screen.getByRole('tab', { name: 'Laporan Bulanan' }))
     await screen.findByRole('table', { name: 'Laporan bulanan' })
     await buka(u, 'Materi Evaluasi')

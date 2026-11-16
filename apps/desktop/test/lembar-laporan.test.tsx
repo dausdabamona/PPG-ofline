@@ -151,12 +151,13 @@ describe('Cetakan laporan bulanan format lembar', () => {
     if (process.env.PPG_CONTOH_CETAK) writeFileSync(join(process.env.PPG_CONTOH_CETAK, 'laporan-bulanan-contoh.xlsx'), xlsx)
   })
 
-  it('raport resmi: kop, identitas, tabel, TOTAL, tanda tangan — satu anak per halaman', async () => {
+  it('raport resmi §20.4: halaman ringkas (Tri Sukses Generus, Karakter Luhur, tanda tangan) + lampiran rincian per anak', async () => {
     const { db, generus } = await desaContoh()
     const data = generus.slice(14, 17).map((id) => dataRaportCetak(db, id, { periode: '2026-S1', tanggalCetak: '2026-12-20' }))
     const html = renderToStaticMarkup(<LembarRaport data={data} logo="logo.svg" />)
-    expect((html.match(/rp-halaman/g) ?? []).length).toBe(3)
-    for (const t of ['PENGGERAK PEMBINA GENERUS (PPG)', 'DAERAH SORONG', 'LAPORAN HASIL BELAJAR GENERUS', 'Semester 1 (Juli–Desember 2026)', 'TOTAL PENGUASAAN MATERI', 'MT / Mubaligh Kelompok', 'KI Kelompok', 'Orang Tua / Wali', 'Sorong, 20 Desember 2026'])
+    expect((html.match(/rp-halaman/g) ?? []).length).toBe(6)
+    expect((html.match(/rp-lampiran/g) ?? []).length).toBe(3)
+    for (const t of ['PENGGERAK PEMBINA GENERUS (PPG)', 'DAERAH SORONG', 'LAPORAN HASIL BELAJAR GENERUS', 'Semester 1 (Juli–Desember 2026)', 'A. TRI SUKSES GENERUS', 'Alim-Faqih', 'Faqih (kefahaman &amp; praktik ibadah)', 'Akhlaqul Karimah', 'NILAI AKHIR', 'B. KARAKTER LUHUR', '4 Tali Keimanan', 'Mujhid-muzhid', 'LAMPIRAN — RINCIAN PENGUASAAN MATERI', 'Alim — Mankul', 'belum dinilai', 'MT / Mubaligh Kelompok', 'KI Kelompok', 'Orang Tua / Wali', 'Sorong, 20 Desember 2026'])
       expect(html).toContain(t)
     tulisContoh('raport.html', html)
   })
