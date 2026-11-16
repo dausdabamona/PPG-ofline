@@ -306,7 +306,10 @@ describe('Cetak raport §20.4 & migrasi v7', () => {
     expect(d.baris.map((b) => b.no)).toEqual(d.baris.map((_, i) => i + 1))
     expect(d.total).toBe('100')
     expect(d.keteranganRumus).toMatch(/3 aspek Tri Sukses Generus/)
-    const pdf = new TextDecoder('latin1').decode(raporPdf(a, { generusIds: [ali.id, budi.id], periode: P }))
+    const bytes = raporPdf(a, { generusIds: [ali.id, budi.id], periode: P })
+    // uji visual (opsional): PPG_CONTOH_CETAK=<folder> menulis PDF contoh
+    if (process.env.PPG_CONTOH_CETAK) (await import('node:fs')).writeFileSync(`${process.env.PPG_CONTOH_CETAK}/raport-pdf-core.pdf`, bytes)
+    const pdf = new TextDecoder('latin1').decode(bytes)
     expect(pdf).toContain('/Count 4')
   })
 

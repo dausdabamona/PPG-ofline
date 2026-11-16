@@ -399,7 +399,7 @@ function BarisRapor(p: { i: ItemRapor }) {
     <li>
       <div>
         <span>{i.materi.nama}</span>
-        <b>{i.belumDitetapkan ? 'Belum ditetapkan Kurikulum' : i.persen === null ? 'belum dinilai' : fmt(i.persen)}</b>
+        {i.belumDitetapkan ? <small className="nilai-bd">belum ditetapkan</small> : i.persen === null ? <small className="nilai-bd">belum dinilai</small> : <b>{fmt(i.persen)}</b>}
       </div>
       {i.persen !== null ? <BilahPersen kecil persen={i.persen} label={i.materi.nama} /> : null}
       {i.dariPeriode ? <small>Nilai dari {teksPeriode(i.dariPeriode)}</small> : null}

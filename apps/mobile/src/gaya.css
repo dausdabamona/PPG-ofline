@@ -1315,3 +1315,5 @@ button.baris-progres {
 .rincian-lipat > summary { min-height: 48px; display: flex; align-items: center; font-weight: 700; color: var(--teal-tua); cursor: pointer; }
 .rincian-lipat[open] > summary { border-bottom: 1px solid var(--garis); }
 .rincian-bagian { margin-bottom: 8px; }
+.nilai-bd { white-space: nowrap; color: var(--tinta-lembut); font-style: italic; }
+.daftar-aspek .aspek b { white-space: nowrap; }

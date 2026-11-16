@@ -3,6 +3,9 @@
 import {
   aturJadwalSetor,
   bukaDb,
+  idMateriEvaluasi,
+  simpanEvaluasi,
+  simpanPenilaianKarakter,
   buatMateri,
   buatPaket,
   daftarMateri,
@@ -23,10 +26,41 @@ export async function siapkan() {
   const ds = tambahWilayah(db, { tingkat: 'desa', nama: 'Klasaman', kode: 'KLS', indukId: d.id })
   const k1 = tambahWilayah(db, { tingkat: 'kelompok', nama: 'Klasaman 1', kode: 'K1', indukId: ds.id })
   tambahWilayah(db, { tingkat: 'kelompok', nama: 'Klasaman 2', kode: 'K2', indukId: ds.id })
-  for (const [i, nama] of ['Ahmad', 'Aisyah', 'Bilal', 'Fatimah'].entries()) {
+  const anak = ['Ahmad', 'Aisyah', 'Bilal', 'Fatimah'].map((nama, i) =>
     // §16: Ahmad sudah Caberawit C (juknis); lainnya masih "caberawit" lama (perlu ditetapkan)
-    tambahGenerus(db, { kelompokId: k1.id, nama, jenisKelamin: i % 2 ? 'P' : 'L', kategori: i === 0 ? 'caberawit_c' : 'caberawit', mulai: '2026-01-01', waliNama: 'Pak Fauzi', waliNoHp: '081234567890' })
-  }
+    tambahGenerus(db, { kelompokId: k1.id, nama, jenisKelamin: i % 2 ? 'P' : 'L', kategori: i === 0 ? 'caberawit_c' : 'caberawit', mulai: '2026-01-01', waliNama: 'Pak Fauzi', waliNoHp: '081234567890' }),
+  )
+  // §20 (Fase 14): nilai & Karakter Luhur contoh untuk Ahmad (data dummy) — sebagian butir sengaja belum dinilai
+  const C = (k: string) => idMateriEvaluasi('caberawit_c', k)
+  const ahmad = anak[0]!.id
+  for (const [k, isi] of [
+    ['makna_quran', { rincian: { '30': 14 } }],
+    ['tajwid', { dikuasai: 22 }],
+    ['keilmuan', { dikuasai: 12 }],
+    ['surat', { dikuasai: 38 }],
+    ['doa_sorong', { dikuasai: 30 }],
+    ['dalil_sorong', { dikuasai: 20 }],
+    ['kefahaman', { dikuasai: 21 }],
+    ['praktik_ibadah', { dikuasai: 12 }],
+    ['wudhu_sholat', { nilai: 72 }],
+    ['kualitas_bacaan', { nilai: 65 }],
+    ['akhlak', { dikuasai: 11 }],
+    ['adab', { dikuasai: 88 }],
+    ['nasehat_bpi', { dikuasai: 60 }],
+    ['kemandirian', { dikuasai: 15 }],
+    ['asad', { nilai: 60 }],
+  ] as const)
+    simpanEvaluasi(db, { generusId: ahmad, materiEvaluasiId: C(k), ...isi })
+  for (const [butir, predikat, catatan] of [
+    ['agungkan', 'baik', null],
+    ['sungguh', 'baik', 'Hadir pengajian hampir setiap pekan.'],
+    ['doa', 'cukup', 'Doa sebelum belajar perlu diingatkan.'],
+    ['amanah', 'baik', null],
+    ['mujhid_muzhid', 'cukup', null],
+    ['kompak', 'baik', null],
+    ['kerja_sama', 'baik', 'Mau membantu merapikan tempat ngaji.'],
+  ] as const)
+    simpanPenilaianKarakter(db, { generusId: ahmad, butir, predikat, catatan })
   tambahGenerus(db, { kelompokId: k1.id, nama: 'Zaid', jenisKelamin: 'L', kategori: 'praremaja', mulai: '2026-01-01' })
   const dow = new Date(`${tanggalHariIni()}T00:00:00`).getDay()
   for (let h = 0; h < 7; h++) tambahPengajian(db, { wilayahId: k1.id, nama: 'Pengajian Umum', hari: h, jam: '16:00' })

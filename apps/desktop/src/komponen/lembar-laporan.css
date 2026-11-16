@@ -104,33 +104,33 @@
 .lb-ttd b { min-height: 3mm; }
 
 /* raport resmi */
-.rp-halaman { font-size: 10pt; gap: 2mm; padding: 4mm 6mm; }
-.rp-kop { display: flex; align-items: center; gap: 5mm; border-bottom: 3px double var(--lb-teal); padding-bottom: 3mm; }
-.rp-kop img { width: 20mm; height: 20mm; }
+.rp-halaman { font-size: 9.5pt; gap: 1.4mm; padding: 2mm 6mm 0; }
+.rp-kop { display: flex; align-items: center; gap: 5mm; border-bottom: 3px double var(--lb-teal); padding-bottom: 2mm; }
+.rp-kop img { width: 17mm; height: 17mm; }
 .rp-kop div { flex: 1; text-align: center; }
 .rp-kop p { margin: 0; color: var(--lb-teal); }
 .rp-org { font-weight: bold; font-size: 13pt; }
 .rp-daerah { font-weight: bold; font-size: 17pt; }
 .rp-ket { color: #666 !important; font-size: 9pt; }
-.rp-judul { text-align: center; font-size: 13pt; margin: 3mm 0 0; }
-.rp-semester { text-align: center; margin: 0 0 2mm; }
-.rp-identitas { display: grid; grid-template-columns: 24mm 1fr 24mm 1fr; gap: 1mm 2mm; margin: 0 0 2mm; }
+.rp-judul { text-align: center; font-size: 12.5pt; margin: 1.5mm 0 0; }
+.rp-semester { text-align: center; margin: 0 0 1mm; }
+.rp-identitas { display: grid; grid-template-columns: 24mm 1fr 24mm 1fr; gap: 0.6mm 2mm; margin: 0 0 1mm; }
 .rp-identitas dt { color: #666; }
 .rp-identitas dd { margin: 0; }
 .rp-identitas dd::before { content: ': '; }
-.rp-tabel { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-.rp-tabel th { background: var(--lb-teal); color: #fff; padding: 1.2mm; }
-.rp-tabel td { border: 0.5px solid #999; padding: 0.8mm 1.2mm; }
+.rp-tabel { width: 100%; border-collapse: collapse; font-size: 8pt; }
+.rp-tabel th { background: var(--lb-teal); color: #fff; padding: 0.8mm 1.2mm; }
+.rp-tabel td { border: 0.5px solid #999; padding: 0.5mm 1.2mm; }
 .rp-tabel tbody tr:nth-child(even) td { background: #f4faf9; }
 .rp-belum td { color: #888; }
 .rp-total td { background: #cceee8 !important; font-weight: bold; border-color: var(--lb-teal); }
-.rp-catatan { color: #666; font-size: 8.5pt; margin: 0; }
-.rp-tempat { text-align: right; margin: auto 0 2mm; }
-.rp-ttd { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; text-align: center; margin-bottom: 8mm; }
-.rp-ttd div { display: flex; flex-direction: column; justify-content: space-between; height: 30mm; }
+.rp-catatan { color: #666; font-size: 7.5pt; margin: 0; }
+.rp-tempat { text-align: right; margin: auto 0 1mm; }
+.rp-ttd { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; text-align: center; margin-bottom: 2mm; }
+.rp-ttd div { display: flex; flex-direction: column; justify-content: space-between; height: 24mm; }
 .rp-ttd b { border-top: 1px solid #333; padding-top: 1mm; }
 /* §20.4 Tri Sukses Generus & Karakter Luhur */
-.rp-bagian { margin: 2mm 0 0; font-size: 10pt; color: var(--lb-teal); display: flex; justify-content: space-between; align-items: baseline; }
+.rp-bagian { margin: 1.2mm 0 0; font-size: 9.5pt; color: var(--lb-teal); display: flex; justify-content: space-between; align-items: baseline; }
 .rp-bagian small { color: #666; font-weight: normal; font-size: 8pt; }
 .rp-tri td:first-child { width: 55%; }
 .rp-tri .rp-aspek td, .rp-tri .rp-akhir td { font-weight: bold; }
@@ -139,7 +139,7 @@
 .rp-karakter td:first-child { width: 34%; }
 .rp-karakter td:nth-child(2) { width: 18%; }
 .rp-baris { margin: 1mm 0 0; }
-.rp-catatan-mt { margin: 0.5mm 0 0; min-height: 8mm; white-space: pre-wrap; }
+.rp-catatan-mt { margin: 0.5mm 0 0; min-height: 6mm; white-space: pre-wrap; }
 .rp-lampiran .rp-tabel { margin-bottom: 1mm; }
 
 /* layar: pratinjau di atas latar abu */
@@ -156,3 +156,9 @@
   .pratinjau-cetak .lb-halaman { box-shadow: none; margin: 0; padding: 0; width: auto; min-height: 0; height: 195mm; }
   .pratinjau-cetak .lb-halaman.lb-tegak { width: auto; height: 276mm; padding: 0; }
 }
+.rp-halaman.lb-tegak { min-height: 0; height: 276mm; }
+.rp-lampiran .rp-tabel { table-layout: fixed; }
+.rp-lampiran .rp-tabel th:nth-child(1) { width: 9mm; }
+.rp-lampiran .rp-tabel th:nth-child(3), .rp-lampiran .rp-tabel th:nth-child(4) { width: 28mm; }
+.rp-lampiran .rp-tabel th:nth-child(5) { width: 22mm; }
+.rp-ttd b { min-height: 4.5mm; }

@@ -92,11 +92,17 @@ export interface RaportCetak {
   tempatTanggal: string
 }
 
+/** "Juz 30", "Juz 21–30" (berurutan), selain itu daftar. */
+function teksJuz(juz: number[]): string {
+  if (juz.length > 1 && juz.every((j, i) => i === 0 || j === juz[i - 1]! + 1)) return `Juz ${juz[0]}–${juz[juz.length - 1]}`
+  return `Juz ${juz.join(', ')}`
+}
+
 function teksTarget(i: ItemRapor): string {
   const m = i.materi
   if (m.cara === 'keaktifan') return `${m.target ?? ''} kali/bulan`
   if (m.cara === 'subjektif') return 'maks. 75'
-  if (m.cara === 'juz') return `Juz ${(m.rincian.juz ?? []).join(', ')}`
+  if (m.cara === 'juz') return teksJuz(m.rincian.juz ?? [])
   if (m.cara === 'kitab') return `${(m.rincian.kitab ?? []).length} kitab`
   return m.target === null ? '' : `${m.target} ${m.satuan ?? ''}`.trim()
 }
@@ -259,9 +265,10 @@ class Alur {
   paragraf(t: string, o: { ukuran?: number; warna?: Warna; huruf?: 'biasa' | 'tebal' } = {}): void {
     const u = o.ukuran ?? 8.5
     for (const s of bungkusTeks(t, u, this.lebar, o.huruf)) {
-      this.ruang(12)
+      this.ruang(u + 4)
+      this.y += u + 1 // garis dasar teks
       this.h.teks(this.kiri, this.y, s, { ukuran: u, warna: o.warna ?? ABU, huruf: o.huruf })
-      this.y += u + 2.5
+      this.y += 1.5
     }
   }
 }
@@ -291,8 +298,8 @@ function tabel(
       a.baru()
       kepala()
     }
-    if (b.latar) a.h.kotak(a.kiri, a.y, a.lebar, t, { isi: b.latar })
-    else if (n % 2 === 1) a.h.kotak(a.kiri, a.y, a.lebar, t, { isi: [246, 251, 250] })
+    if (b.latar) a.h.kotak(a.kiri, a.y, a.lebar, t, { isi: b.latar, garis: null })
+    else if (n % 2 === 1) a.h.kotak(a.kiri, a.y, a.lebar, t, { isi: [246, 251, 250], garis: null })
     const warna: Warna = b.abu ? ABU : [0, 0, 0]
     kolom.forEach((k, i) => {
       const daftar = i === bungkus ? isi[i]! : (lain[i] ?? [b.sel[i] ?? ''])
@@ -381,13 +388,13 @@ function halamanRaport(dok: DokumenPdf, d: RaportCetak, ambang: string): void {
   a.y += 3
   a.paragraf('Predikat sikap dinilai mubaligh: Baik · Cukup · Perlu Bimbingan. Tidak dihitung ke Nilai Akhir.', { ukuran: 7.5 })
   // --- keaktifan & catatan ---
-  a.ruang(30)
-  a.y += 8
+  a.ruang(36)
+  a.y += 16
   a.h.teks(a.kiri, a.y, 'C. Keaktifan semester:', { ukuran: 9.5, huruf: 'tebal', warna: TEAL })
   a.h.teks(a.kiri + lebarTeks('C. Keaktifan semester: ', 9.5, 'tebal'), a.y, d.keaktifan, { ukuran: 9.5 })
   a.y += 16
   a.h.teks(a.kiri, a.y, 'D. Catatan mubaligh:', { ukuran: 9.5, huruf: 'tebal', warna: TEAL })
-  a.y += 12
+  a.y += 2
   a.paragraf(d.catatanMubaligh ?? '—', { ukuran: 9, warna: [0, 0, 0] })
   // --- tanda tangan ---
   a.ruang(120, 30)
