@@ -2,10 +2,15 @@
 // kontrol MT, tahfidz, catatan per bidang (konseling hanya jumlah), dan ganti kunci bidang rahasia.
 import { useState } from 'react'
 import {
+  ambilWilayah,
   daftarCatatan,
   daftarPerangkat,
   gantiKunciBidang,
-  jabatanToken,
+  gantiKunciBidangSemua,
+  penugasanToken,
+  strukturKepengurusan,
+  versiKunciBidang,
+  type BidangRahasia,
   JENIS_CATATAN,
   KATEGORI_GENERUS,
   LABEL_JABATAN,
@@ -24,12 +29,153 @@ import {
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { Isian, KeadaanData, Kartu, KepalaHalaman, Kosong, Lencana, Pilihan, Tombol } from '../komponen/ui'
+import { PilihWilayah } from '../komponen/wilayah'
 
 const rp = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `Rp${n.toLocaleString('id-ID')}`)
 const pr = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `${String(n).replace('.', ',')}%`)
 
 export function HalamanKepengurusan() {
-  const { db, peran, wilayahId, kunci, aksi } = useApp()
+  const [tab, setTab] = useState<'ringkasan' | 'struktur'>('ringkasan')
+  return (
+    <>
+      <KepalaHalaman
+        judul="Kepengurusan"
+        keterangan="Struktur & Proker PPG: pengurus per jabatan/bidang di daerah, desa, dan kelompok (perwakilan daerah). Terbitkan token berpenugasan di Perangkat & Token (Untuk: Pengurus → Penugasan jabatan)."
+      />
+      <div className="aksi-baris tab-halaman" role="tablist">
+        <Tombol varian={tab === 'ringkasan' ? 'utama' : 'kedua'} onClick={() => setTab('ringkasan')}>
+          Ringkasan & Bidang
+        </Tombol>
+        <Tombol varian={tab === 'struktur' ? 'utama' : 'kedua'} onClick={() => setTab('struktur')}>
+          Struktur & Kursi Kosong
+        </Tombol>
+      </div>
+      {tab === 'struktur' ? <StrukturKursi /> : <RingkasanKepengurusan />}
+    </>
+  )
+}
+
+/** §21.1: tabel wilayah × jabatan; kursi kosong merah "Perlu ditunjuk"; pemegang rangkapan diberi tanda perwakilan. */
+function StrukturKursi() {
+  const { db, wilayahId } = useApp()
+  const [kosongSaja, setKosongSaja] = useState(false)
+  const s = useData(() => strukturKepengurusan(db, wilayahId ?? undefined), [db, wilayahId])
+  return (
+    <Kartu judul="Struktur & Kursi Kosong">
+      <p className="keterangan">
+        Ketua, Wakil, Sekretaris, Bendahara, dan Kurikulum hanya di daerah; di desa & kelompok sekretariat dipegang PJ Desa/PJ Kelompok. Bidang lain ada di semua tingkat sebagai
+        perwakilan daerah. Rangkap jabatan boleh — kursi yang tidak dirangkap perlu ditunjuk orangnya.
+      </p>
+      <label className="centang">
+        <input type="checkbox" checked={kosongSaja} onChange={(e) => setKosongSaja(e.target.checked)} /> Tampilkan kursi kosong saja
+      </label>
+      <KeadaanData hasil={s} kosong={(x) => !x.wilayah.length} teksKosong="Wilayah belum ada.">
+        {(x) => (
+          <>
+            <p>
+              <Lencana warna={x.kosong ? 'merah' : 'hijau'}>{x.kosong} kursi perlu ditunjuk</Lencana> dari {x.kursi.length} kursi.
+            </p>
+            {x.wilayah.map((w) => {
+              const kursi = x.kursi.filter((k) => k.wilayah_id === w.id && (!kosongSaja || k.kosong))
+              if (!kursi.length) return null
+              const induk = w.induk_id ? ambilWilayah(db, w.induk_id)?.nama : null
+              return (
+                <div key={w.id} className="blok-struktur">
+                  <h3>
+                    {w.tingkat === 'daerah' ? 'Daerah' : w.tingkat === 'desa' ? 'Desa' : 'Kelompok'} {w.nama}
+                    {induk && w.tingkat === 'kelompok' ? <small> · Desa {induk}</small> : null}
+                  </h3>
+                  <table className="tabel" aria-label={`Struktur ${w.nama}`}>
+                    <thead>
+                      <tr>
+                        <th>Jabatan</th>
+                        <th>Pemegang</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {kursi.map((k) => (
+                        <tr key={k.jabatan} className={k.kosong ? 'kursi-kosong' : undefined}>
+                          <td>{k.label}</td>
+                          <td>
+                            {k.kosong ? (
+                              <Lencana warna="merah">Perlu ditunjuk</Lencana>
+                            ) : (
+                              k.pemegang.map((h) => (
+                                <span key={h.token_id} className="pemegang">
+                                  {h.nama} {h.perwakilan ? <Lencana warna="teal">perwakilan {h.perwakilan}</Lencana> : null}
+                                </span>
+                              ))
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            })}
+          </>
+        )}
+      </KeadaanData>
+    </Kartu>
+  )
+}
+
+/** §21.2: ganti kunci bidang rahasia per wilayah (mis. BK Kelompok Remu diganti → hanya kunci konseling Remu). */
+function KunciBidangWilayah() {
+  const { db, kunci, aksi } = useApp()
+  const [bidang, setBidang] = useState<BidangRahasia>('konseling')
+  const [wilayah, setWilayah] = useState('')
+  const versi = useData(() => versiKunciBidang(db), [db])
+  return (
+    <Kartu judul="Kunci bidang rahasia (per wilayah)">
+      <p className="keterangan">
+        Ganti kunci bila pemegang BK/penggalang dana/bendahara/ketua di wilayah itu dicabut atau diganti. Kunci baru turun lewat Kirim Paket ke pemegang penugasan pembaca yang masih
+        aktif; catatan lama tetap terbaca oleh pemegang lama yang sah. BK wilayah W hanya memegang kunci konseling W; pembaca keuangan daerah memegang kunci keuangan semua wilayah.
+      </p>
+      <div className="formulir dua-kolom">
+        <Pilihan label="Bidang" nilai={bidang} ubah={(v) => setBidang(v as BidangRahasia)} pilihan={[{ nilai: 'konseling', teks: 'Konseling (BK)' }, { nilai: 'keuangan', teks: 'Keuangan' }]} />
+        <PilihWilayah db={db} label="Wilayah" nilai={wilayah} ubah={setWilayah} kosong="— pilih wilayah —" />
+      </div>
+      <div className="aksi-baris">
+        <Tombol varian="kedua" disabled={!wilayah} onClick={() => aksi(() => gantiKunciBidang(db, kunci as KunciAdmin, bidang, wilayah), (v) => `Kunci ${bidang} ${ambilWilayah(db, wilayah)?.nama ?? ''} versi ${v}.`)}>
+          Ganti kunci wilayah ini
+        </Tombol>
+        <Tombol varian="kedua" onClick={() => aksi(() => gantiKunciBidangSemua(db, kunci as KunciAdmin, bidang), (n) => `Kunci ${bidang} ${n} wilayah diganti.`)}>
+          Ganti kunci semua wilayah
+        </Tombol>
+      </div>
+      <KeadaanData hasil={versi} kosong={(d) => !d.length} teksKosong="Kunci bidang dibuat otomatis saat token jabatan/paket pertama.">
+        {(d) => (
+          <details>
+            <summary>Versi kunci per wilayah ({d.length})</summary>
+            <table className="tabel" aria-label="Versi kunci bidang">
+              <thead>
+                <tr>
+                  <th>Wilayah</th>
+                  <th>Bidang</th>
+                  <th>Versi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.map((k) => (
+                  <tr key={`${k.bidang}-${k.wilayah_id}`}>
+                    <td>{ambilWilayah(db, k.wilayah_id)?.nama ?? 'Daerah (kunci lama)'}</td>
+                    <td>{k.bidang}</td>
+                    <td>{k.versi}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+      </KeadaanData>
+    </Kartu>
+  )
+}
+
+function RingkasanKepengurusan() {
+  const { db, peran, wilayahId, kunci } = useApp()
   const daerah = peran === 'daerah'
   const kunciAdmin = daerah ? (kunci as KunciAdmin) : undefined
   const wilayah = wilayahId ?? ''
@@ -37,8 +183,8 @@ export function HalamanKepengurusan() {
   const pengurus = useData(
     () =>
       daftarPerangkat(db, { role: 'pengurus' })
-        .map((p) => ({ ...p, jabatan: jabatanToken(p.token), status: statusPerangkat(p) }))
-        .filter((p) => p.jabatan.length),
+        .map((p) => ({ ...p, penugasan: penugasanToken(p.token), status: statusPerangkat(p) }))
+        .filter((p) => p.penugasan.length),
     [db],
   )
   const ketua = useData(() => (wilayah ? ringkasanKetua(db, { wilayahId: wilayah, bulan, kunciAdmin }) : null), [db, wilayah, bulan])
@@ -46,10 +192,6 @@ export function HalamanKepengurusan() {
   const ingat = useData(() => (wilayah ? pengingatLaporan(db, wilayah) : null), [db, wilayah]).data
   return (
     <>
-      <KepalaHalaman
-        judul="Kepengurusan"
-        keterangan="Struktur & Proker PPG Daerah: pengurus per jabatan/bidang. Terbitkan token berjabatan di Perangkat & Token (Untuk: Pengurus → centang jabatan)."
-      />
       {ingat ? (
         <Kartu>
           <p>
@@ -72,7 +214,7 @@ export function HalamanKepengurusan() {
                 {d.map((p) => (
                   <tr key={p.id}>
                     <td>{p.nama}</td>
-                    <td>{p.jabatan.map((j) => LABEL_JABATAN[j]).join(', ')}</td>
+                    <td>{p.penugasan.map((x) => `${LABEL_JABATAN[x.jabatan]} · ${ambilWilayah(db, x.wilayah_id)?.nama ?? '—'}`).join('; ')}</td>
                     <td>
                       <Lencana warna={p.status === 'aktif' ? 'hijau' : 'merah'}>{p.status}</Lencana>
                     </td>
@@ -101,9 +243,10 @@ export function HalamanKepengurusan() {
                 <dd>
                   {x.nunggoni.laporan} (laporan kelompok) + {x.nunggoni.mandiri} (catatan pengurus/mubaligh)
                 </dd>
-                <dt>Kasus BK</dt>
+                <dt>Kasus & rujukan BK (se-daerah)</dt>
                 <dd>
-                  {x.kasusBk.bulanIni} bulan ini · {x.kasusBk.total} total (isi hanya untuk bidang BK)
+                  Catatan konseling {x.kasusBk.bulanIni} bulan ini · {x.kasusBk.total} total · Rujukan {x.kasusBk.rujukanBulanIni} bulan ini · {x.kasusBk.rujukanBelumDitanggapi} belum
+                  ditanggapi · {x.kasusBk.rujukanTotal} total (isi hanya untuk BK; tidak dirinci per wilayah)
                 </dd>
                 <dt>Catatan bidang</dt>
                 <dd>
@@ -160,19 +303,7 @@ export function HalamanKepengurusan() {
       <KartuKontrolMt bulan={bulan} />
       <KartuTahfidz />
       <KartuCatatan />
-      {daerah ? (
-        <Kartu judul="Kunci bidang rahasia">
-          <p className="keterangan">Ganti kunci bila bendahara/BK/penggalang dana/ketua lama dicabut. Kunci baru turun lewat Kirim Paket (paket seluruh daerah) ke pemegang jabatan pembaca yang masih aktif.</p>
-          <div className="aksi-baris">
-            <Tombol varian="kedua" onClick={() => aksi(() => gantiKunciBidang(db, kunci as KunciAdmin, 'keuangan'), (v) => `Kunci keuangan versi ${v}.`)}>
-              Ganti kunci keuangan
-            </Tombol>
-            <Tombol varian="kedua" onClick={() => aksi(() => gantiKunciBidang(db, kunci as KunciAdmin, 'konseling'), (v) => `Kunci konseling versi ${v}.`)}>
-              Ganti kunci konseling
-            </Tombol>
-          </div>
-        </Kartu>
-      ) : null}
+      {daerah ? <KunciBidangWilayah /> : null}
     </>
   )
 }

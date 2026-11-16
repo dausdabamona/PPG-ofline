@@ -831,3 +831,27 @@ img.merek-logo { display: block; background: none; object-fit: contain; }
 .kisi-pemetaan { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; }
 .sel-bd { color: #8a8a8a; font-style: italic; }
 .kolom-aspek { background: #0b5f59 !important; }
+
+/* §21.1: Struktur & Kursi Kosong */
+.tab-halaman {
+  margin-bottom: 12px;
+}
+.blok-struktur {
+  margin-top: 16px;
+}
+.blok-struktur h3 {
+  margin: 0 0 6px;
+  color: var(--teal-tua, #115e59);
+}
+.kursi-kosong td {
+  background: #fdecec;
+}
+.pemegang {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-right: 12px;
+}
+fieldset.penugasan {
+  margin-top: 12px;
+}

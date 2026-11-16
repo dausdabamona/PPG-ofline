@@ -315,30 +315,49 @@ describe('§19 cetakan lembar & raport (Fase 13)', () => {
   })
 })
 
-describe('§17 kepengurusan (Fase 11)', () => {
-  it('terbitkan token pengurus daerah berjabatan → Kepengurusan menampilkan jabatan', async () => {
+describe('§17/§21 kepengurusan berjenjang (Fase 11, 15)', () => {
+  it('terbitkan token pengurus dengan penugasan lintas wilayah + nomor WA BK → Kepengurusan & Struktur & Kursi Kosong', async () => {
     const w = await dunia()
     const u = userEvent.setup()
     await masuk(u, simpanDb(w.db))
     const hp = await bukaDb()
-    const { kodePerangkat } = await inisialisasiPerangkat(hp, 'HP Bendahara')
+    const { kodePerangkat } = await inisialisasiPerangkat(hp, 'HP Pengurus')
     await buka(u, 'Perangkat & Token')
     await pilihOpsi(u, 'Untuk', /^Pengurus/)
     await u.click(screen.getByLabelText('Kode Perangkat'))
     await u.paste(kodePerangkat)
-    await screen.findByText(/HP: HP Bendahara/)
-    await pilihOpsi(u, 'Wilayah tugas', /Sorong/)
-    await u.type(screen.getByLabelText('Nama pemegang'), 'Bendahara PPG')
+    await screen.findByText(/HP: HP Pengurus/)
+    await u.type(screen.getByLabelText('Nama pemegang'), 'Pengurus Contoh')
+    // penugasan 1: daerah — Bendahara + Tenaga Pendidik
+    await pilihOpsi(u, 'Wilayah penugasan', /Sorong \(Daerah/)
     await u.click(await screen.findByRole('checkbox', { name: 'Bendahara' }))
     await u.click(screen.getByRole('checkbox', { name: 'Bidang Tenaga Pendidik' }))
+    await u.click(screen.getByRole('button', { name: 'Tambah penugasan' }))
+    // penugasan 2: kelompok — BK perwakilan (Bendahara tidak ada di kelompok)
+    await pilihOpsi(u, 'Wilayah penugasan', /Klasaman 1 \(Kelompok/)
+    expect(screen.queryByRole('checkbox', { name: 'Bendahara' })).toBeNull()
+    await u.click(await screen.findByRole('checkbox', { name: 'Bidang Bimbingan Konseling' }))
+    await u.click(screen.getByRole('button', { name: 'Tambah penugasan' }))
+    expect(await screen.findByText(/Wilayah token otomatis/)).toBeTruthy()
+    await u.type(screen.getByLabelText('Nomor WA BK (opsional, disarankan nomor khusus BK)'), '0812 3456 7890')
     await u.click(screen.getByRole('button', { name: 'Terbitkan token' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Token untuk Bendahara PPG' })
+    const dialog = await screen.findByRole('dialog', { name: 'Token untuk Pengurus Contoh' })
     const token = (within(dialog).getByTestId('teks-token') as HTMLTextAreaElement).value
-    expect(uraiToken(token).payload.jabatan).toEqual(['bendahara', 'tenaga_pendidik'])
+    const p = uraiToken(token).payload
+    expect(p.jabatan).toBeUndefined()
+    expect(p.penugasan?.map((x) => x.jabatan)).toEqual(['bendahara', 'tenaga_pendidik', 'bk'])
+    expect(p.penugasan?.[2]!.wilayah_id).toBe(w.k1.id)
+    expect(p.tingkat).toBe('daerah')
     await u.keyboard('{Escape}')
     await buka(u, 'Kepengurusan')
     const tabel = await screen.findByRole('table', { name: 'Pengurus berjabatan' })
-    expect(within(tabel).getByText('Bendahara, Bidang Tenaga Pendidik')).toBeTruthy()
+    expect(within(tabel).getByText(/Bendahara · Sorong; Bidang Tenaga Pendidik · Sorong; Bidang Bimbingan Konseling · Klasaman 1/)).toBeTruthy()
+    await u.click(screen.getByRole('button', { name: 'Struktur & Kursi Kosong' }))
+    const k1 = await screen.findByRole('table', { name: 'Struktur Klasaman 1' })
+    const baris = within(k1).getByText('Bidang Bimbingan Konseling').closest('tr')!
+    expect(within(baris as HTMLElement).getByText(/perwakilan daerah/)).toBeTruthy()
+    expect(within(k1).getAllByText('Perlu ditunjuk').length).toBeGreaterThan(0)
+    expect(within(await screen.findByRole('table', { name: 'Struktur Sorong' })).getAllByText('Perlu ditunjuk').length).toBeGreaterThan(0)
   })
 })
 

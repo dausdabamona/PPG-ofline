@@ -6,7 +6,9 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   JABATAN_TINGKAT,
   LABEL_JABATAN,
+  leluhurBersama,
   type Jabatan,
+  type Penugasan,
   HAK_BAWAAN,
   ambilWilayah,
   bacaKodePerangkat,
@@ -82,10 +84,27 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
   const [nama, setNama] = useState('')
   const [hak, setHak] = useState<Hak[]>(HAK_BAWAAN.mubaligh)
   const [hari, setHari] = useState('365')
-  // §17: jabatan/bidang PPG untuk pengurus (hanya EXE Daerah)
-  const [jabatan, setJabatan] = useState<Jabatan[]>([])
-  const tingkatWilayah = wilayah ? ambilWilayah(db, wilayah)?.tingkat : undefined
-  const pilihanJabatan = jenis === 'pengurus' && peran === 'daerah' && tingkatWilayah ? JABATAN_TINGKAT[tingkatWilayah] : []
+  // §21.1: penugasan jabatan lintas wilayah untuk pengurus (hanya EXE Daerah); rangkap boleh di semua tingkat
+  const [penugasan, setPenugasan] = useState<Penugasan[]>([])
+  const [pnWilayah, setPnWilayah] = useState('')
+  const [pnJabatan, setPnJabatan] = useState<Jabatan[]>([])
+  const [kontakBk, setKontakBk] = useState('')
+  const bolehPenugasan = jenis === 'pengurus' && peran === 'daerah'
+  const tingkatPn = pnWilayah ? ambilWilayah(db, pnWilayah)?.tingkat : undefined
+  const pilihanJabatan = bolehPenugasan && tingkatPn ? JABATAN_TINGKAT[tingkatPn] : []
+  const wilayahOtomatis = useMemo(() => {
+    if (!penugasan.length) return null
+    try {
+      return ambilWilayah(db, leluhurBersama(db, penugasan.map((x) => x.wilayah_id))) ?? null
+    } catch {
+      return null
+    }
+  }, [penugasan])
+  const adaBk = penugasan.some((x) => x.jabatan === 'bk')
+  const tambahPenugasan = () => {
+    setPenugasan((l) => [...l, ...pnJabatan.filter((j) => !l.some((x) => x.jabatan === j && x.wilayah_id === pnWilayah)).map((j) => ({ jabatan: j, wilayah_id: pnWilayah }))])
+    setPnJabatan([])
+  }
   const infoKode = useMemo(() => {
     if (!kode.trim()) return null
     try {
@@ -106,8 +125,10 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
     const t = await aksi(
       () => {
         const o = { kodePerangkat: kode, nama, wilayahId: wilayah, hak: hakTampil ? hak : undefined, berlakuHari: Number(hari) }
-        const jb = jabatan.filter((x) => pilihanJabatan.includes(x))
-        if (peran === 'daerah') return terbitkanToken(db, kunciDaerah(kunci), { ...o, role: j.role, ...(jb.length ? { jabatan: jb } : {}) })
+        if (peran === 'daerah') {
+          const pn = bolehPenugasan ? penugasan : []
+          return terbitkanToken(db, kunciDaerah(kunci), { ...o, role: j.role, ...(pn.length ? { penugasan: pn, wilayahId: undefined, kontakBk: adaBk ? kontakBk : undefined } : {}) })
+        }
         if (j.role === 'kurikulum') throw new Error('Token kurikulum diterbitkan daerah.')
         return terbitkanTokenBawah(db, kunci as KunciExe, { ...o, role: j.role })
       },
@@ -117,7 +138,8 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
       p.hasil(t, nama)
       setKode('')
       setNama('')
-      setJabatan([])
+      setPenugasan([])
+      setKontakBk('')
     }
   }
 
@@ -134,15 +156,21 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
         />
         {infoKode && !infoKode.ok ? <KotakGalat pesan={infoKode.pesan} /> : null}
         <Pilihan label="Untuk" nilai={jenis} ubah={(v) => setJenis(v as JenisTerbit)} pilihan={pilihanJenis.map((x) => ({ nilai: x, teks: JENIS[x].teks }))} />
-        <PilihWilayah
-          db={db}
-          label="Wilayah tugas"
-          nilai={wilayah}
-          ubah={setWilayah}
-          tingkat={tingkatJenis}
-          akar={peran === 'daerah' ? null : wilayahId}
-          kosong="— pilih wilayah —"
-        />
+        {bolehPenugasan && penugasan.length ? (
+          <p className="keterangan">
+            Wilayah token otomatis: <b>{wilayahOtomatis ? `${wilayahOtomatis.tingkat} ${wilayahOtomatis.nama}` : '—'}</b> (wilayah terendah yang mencakup semua penugasan).
+          </p>
+        ) : (
+          <PilihWilayah
+            db={db}
+            label="Wilayah tugas"
+            nilai={wilayah}
+            ubah={setWilayah}
+            tingkat={tingkatJenis}
+            akar={peran === 'daerah' ? null : wilayahId}
+            kosong="— pilih wilayah —"
+          />
+        )}
         <Isian label="Nama pemegang" nilai={nama} ubah={setNama} wajib placeholder="mis. Ust. Hasan" />
         <Isian label="Masa berlaku (hari)" type="number" nilai={hari} ubah={setHari} min={1} max={3650} />
         {hakTampil ? <fieldset className="kolom kolom-lebar">
@@ -157,22 +185,66 @@ function FormTerbit(p: { hasil: (token: string, nama: string) => void }) {
           </div>
         </fieldset> : jenis === 'super_hp' ? <p className="keterangan kolom-lebar">Super Admin HP menerbitkan token semua peran (pengurus, mubaligh, orang tua, murid, EXE desa/kelompok/kurikulum) di seluruh daerah, menambah data sebagai usulan yang disetujui otomatis saat setorannya diimpor, dan menyetor ke daerah. Tidak bisa menerbitkan Super Admin HP lain. Cabut di daftar perangkat bila HP hilang.</p> : <p className="keterangan kolom-lebar">Hak EXE mengikuti tingkatnya (EXE desa boleh menerbitkan kode aktivasi di desanya; EXE kelompok mencatat & mengesahkan; kurikulum mengelola materi & target).</p>}
       </div>
-      {pilihanJabatan.length ? (
-        <fieldset className="kolom kolom-lebar">
-          <legend>Jabatan / bidang PPG (boleh lebih dari satu)</legend>
-          <div className="baris-centang">
-            {pilihanJabatan.map((x) => (
-              <label key={x} className="centang">
-                <input type="checkbox" checked={jabatan.includes(x)} onChange={(e) => setJabatan((l) => (e.target.checked ? [...l, x] : l.filter((y) => y !== x)))} />
-                {LABEL_JABATAN[x]}
-              </label>
-            ))}
+      {bolehPenugasan ? (
+        <fieldset className="kolom kolom-lebar penugasan">
+          <legend>Penugasan jabatan / bidang PPG (boleh rangkap lintas wilayah)</legend>
+          <p className="keterangan">
+            Pilih wilayah lalu centang jabatannya, tekan Tambah. Ulangi untuk wilayah lain (mis. Sarpras daerah + Sarpras Desa Sorong + BK Kelompok Remu). Ketua, Wakil, Sekretaris,
+            Bendahara, Kurikulum hanya di daerah; desa/kelompok = PJ + bidang perwakilan.
+          </p>
+          <div className="formulir dua-kolom">
+            <PilihWilayah db={db} label="Wilayah penugasan" nilai={pnWilayah} ubah={(v) => { setPnWilayah(v); setPnJabatan([]) }} kosong="— pilih wilayah —" />
+            <div />
           </div>
-          <p className="keterangan">HP pengurus hanya menampilkan menu bidangnya. Ketua/Wakil/Bendahara/Penggalang Dana menerima kunci baca keuangan; BK menerima kunci konseling.</p>
+          {pilihanJabatan.length ? (
+            <div className="baris-centang">
+              {pilihanJabatan.map((x) => (
+                <label key={x} className="centang">
+                  <input type="checkbox" checked={pnJabatan.includes(x)} onChange={(e) => setPnJabatan((l) => (e.target.checked ? [...l, x] : l.filter((y) => y !== x)))} />
+                  {LABEL_JABATAN[x]}
+                </label>
+              ))}
+            </div>
+          ) : null}
+          <div className="aksi-baris">
+            <Tombol varian="kedua" disabled={!pnWilayah || !pnJabatan.length} onClick={tambahPenugasan}>
+              Tambah penugasan
+            </Tombol>
+          </div>
+          {penugasan.length ? (
+            <table className="tabel" aria-label="Penugasan">
+              <thead>
+                <tr>
+                  <th>Jabatan</th>
+                  <th>Wilayah</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {penugasan.map((x) => (
+                  <tr key={`${x.jabatan}-${x.wilayah_id}`}>
+                    <td>{LABEL_JABATAN[x.jabatan]}</td>
+                    <td>{ambilWilayah(db, x.wilayah_id)?.nama ?? '—'}</td>
+                    <td>
+                      <Tombol kecil varian="kedua" onClick={() => setPenugasan((l) => l.filter((y) => !(y.jabatan === x.jabatan && y.wilayah_id === x.wilayah_id)))}>
+                        Hapus
+                      </Tombol>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="keterangan">Tanpa penugasan = pengurus biasa (tanpa menu bidang).</p>
+          )}
+          {adaBk ? (
+            <Isian label="Nomor WA BK (opsional, disarankan nomor khusus BK)" nilai={kontakBk} ubah={setKontakBk} placeholder="mis. 0812xxxxxxxx" bantuan="Dipakai tombol Hubungi BK di HP orang tua & generus SMA ke atas (tanpa nama)." />
+          ) : null}
+          <p className="keterangan">BK menerima kunci konseling wilayahnya saja; penggalang dana desa/kelompok kunci keuangan wilayahnya; pembaca keuangan daerah (M04) semua wilayah. Profil BK/Bendahara/Penggalang Dana wajib ber-PIN di HP.</p>
         </fieldset>
       ) : null}
       <div className="aksi">
-        <Tombol onClick={terbit} disabled={!infoKode?.ok || !wilayah || !nama.trim()}>
+        <Tombol onClick={terbit} disabled={!infoKode?.ok || (!wilayah && !(bolehPenugasan && penugasan.length)) || !nama.trim()}>
           Terbitkan token
         </Tombol>
       </div>
