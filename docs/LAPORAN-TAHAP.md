@@ -935,3 +935,86 @@ memakai istilah capaian GBMTPG (Mengenal/Tertanam/Terbiasa/Terampil/Memiliki). I
   untuk angka baru. K09 yang dulu ditetapkan perlu ditetapkan ulang Kurikulum.
 - Catatan sholat orang tua hanya terlihat di raport yang dibuat di HP tempat catatan diisi (lokal, sesuai J-T17).
 - Video tutorial untuk layar Fase 10–14 belum diperbarui.
+
+---
+
+## Fase 15 — Bidang berjenjang (perwakilan daerah di desa & kelompok) + Rujukan BK (2026-11-16)
+
+Kontrak: RENCANA §21 (keputusan pemilik + J-BJ1–J-BJ6), keputusan rinci agen **J-BJ7–J-BJ22** (§21.6), register kebijakan §18.3
+ditambah **M08** `simpan_konseling` & **M09** `kontak_bk`. Pemilik tidak ditanya. Repo publik: semua nama di uji/fixtur adalah nama
+contoh ("BK Contoh", "Anak Satu", …).
+
+### Yang dibuat
+1. **Penugasan berjenjang di token** (core `kepengurusan.ts`, `token.ts`, `admin.ts`): `PayloadToken.penugasan[] {jabatan, wilayah_id}`
+   (format token tetap `v: 1`); `jabatan[]` lama dibaca sebagai penugasan pada wilayah token (`penugasanDari`, J-BJ1). Desa/kelompok =
+   PJ + 9 bidang perwakilan; Ketua/Wakil/Sekretaris/Bendahara/Kurikulum hanya daerah (`alasanPenugasanTidakSah`, J-BJ7). Wilayah token =
+   **leluhur bersama** penugasan (`leluhurBersama`). Token berpenugasan tetap hanya dari EXE Daerah (J-K2).
+2. **Wewenang catatan bidang per penugasan** (J-BJ2/J-BJ12): HP (`pastikanPenulis`, `simpanNotulen`) dan penerima (`imporSetor`)
+   memeriksa penugasan jabatan di wilayah rekaman atau leluhurnya; konseling hanya wilayahnya; notulen PJ hanya wilayahnya.
+3. **Kunci rahasia per wilayah** (J-BJ3, skema **v8** tabel `kunci_bidang_wilayah`, kunci lama = daerah): BK W → konseling W saja;
+   penggalang dana desa/kelompok → keuangan wilayahnya; pembaca keuangan daerah (M04) → semua wilayah; `gantiKunciBidang(…, wilayah)`,
+   `gantiKunciBidangSemua` (M04 berubah). Konfirmasi dana masuk ditulis di wilayah dana itu (penggalang desa melihat konfirmasinya).
+4. **Info bidang & kontak BK bertanda tangan daerah** (`info-bidang.ts`, J-BJ5/J-BJ9/J-BJ10): kunci publik konseling & keuangan tiap
+   wilayah, perangkat BK aktif, **kerabat BK** (generus yang token wali/generus-nya di perangkat yang sama dengan token BK), kontak WA BK.
+   Ikut PAKET (diteruskan EXE desa/kelompok apa adanya) dan BALASAN (kontak saja).
+5. **Rujukan BK** (`rujukan.ts`, J-BJ4/J-BJ8/J-BJ14–J-BJ16): `simpanRujukan` (tujuan otomatis kelompok → desa → daerah, lewati
+   kerabat, langsung daerah bila Segera), berkas baru **`PPG_RUJUKAN_…`** (jenis `RUJUKAN`, amplop ke perangkat BK tujuan) + jalur Setor,
+   `imporRujukan`, status Terima/Tangani/Selesai/Diteruskan (`status_rujukan` terbuka), `jadikanCatatanKonseling`, `naikkanRujukan`,
+   pengingat Segera ≥ 3 hari, `saranRujukKeaktifan` (< 50 % dua bulan penuh), Hubungi BK (`kontakBkUntuk`, `tautanHubungiBk`),
+   ringkasan Ketua agregat daerah (J-BJ6/J-BJ19).
+6. **M08/M09** (`kebijakan.ts`): M08 24 bulan → `bersihkanKonseling` otomatis sekali sehari (HP BK saat aplikasi dibuka; daerah setelah
+   impor, J-BJ11); M09 nomor WA BK per wilayah (belum ditetapkan → nomor saat token BK terbit).
+7. **PIN wajib** profil BK/Bendahara/Penggalang Dana (core `aturPin` menolak hapus PIN; HP: menu Bidang terkunci, J-BJ18).
+8. **Struktur & Kursi Kosong** (`struktur.ts`, J-BJ17): wilayah × jabatan, tanda perwakilan daerah/desa, "Perlu ditunjuk".
+9. **EXE**: Perangkat & Token → Pengurus → **Penugasan jabatan** (wilayah + centang jabatan → Tambah penugasan, banyak baris),
+   wilayah token otomatis, **Nomor WA BK**; Kepengurusan → **Struktur & Kursi Kosong** (+ "kursi kosong saja") dan **Kunci bidang rahasia
+   (per wilayah)** (ganti per wilayah / semua wilayah, tabel versi); ringkasan BK se-daerah.
+10. **APK**: menu Bidang **per penugasan** ("Bidang Bimbingan Konseling · Kelompok Klasaman 1"); **Rujuk ke BK** (mubaligh: Lainnya;
+    pengurus biasa: Beranda; pengurus berjabatan: Bidang → Semua pengurus); **Rujukan saya** (status saja); kartu **Rujuk ke BK?**
+    (Lainnya mubaligh); BK: **Rujukan masuk** (Terima/Tangani/Jadikan catatan konseling/Naikkan/Selesai) + pengingat di Beranda;
+    **Hubungi BK** di Target orang tua & generus Remaja/Pra Nikah; **Pasang PIN dulu**; pesan hasil membuka berkas RUJUKAN.
+
+### Keamanan (review mandiri)
+- Rujukan disegel ke kunci konseling wilayah tujuan; perujuk, PJ, Ketua, EXE (daerah/desa) dan BK tingkat atas hanya memegang ciphertext.
+  Diuji: BK desa & BK daerah tidak bisa membuka konseling Remu; BK Remu tidak membuka rujukan desa; EXE daerah tidak membuka konseling.
+- Kunci publik & daftar perangkat BK yang dipakai perujuk berasal dari blob **bertanda tangan daerah** — EXE perantara tidak bisa
+  menukar kunci untuk menyadap (diuji: blob palsu ditolak). Berkas RUJUKAN diperiksa tanda tangan, token perujuk, wilayah tujuan =
+  penugasan BK di HP itu, isi wajib terenkripsi.
+- Impor: catatan di luar wilayah penugasan ditolak (diuji pemalsuan inventaris lintas desa); token rakitan bertanda tangan admin dengan
+  Bendahara di desa atau jabatan + penugasan sekaligus ditolak; pengurus BK tidak bisa menulis konseling kelompok lain.
+- Status rujukan tanpa isi; ringkasan hanya agregat se-daerah; Hubungi BK tanpa rekaman dan tanpa data anak di kalimat pembuka.
+
+### Hasil uji
+- `npm test`: core **31 berkas / 244 test** (baru `test/fase15-bidang-berjenjang.test.ts`, 17 skenario: penugasan & validasi, PIN
+  wajib, kunci konseling/keuangan per wilayah & ganti kunci per wilayah, sarpras berjenjang + pemalsuan, tujuan rujukan & kerabat,
+  berkas RUJUKAN + Setor + status + ringkasan ketua, Naikkan, rujukan pengurus & langsung daerah, pemicu keaktifan, Hubungi BK lewat
+  BALASAN, M08/M09, Struktur & Kursi Kosong, migrasi v7→v8 kunci lama, token `jabatan[]` lama, EXE desa meneruskan info BK);
+  desktop **9 / 23** (token berpenugasan lintas wilayah + nomor WA BK → Kepengurusan & Struktur & Kursi Kosong); mobile **10 / 22**
+  (baru `test/fase15-rujukan.test.tsx`: Rujuk ke BK Segera + berkas WA, BK PIN wajib + menu per penugasan + Terima, orang tua Hubungi BK)
+  — semua lulus. Uji lama yang berubah karena kontrak §21: kunci keuangan wakil (semua wilayah), konseling BK daerah di wilayah daerah,
+  bentuk `kasusBk`, token baru memakai `penugasan`, bendahara HP wajib PIN, versi skema ≥ 7.
+- `npm run typecheck` bersih, `npm run build` sukses.
+- Uji asap peramban 360×740 (layar baru **31** Rujuk ke BK, **32** rujukan terkirim + pesan Segera, **33** PIN wajib, **34** Bidang per
+  penugasan, **35** rujukan masuk BK, **36** Hubungi BK orang tua; data dummy): **LULUS**, 0 galat konsol, 0 tombol < 44 px. Uji asap
+  Super Admin HP juga lulus (tanpa regresi).
+- CI GitHub Actions: commit `8a38d71` (kode) dan `d0301a8` (kode M08 + panduan) — **Build APK (Capacitor)** dan **Build Windows
+  Executable** lulus (keduanya menjalankan `npm test` lebih dulu).
+
+### Layar yang berubah (untuk video & panduan)
+- **EXE Daerah**: Perangkat & Token (Penugasan jabatan, Nomor WA BK), Kepengurusan (tab Ringkasan & Bidang / Struktur & Kursi Kosong,
+  kunci per wilayah). **EXE Desa**: Kepengurusan → Struktur & Kursi Kosong desanya.
+- **APK**: Bidang per penugasan + Pasang PIN; Rujuk ke BK; Rujukan saya; Rujukan masuk BK; kartu Rujuk ke BK? (mubaligh); Hubungi BK
+  (orang tua, generus Remaja/Pra Nikah).
+- Panduan: **2.13a, 2.13b (baru)**, 6.5, 7, 7A, 7B (M08/M09), 9, 10, 11, 12.2 (`PANDUAN-PENGGUNA.md` + `panduan-pengguna.html`,
+  dibangkitkan ulang dengan pandoc seperti sebelumnya). Bagian 5.2b tidak berubah.
+
+### Sisa masalah (jujur)
+- HP yang masih memakai APK Fase 11–14 tidak memahami `penugasan` (menu Bidang tidak muncul untuk token baru) — APK perlu diperbarui
+  sebelum token berpenugasan dibagikan. Token lama `jabatan[]` tetap berfungsi di APK baru.
+- Kerabat BK hanya terdeteksi bila token wali/generus anak terpasang di HP yang sama dengan token BK dan sudah dilaporkan ke daerah lewat
+  Setor mubaligh; hubungan keluarga lain tidak diketahui aplikasi (BK tetap bisa **Naikkan** manual).
+- Hapus otomatis M08 untuk rujukan milik perujuk di HP BK hanya lokal; salinan di HP perujuk/EXE dibersihkan lewat paket daerah —
+  HP yang tidak pernah menerima paket lagi tetap menyimpan ciphertext (tidak terbaca tanpa kunci BK).
+- EXE Desa melihat Struktur & Kursi Kosong dari paket daerah terakhir (tidak langsung berubah sebelum paket baru dibuka).
+- Pengingat Segera hanya tampil di HP BK (tidak ada notifikasi sistem Android; aplikasi offline tanpa layanan latar belakang).
+- Video tutorial untuk layar Fase 10–15 belum diperbarui.
