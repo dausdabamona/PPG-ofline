@@ -512,6 +512,8 @@ function validasiMateriEvaluasi(m: { nama: string; cara: CaraEvaluasi; target: n
   if (!m.nama.trim()) throw new GalatPpg('NAMA_KOSONG', 'Nama materi wajib diisi.')
   if (!CARA_SAH.includes(m.cara)) throw new GalatPpg('CARA_TIDAK_SAH', 'Cara penilaian tidak dikenal.')
   if (m.target !== null && (!Number.isInteger(m.target) || m.target < 1 || m.target > 10000)) throw new GalatPpg('TARGET_TIDAK_SAH', 'Target harus bilangan bulat 1–10000.')
+  // §19 (K16): satu hari dihitung satu kali → target keaktifan 1–31 kali/bulan (ditegakkan juga untuk berkas KURIKULUM)
+  if (m.cara === 'keaktifan' && m.target !== null && m.target > 31) throw new GalatPpg('TARGET_TIDAK_SAH', 'Target keaktifan 1–31 kali/bulan.')
   if (m.cara === 'subjektif' && m.target !== null && m.target !== 75) throw new GalatPpg('TARGET_TIDAK_SAH', 'Nilai subjektif selalu dibatasi 75%.')
   if (m.cara === 'juz') {
     const juz = m.rincian.juz ?? []

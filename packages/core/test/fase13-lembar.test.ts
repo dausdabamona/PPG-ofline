@@ -45,6 +45,7 @@ import {
   tetapkanButirKurikulum,
   ubahGenerus,
   dataRaportCetak,
+  alasanMateriEvaluasiTidakSah,
   generusUntukRaport,
   raporPdf,
   lebarTeks,
@@ -90,6 +91,8 @@ describe('K16 — target keaktifan bulanan per jenjang (Kurikulum)', () => {
     expect(() => tetapkanButirKurikulum(kur, 'K16', { nilai: { ...nilai(24, 16), [idMateriEvaluasi('paud', 'keaktifan')]: null } })).toThrow(/1–31/)
     expect(tetapkanButirKurikulum(kur, 'K16', { nilai: nilai(24, 16), catatan: 'ikut lembar 24 kolom' }).status).toBe('ditetapkan')
     expect(targetKeaktifan(kur, 'caberawit_b')).toBe(24)
+    // review keamanan: berkas KURIKULUM / suntingan Materi Evaluasi juga dibatasi 1–31
+    expect(alasanMateriEvaluasiTidakSah({ id: idMateriEvaluasi('paud', 'keaktifan'), jenjang: 'paud', kode: 'keaktifan', nama: 'Keaktifan', cara: 'keaktifan', target: 40 })).toMatch(/1–31/)
     expect(ringkasTargetKeaktifan(kur)).toBe('24 kali/bulan (Pra Nikah 16)')
 
     imporKurikulum(admin.db, buatKurikulum(kur).bytes, admin.kunci)
