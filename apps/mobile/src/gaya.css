@@ -1338,12 +1338,14 @@ button.baris-progres {
   padding: 6px 4px;
   white-space: normal;
 }
-.daftar-sederhana li.baris-rujukan {
+.daftar-sederhana li.baris-rujukan,
+.daftar-sederhana li.baris-tumpuk {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
 }
-.daftar-sederhana li.baris-rujukan .aksi-baris {
+.daftar-sederhana li.baris-rujukan .aksi-baris,
+.daftar-sederhana li.baris-tumpuk .aksi-baris {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

@@ -311,3 +311,10 @@ export function lembarLaporanWilayah(db: Db, o: { wilayahId: string; bulan: stri
     .map((id) => lembarLaporanBulanan(db, { kelompokId: id, bulan: o.bulan }))
     .sort((a, b) => (a.desa?.nama ?? '').localeCompare(b.desa?.nama ?? '') || a.kelompok.nama.localeCompare(b.kelompok.nama))
 }
+
+/** Teks "Ust. <nama>" untuk sampul lembar; sapaan tidak digandakan bila nama sudah diawali Ust./Ustadz. */
+export function namaMubalighSampul(nama: string | null, kosong = '.......................................'): string {
+  const n = (nama ?? '').trim()
+  if (!n) return `Ust. ${kosong}`
+  return /^ust(adz|az|adh)?\.?(\s|$)/i.test(n) || /^ust\.\S/i.test(n) ? n : `Ust. ${n}`
+}

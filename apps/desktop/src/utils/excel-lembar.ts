@@ -1,6 +1,7 @@
 // §19 (Fase 13, J-C10) — ekspor Excel Laporan Bulanan format lembar dengan tata letak sama seperti cetakan: lembar kerja
 // Sampul, satu lembar kerja per halaman cetak (dua jenjang bila muat), dan Pengurus (absensi, musyawaroh, penyaksian).
 import type { BlokLembar, FormatLembar, LembarLaporanKelompok } from '@ppg/core'
+import { namaMubalighSampul } from '@ppg/core'
 import { susunHalaman } from '../komponen/lembar-laporan'
 
 type Ws = import('exceljs').Worksheet
@@ -148,7 +149,7 @@ function lebarKolom(ws: Ws, format: FormatLembar, blok: BlokLembar[]): void {
 function tulisSampul(ws: Ws, l: LembarLaporanKelompok): void {
   ws.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1, horizontalCentered: true, verticalCentered: true }
   ws.getColumn(1).width = 110
-  const teks = ['LAPORAN GENERUS KELOMPOK', l.kelompok.nama.toUpperCase(), `BULAN ${l.teksBulan}`, `Ust. ${l.mubaligh ?? '.......................................'}`]
+  const teks = ['LAPORAN GENERUS KELOMPOK', l.kelompok.nama.toUpperCase(), `BULAN ${l.teksBulan}`, namaMubalighSampul(l.mubaligh)]
   teks.forEach((t, i) => {
     const r = ws.getRow(6 + i)
     r.getCell(1).value = t

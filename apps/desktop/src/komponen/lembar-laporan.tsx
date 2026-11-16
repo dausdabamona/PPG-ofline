@@ -8,6 +8,7 @@ import {
   type FormatLembar,
   type LembarLaporanKelompok,
   type RaportCetak,
+  namaMubalighSampul,
 } from '@ppg/core'
 import './lembar-laporan.css'
 
@@ -270,7 +271,7 @@ export function SampulLembar(p: { l: LembarLaporanKelompok }) {
         <p>LAPORAN GENERUS KELOMPOK</p>
         <p>{p.l.kelompok.nama.toUpperCase()}</p>
         <p>BULAN {p.l.teksBulan}</p>
-        <p>Ust. {p.l.mubaligh ?? '.......................................'}</p>
+        <p>{namaMubalighSampul(p.l.mubaligh)}</p>
       </div>
     </section>
   )

@@ -126,7 +126,7 @@ function BarisNotulen(p: { n: NotulenTerbaca; bolehSahkan: boolean }) {
   const { db, aksi, platform } = useApp()
   const { n } = p
   return (
-    <li>
+    <li className="baris-tumpuk">
       <span>
         <small>{tanggalTeks(n.catatan.tanggal)}</small> {LABEL_MUSYAWARAH[n.isi.jenis_musyawarah] ?? n.isi.jenis_musyawarah} · No. {n.isi.nomor ?? '—'} · {(n.isi.keputusan ?? []).length} keputusan
         <br />
