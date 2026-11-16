@@ -21,6 +21,7 @@ import { adalahAdmin, ambilRekaman, idPerangkatLokal, sisipkanRekaman, tandaTany
 import { ambilWilayah, daftarWilayah, kelompokDalamWilayah } from './repo/wilayah'
 import { rekapKeaktifanBulan, rekapLaporanBulanan, UNSUR_NUNGGONI } from './rekap-juknis'
 import { uraiToken, type KunciBidang } from './token'
+import { alasanNilaiKebijakan, daftarKebijakan, LABEL_RUTIN, nilaiKebijakan, type JenisRutin, type NilaiDanaKegiatan } from './kebijakan'
 import { tanggalHariIni, tanggalSah } from './waktu'
 
 // =====================================================================================================================
@@ -53,7 +54,18 @@ export const AKUN_KAS = ['tabungan_desa', 'dana_masuk', 'musyawarah', 'kegiatan'
 export const PERUNTUKAN_TABUNGAN = ['mumi_daerah', 'ppg_ckm', 'dikembalikan_desa'] as const
 export const KONDISI_SARPRAS = ['baik', 'rusak_ringan', 'rusak_berat'] as const
 export const PENDIDIKAN = ['sekolah', 'lulus_smp', 'lulus_sma', 'tidak_sekolah', 'dropout', 'kuliah', 'bekerja'] as const
-export const JENIS_MUSYAWARAH = ['bersama', 'muda_mudi', 'desa', 'kelompok', 'lain'] as const
+/** Jenis musyawarah (§18: rutin bersama / PPG muda-i / desa / 5 unsur; `kelompok` & `lain` dari Fase 11). */
+export const JENIS_MUSYAWARAH = ['bersama', 'muda_mudi', 'desa', 'lima_unsur', 'kelompok', 'lain'] as const
+export const LABEL_MUSYAWARAH: Record<(typeof JENIS_MUSYAWARAH)[number], string> = {
+  bersama: 'Musyawarah rutin bersama',
+  muda_mudi: 'Musyawarah PPG unsur muda/i',
+  desa: 'Musyawarah desa',
+  lima_unsur: 'Musyawaroh 5 Unsur',
+  kelompok: 'Musyawarah kelompok',
+  lain: 'Musyawarah lain',
+}
+/** Batas butir notulen. */
+export const MAKS_BUTIR_NOTULEN = 50
 
 const MAKS_TEKS = 5000
 const MAKS_RUPIAH = 1_000_000_000_000
@@ -71,9 +83,35 @@ export function alasanIsiCatatan(jenis: string, isi: unknown): string | null {
   const x = isi as Isi
   for (const [k, v] of Object.entries(x)) if (typeof v === 'string' && v.length > MAKS_TEKS) return `Isian ${k} terlalu panjang.`
   switch (jenis as JenisCatatan) {
-    case 'notulen':
+    case 'notulen': {
       if (!salahSatu(x.jenis_musyawarah, JENIS_MUSYAWARAH)) return 'Jenis musyawarah tidak dikenal.'
-      return teks(x.hasil, true) ? null : 'Hasil musyawarah wajib diisi.'
+      for (const k of ['nomor', 'peserta', 'uraian', 'hasil', 'tindak_lanjut', 'tempat']) if (!teks(x[k])) return `Isian ${k} tidak sah.`
+      if (x.agenda !== undefined && (!Array.isArray(x.agenda) || x.agenda.length > MAKS_BUTIR_NOTULEN || x.agenda.some((a) => typeof a !== 'string' || a.length > 500))) return 'Daftar agenda tidak sah.'
+      const kp = x.keputusan
+      if (kp !== undefined) {
+        if (!Array.isArray(kp) || kp.length > MAKS_BUTIR_NOTULEN) return 'Daftar keputusan tidak sah.'
+        for (const b of kp as unknown[]) {
+          if (!b || typeof b !== 'object' || Array.isArray(b)) return 'Butir keputusan tidak sah.'
+          const k = b as Isi
+          if (typeof k.teks !== 'string' || !k.teks.trim() || k.teks.length > 1000) return 'Setiap butir keputusan wajib berisi teks (maks. 1000 huruf).'
+          if (k.kunci !== undefined && k.kunci !== null) {
+            const a = alasanNilaiKebijakan(String(k.kunci), k.nilai)
+            if (a) return `Keputusan "${k.teks.slice(0, 40)}": ${a}`
+            if (typeof k.lingkup_id !== 'string' || !k.lingkup_id) return 'Lingkup kebijakan wajib diisi.'
+          }
+        }
+      }
+      const ada = (v: unknown) => typeof v === 'string' && !!v.trim()
+      return ada(x.hasil) || ada(x.uraian) || (Array.isArray(kp) && kp.length > 0) ? null : 'Isi uraian, hasil, atau butir keputusan musyawarah.'
+    }
+    case 'pengesahan':
+      if (typeof x.notulen_id !== 'string' || !x.notulen_id) return 'Notulen yang disahkan wajib dipilih.'
+      if (typeof x.sidik !== 'string' || !/^[0-9a-f]{64}$/.test(x.sidik)) return 'Sidik keputusan tidak sah.'
+      return teks(x.catatan) ? null : 'Catatan pengesahan tidak sah.'
+    case 'mandat':
+      if (!tanggalSah(x.mulai) || !tanggalSah(x.sampai) || String(x.sampai) < String(x.mulai)) return 'Masa mandat tidak sah.'
+      if ((Date.parse(String(x.sampai)) - Date.parse(String(x.mulai))) / 86_400_000 > 366) return 'Mandat paling lama 366 hari.'
+      return teks(x.keterangan) ? null : 'Keterangan mandat tidak sah.'
     case 'kas':
       if (!salahSatu(x.arah, ['masuk', 'keluar'])) return 'Arah kas harus masuk atau keluar.'
       if (!bulat(x.jumlah, 1)) return 'Jumlah harus rupiah bulat lebih dari 0.'
@@ -197,7 +235,8 @@ export type CatatanTerbaca = Omit<CatatanBidang, 'isi_json' | 'isi_rahasia'> & {
 /** Kunci bidang yang dipegang profil-profil HP ini (semua versi). */
 function kunciBidangHp(db: Db, bidang: BidangRahasia): KunciBidang[] {
   const peta = new Map<number, KunciBidang>()
-  for (const p of daftarProfil(db, 'pengurus')) for (const k of p.rahasia.kunci_bidang ?? []) if (k.bidang === bidang) peta.set(k.versi, k)
+  for (const p of daftarProfil(db, 'pengurus'))
+    for (const k of p.rahasia.kunci_bidang ?? []) if (k.bidang === bidang && (!peta.get(k.versi)?.rahasia || k.rahasia)) peta.set(k.versi, k)
   return [...peta.values()].sort((a, b) => a.versi - b.versi)
 }
 
@@ -230,6 +269,8 @@ function pastikanPenulis(db: Db, jenis: JenisCatatan, wilayahIsi: string | undef
   const meta = JENIS_CATATAN[jenis]!
   if (adalahAdmin(db)) {
     if (meta.penulis === 'mubaligh') throw new GalatPpg('TIDAK_BERWENANG', 'Kontrol keaktifan MT diisi mubaligh sendiri.')
+    // §18 (J-M2/J-M3): notulen, pengesahan, mandat hanya dari HP jabatannya
+    if (meta.bidang === 'sekretariat') throw new GalatPpg('TIDAK_BERWENANG', 'Notulen & pengesahan musyawarah dicatat Sekretaris/Ketua di HP jabatannya.')
     const d = daftarWilayah(db, { tingkat: 'daerah' })[0]
     return wilayahIsi ?? d?.id ?? ''
   }
@@ -245,6 +286,20 @@ function pastikanPenulis(db: Db, jenis: JenisCatatan, wilayahIsi: string | undef
   }
   const p = profilBerjabatan(db, meta.penulis)
   if (!p) throw new GalatPpg('TIDAK_BERWENANG', `Catatan "${meta.nama}" hanya untuk jabatan yang berwenang.`)
+  const jab = jabatanProfil(p)
+  // §18 (J-M2): PJ desa/kelompok hanya menulis notulen wilayahnya; sekretaris semua wilayah
+  if (jenis === 'notulen' && !jab.includes('sekretaris') && wilayahIsi && wilayahIsi !== p.wilayah_id) {
+    throw new GalatPpg('TIDAK_BERWENANG', 'Notulen hanya untuk wilayah Anda sendiri.')
+  }
+  // §18 (J-M3): wakil ketua mengesahkan hanya bila diberi mandat Ketua yang berlaku hari ini
+  if (jenis === 'pengesahan' && !jab.includes('ketua')) {
+    const hari = tanggalHariIni()
+    const ada = daftarCatatan(db, { jenis: 'mandat' }).some((c) => {
+      const x = c.isi as { mulai?: string; sampai?: string } | null
+      return !!x?.mulai && !!x.sampai && x.mulai <= hari && hari <= x.sampai
+    })
+    if (!ada) throw new GalatPpg('TIDAK_BERWENANG', 'Wakil Ketua mengesahkan hanya dengan mandat Ketua yang berlaku.')
+  }
   return wilayahIsi ?? p.wilayah_id
 }
 
@@ -307,7 +362,7 @@ function bukaIsi(db: Db, c: CatatanBidang, kunciAdmin?: KunciAdmin): Isi | null 
     if (bidang !== 'keuangan' || !kunciAdmin) return null
     kunci = bacaKunciDaerah(db, kunciAdmin, bidang, Number(c.versi_kunci))
   } else kunci = kunciBidangHp(db, bidang).find((k) => k.versi === Number(c.versi_kunci))
-  if (!kunci) return null
+  if (!kunci?.rahasia) return null
   try {
     const isi = dekompresJson<Isi>(bukaSegel(dariB64url(c.isi_rahasia), { publik: dariB64url(kunci.publik), rahasia: dariB64url(kunci.rahasia) }))
     return alasanIsiCatatan(c.jenis, isi) ? null : isi
@@ -360,17 +415,22 @@ export interface RingkasanKas {
   perAkun: Record<string, { masuk: number; keluar: number }>
   /** Dana masuk penggalang dana yang belum dikonfirmasi bendahara (belum ada kas berujukan). */
   danaMenunggu: CatatanTerbaca[]
-  /** Tabungan desa bulan ini: target vs setoran. */
-  tabungan: { desa_id: string; desa: string; peruntukan: string; target: number; disetor: number }[]
+  /** Tabungan desa bulan ini: target vs setoran; `sumber` target (J-M9). */
+  tabungan: { desa_id: string; desa: string; peruntukan: string; target: number; disetor: number; sumber: SumberTarget }[]
+  /** Kebutuhan dana kegiatan (kebijakan M06). */
+  kebutuhanDana: NilaiDanaKegiatan
   terkunci: number
 }
+
+/** Asal target tabungan: Ditetapkan Musyawarah, target bendahara, atau nilai sementara katalog. */
+export type SumberTarget = 'musyawarah' | 'bendahara' | 'sementara'
 
 /** Buku kas & tabungan desa (bendahara/ketua/penggalang dana di HP; EXE daerah dengan KunciAdmin). */
 export function ringkasanKas(db: Db, o: { bulan?: string; kunciAdmin?: KunciAdmin } = {}): RingkasanKas {
   const bulan = o.bulan ?? tanggalHariIni().slice(0, 7)
   const semua = daftarCatatan(db, { jenis: ['kas', 'dana_masuk', 'target_tabungan'], kunciAdmin: o.kunciAdmin })
   const kas = semua.filter((c) => c.jenis === 'kas' && c.isi)
-  const r: RingkasanKas = { dapatDibaca: !semua.some((c) => c.terkunci), masuk: 0, keluar: 0, saldo: 0, perAkun: {}, danaMenunggu: [], tabungan: [], terkunci: semua.filter((c) => c.terkunci).length }
+  const r: RingkasanKas = { dapatDibaca: !semua.some((c) => c.terkunci), masuk: 0, keluar: 0, saldo: 0, perAkun: {}, danaMenunggu: [], tabungan: [], kebutuhanDana: [], terkunci: semua.filter((c) => c.terkunci).length }
   for (const c of kas) {
     const x = c.isi as { arah: 'masuk' | 'keluar'; jumlah: number; akun: string }
     const a = (r.perAkun[x.akun] ??= { masuk: 0, keluar: 0 })
@@ -380,19 +440,30 @@ export function ringkasanKas(db: Db, o: { bulan?: string; kunciAdmin?: KunciAdmi
   r.saldo = r.masuk - r.keluar
   const dikonfirmasi = new Set(kas.map((c) => c.rujukan_id).filter(Boolean))
   r.danaMenunggu = semua.filter((c) => c.jenis === 'dana_masuk' && c.isi && !dikonfirmasi.has(c.id))
-  // target terbaru per (desa, peruntukan)
-  const target = new Map<string, { desa_id: string; peruntukan: string; nominal: number }>()
+  // target per (desa, peruntukan), J-M9: kebijakan Ditetapkan Musyawarah > target bendahara (catatan) > nilai sementara
+  const target = new Map<string, { desa_id: string; peruntukan: string; nominal: number; sumber: SumberTarget }>()
   for (const c of [...semua].reverse()) {
     if (c.jenis !== 'target_tabungan' || !c.isi) continue
     const x = c.isi as { desa_id: string; peruntukan: string; nominal: number }
-    target.set(`${x.desa_id}|${x.peruntukan}`, x)
+    target.set(`${x.desa_id}|${x.peruntukan}`, { ...x, sumber: 'bendahara' })
+  }
+  for (const k of daftarKebijakan(db).filter((b) => b.kunci === 'tabungan_desa')) {
+    const v = k.nilai as { nominal: number | null; peruntukan: string }
+    const adaBendahara = [...target.values()].some((t) => t.desa_id === k.lingkup_id)
+    if (k.status === 'ditetapkan') {
+      for (const kunci of [...target.keys()]) if (kunci.startsWith(`${k.lingkup_id}|`)) target.delete(kunci)
+      if (v.nominal !== null) target.set(`${k.lingkup_id}|${v.peruntukan}`, { desa_id: k.lingkup_id, peruntukan: v.peruntukan, nominal: v.nominal, sumber: 'musyawarah' })
+    } else if (!adaBendahara && v.nominal !== null) {
+      target.set(`${k.lingkup_id}|${v.peruntukan}`, { desa_id: k.lingkup_id, peruntukan: v.peruntukan, nominal: v.nominal, sumber: 'sementara' })
+    }
   }
   for (const t of target.values()) {
     const disetor = kas
       .filter((c) => c.tanggal.startsWith(bulan) && (c.isi as { akun: string; desa_id?: string; arah: string }).akun === 'tabungan_desa' && (c.isi as { desa_id?: string }).desa_id === t.desa_id && (c.isi as { arah: string }).arah === 'masuk' && ((c.isi as { peruntukan?: string }).peruntukan ?? t.peruntukan) === t.peruntukan)
       .reduce((s, c) => s + (c.isi as { jumlah: number }).jumlah, 0)
-    r.tabungan.push({ desa_id: t.desa_id, desa: ambilWilayah(db, t.desa_id)?.nama ?? t.desa_id, peruntukan: t.peruntukan, target: t.nominal, disetor })
+    r.tabungan.push({ desa_id: t.desa_id, desa: ambilWilayah(db, t.desa_id)?.nama ?? t.desa_id, peruntukan: t.peruntukan, target: t.nominal, disetor, sumber: t.sumber })
   }
+  r.kebutuhanDana = nilaiKebijakan(db, 'dana_kegiatan')
   r.tabungan.sort((a, b) => a.desa.localeCompare(b.desa) || a.peruntukan.localeCompare(b.peruntukan))
   return r
 }
@@ -412,12 +483,15 @@ export function konfirmasiDanaMasuk(db: Db, danaId: string): CatatanBidang {
   })
 }
 
-/** Musyawarah rutin PPG: bulan ganjil = musyawarah bersama, bulan genap = musyawarah PPG unsur muda/i (proker Ketua). */
-export function musyawarahBulan(bulan: string): { jenis: 'bersama' | 'muda_mudi'; teks: string } {
+/**
+ * Musyawarah rutin PPG bulan itu. Bawaan (proker Ketua, ralat): bulan ganjil = musyawarah bersama, bulan genap = PPG unsur
+ * muda/i. Dengan `db`: menurut kebijakan `jadwal_musyawarah` (§18 M05).
+ */
+export function musyawarahBulan(bulan: string, db?: Db): { jenis: JenisRutin; teks: string } {
   const m = Number(bulan.slice(5, 7))
-  return m % 2 === 1
-    ? { jenis: 'bersama', teks: 'Musyawarah bersama semua pengurus PPG' }
-    : { jenis: 'muda_mudi', teks: 'Musyawarah PPG unsur muda/i + yang diundang' }
+  const jadwal = db ? nilaiKebijakan(db, 'jadwal_musyawarah') : { ganjil: 'bersama' as const, genap: 'muda_mudi' as const }
+  const jenis = m % 2 === 1 ? jadwal.ganjil : jadwal.genap
+  return { jenis, teks: LABEL_RUTIN[jenis] }
 }
 
 /** Generus kelompok-kelompok yang belum mengirim laporan bulanan untuk `bulan`. */
@@ -441,13 +515,14 @@ export interface PengingatLaporan {
 export function pengingatLaporan(db: Db, wilayahId: string, tanggal: string = tanggalHariIni()): PengingatLaporan | null {
   const hari = Number(tanggal.slice(8, 10))
   const bulanIni = tanggal.slice(0, 7)
-  if (hari <= 7) {
+  const atur = nilaiKebijakan(db, 'pengingat_laporan')
+  if (hari <= atur.awal_sampai) {
     const d = new Date(Date.UTC(Number(bulanIni.slice(0, 4)), Number(bulanIni.slice(5, 7)) - 2, 1))
     const lalu = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
     const k = kelompokBelumLapor(db, wilayahId, lalu)
     return k.length ? { jenis: 'awal_bulan', bulan: lalu, pesan: `${k.length} kelompok belum mengirim laporan bulan lalu — ingatkan sebelum pengajian mubaligh minggu pertama.`, kelompok: k } : null
   }
-  if (hari >= 25) {
+  if (hari >= atur.akhir_mulai) {
     const k = kelompokBelumLapor(db, wilayahId, bulanIni)
     return k.length ? { jenis: 'akhir_bulan', bulan: bulanIni, pesan: `Akhir bulan: ${k.length} kelompok belum melengkapi absensi & laporan — kejar MT se-desa.`, kelompok: k } : null
   }
@@ -477,7 +552,7 @@ export interface PeringkatSantri {
   desa: string | null
   keaktifan: number
   penguasaan: number
-  /** Skor = rata-rata keaktifan semester & TOTAL penguasaan (J-K7). */
+  /** Skor = rata-rata berbobot keaktifan semester & TOTAL penguasaan (J-K7, bobot kebijakan M02). */
   skor: number
 }
 
@@ -490,6 +565,9 @@ export interface HasilReward {
   daerah: PeringkatSantri[]
   kelompokTerbaik: { kelompok_id: string; nama: string; desa: string | null; skor: number; jumlah: number }[]
   desaTerbaik: { desa_id: string; nama: string; skor: number; jumlah: number }[]
+  /** Jumlah juara menurut kebijakan M03 (santri per tingkat, kelompok, desa) dan bobot skor M02. */
+  juara: { santri: number; kelompok: number; desa: number }
+  bobot: { keaktifan: number; penguasaan: number }
 }
 
 const satuDesimal = (n: number) => Math.round(n * 10) / 10
@@ -498,14 +576,18 @@ const satuDesimal = (n: number) => Math.round(n * 10) / 10
 export function rewardHasilBelajar(db: Db, o: { wilayahId: string; jenjang: KategoriGenerus; periode?: string; batas?: number; tanggal?: string }): HasilReward {
   if (!KATEGORI_GENERUS.includes(o.jenjang)) throw new GalatPpg('KATEGORI_TIDAK_SAH', 'Jenjang tidak dikenal.')
   const periode = o.periode ?? periodeAktif(db, o.tanggal)
-  const batas = o.batas ?? 3
+  const juara = nilaiKebijakan(db, 'reward_juara')
+  const bobot = nilaiKebijakan(db, 'reward_skor')
+  const batas = o.batas ?? juara.santri
+  const bk = bobot.bobot_keaktifan
+  const bp = bobot.bobot_penguasaan
   const semua: PeringkatSantri[] = []
   for (const g of daftarGenerus(db, { kelompokIds: kelompokDalamWilayah(db, o.wilayahId), status: 'aktif' }).filter((x) => x.kategori === o.jenjang)) {
     const r = raporGenerus(db, g.id, { periode, tanggal: o.tanggal })
     if (!r) continue
     const keaktifan = r.keaktifan?.persen ?? 0
     const penguasaan = r.total ?? 0
-    semua.push({ generus_id: g.id, nama: g.nama, kelompok_id: g.kelompok_id, kelompok: r.generus.kelompok ?? '', desa: r.generus.desa, keaktifan, penguasaan, skor: satuDesimal((keaktifan + penguasaan) / 2) })
+    semua.push({ generus_id: g.id, nama: g.nama, kelompok_id: g.kelompok_id, kelompok: r.generus.kelompok ?? '', desa: r.generus.desa, keaktifan, penguasaan, skor: satuDesimal((keaktifan * bk + penguasaan * bp) / (bk + bp)) })
   }
   const urut = (l: PeringkatSantri[]) => [...l].sort((a, b) => b.skor - a.skor || b.penguasaan - a.penguasaan || a.nama.localeCompare(b.nama))
   const kelompokkan = (kunci: (s: PeringkatSantri) => string) => {
@@ -529,6 +611,8 @@ export function rewardHasilBelajar(db: Db, o: { wilayahId: string; jenjang: Kate
     desaTerbaik: Object.entries(perDesaSemua)
       .map(([id, l]) => ({ desa_id: id, nama: ambilWilayah(db, id)?.nama ?? id, skor: rata(l), jumlah: l.length }))
       .sort((a, b) => b.skor - a.skor),
+    juara: { santri: batas, kelompok: juara.kelompok, desa: juara.desa },
+    bobot: { keaktifan: bk, penguasaan: bp },
   }
 }
 

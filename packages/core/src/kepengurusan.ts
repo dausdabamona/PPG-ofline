@@ -71,7 +71,11 @@ export type BidangCatatan =
 
 /** Jenis catatan per bidang, siapa yang boleh menulis, dan apakah isinya rahasia. */
 export const JENIS_CATATAN: Record<string, { bidang: BidangCatatan; penulis: readonly Jabatan[] | 'mubaligh' | 'semua'; rahasia?: BidangRahasia; nama: string }> = {
-  notulen: { bidang: 'sekretariat', penulis: ['sekretaris', 'ketua', 'wakil_ketua'], nama: 'Notulen musyawarah' },
+  // §18 (J-M2): notulen hanya sekretaris (semua wilayah), PJ desa (desanya), PJ kelompok (kelompoknya)
+  notulen: { bidang: 'sekretariat', penulis: ['sekretaris', 'pj_desa', 'pj_kelompok'], nama: 'Notulen musyawarah' },
+  // §18 (J-M3/J-M4): pengesahan keputusan oleh ketua (wakil hanya dengan mandat), mandat oleh ketua
+  pengesahan: { bidang: 'sekretariat', penulis: ['ketua', 'wakil_ketua'], nama: 'Pengesahan keputusan musyawarah' },
+  mandat: { bidang: 'sekretariat', penulis: ['ketua'], nama: 'Mandat pengesahan untuk wakil ketua' },
   kas: { bidang: 'keuangan', penulis: ['bendahara'], rahasia: 'keuangan', nama: 'Buku kas' },
   target_tabungan: { bidang: 'keuangan', penulis: ['bendahara'], rahasia: 'keuangan', nama: 'Target tabungan desa' },
   dana_masuk: { bidang: 'keuangan', penulis: ['penggalang_dana'], rahasia: 'keuangan', nama: 'Dana masuk (penggalangan)' },
@@ -119,9 +123,23 @@ export function jabatanBolehMenulis(jabatan: readonly string[], jenis: string): 
   return j.penulis.some((x) => jabatan.includes(x))
 }
 
-/** Jabatan yang memegang kunci bidang rahasia. */
-export function bidangRahasiaUntuk(jabatan: readonly string[]): BidangRahasia[] {
-  return BIDANG_RAHASIA.filter((b) => PEMBACA_RAHASIA[b].some((x) => jabatan.includes(x)))
+/**
+ * Jabatan yang memegang kunci baca bidang rahasia. `pembaca` = daftar pembaca menurut kebijakan musyawarah (§18 M04);
+ * bawaan = {@link PEMBACA_RAHASIA}.
+ */
+export function bidangRahasiaUntuk(jabatan: readonly string[], pembaca: Record<BidangRahasia, readonly string[]> = PEMBACA_RAHASIA): BidangRahasia[] {
+  return BIDANG_RAHASIA.filter((b) => pembaca[b].some((x) => jabatan.includes(x)))
+}
+
+/** Bidang rahasia yang DITULIS jabatan ini (kunci publik dibutuhkan walau bukan pembaca, J-M7). */
+export function bidangRahasiaDitulis(jabatan: readonly string[]): BidangRahasia[] {
+  return BIDANG_RAHASIA.filter((b) => Object.values(JENIS_CATATAN).some((j) => j.rahasia === b && typeof j.penulis !== 'string' && j.penulis.some((x) => jabatan.includes(x))))
+}
+
+/** Jabatan yang mungkin menjadi pembaca bidang rahasia (semua pilihan kebijakan) — HP menerima kunci dari paket daerah. */
+export const CALON_PEMBACA_RAHASIA: Record<BidangRahasia, readonly Jabatan[]> = {
+  keuangan: ['ketua', 'wakil_ketua', 'bendahara', 'penggalang_dana', 'sekretaris'],
+  konseling: ['bk'],
 }
 
 /** Validasi daftar jabatan untuk tingkat wilayah token. Kembalikan alasan atau null. */

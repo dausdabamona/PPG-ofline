@@ -32,6 +32,8 @@ import { alasanLaporanBulananTidakSah, idLaporanBulanan } from '../rekap-juknis'
 import { alasanIsiCatatan, idKontrolMt, jabatanToken } from '../bidang'
 import { JABATAN_PENCATAT_AGENDA, JENIS_CATATAN, jabatanBolehMenulis, type Jabatan } from '../kepengurusan'
 import { PetaRiwayat } from '../laporan'
+import { terapkanKeputusanTertunda, type HasilPenerapan } from '../musyawarah'
+import { setujuiPenetapanKurikulum } from '../penetapan-kurikulum'
 import { DAFTAR_TABEL_SINKRON, TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
 import { adalahTokenSuperHp, periksaToken, uraiToken, type PayloadToken } from '../token'
 import { sekarangIso, tanggalHariIni, tanggalRingkas } from '../waktu'
@@ -216,6 +218,12 @@ export interface RingkasanImporSetor {
   pencabutanDiterima: number
   /** Fase 9: usulan Super Admin HP yang langsung disetujui daerah. */
   usulanOtomatis?: number
+  /** §18: butir kebijakan musyawarah yang diterapkan daerah pada impor ini. */
+  keputusanDiterapkan?: number
+  /** §18: pengesahan yang belum bisa diterapkan (menunggu notulen/mandat/pengesahan ulang). */
+  keputusanTertunda?: number
+  /** §18 (J-M7): kunci keuangan diganti karena hak baca berubah. */
+  kunciKeuanganDiganti?: boolean
 }
 
 /** Tabel kegiatan per generus: generus harus anggota kelompok rekaman pada tanggal kegiatan (T25, §16). */
@@ -354,7 +362,13 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         ? tok.some((t) => t.role === 'pengurus' || t.role === 'mubaligh')
         : meta.penulis === 'mubaligh'
           ? tok.some((t) => t.role === 'mubaligh' && t.wilayah_id === rek.wilayah_id) && rek.id === idKontrolMt(String(rek.perangkat_id), String(rek.tanggal).slice(0, 7))
-          : tok.some((t) => t.role === 'pengurus' && jabatanBolehMenulis(t.jabatan, String(rek.jenis)))
+          : tok.some(
+              (t) =>
+                t.role === 'pengurus' &&
+                jabatanBolehMenulis(t.jabatan, String(rek.jenis)) &&
+                // §18 (J-M2): PJ desa/kelompok hanya notulen wilayahnya; sekretaris semua wilayah dalam cakupan
+                (rek.jenis !== 'notulen' || t.jabatan.includes('sekretaris') || t.wilayah_id === rek.wilayah_id),
+            )
     if (!boleh) return 'Penulis catatan tidak memegang jabatan yang berwenang.'
     if (rek.dihapus) return null
     if (meta.rahasia) return typeof rek.isi_rahasia === 'string' && rek.isi_json === null ? null : 'Catatan rahasia harus terenkripsi.'
@@ -436,7 +450,7 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         // Fase 9: usulan boleh untuk wilayah desa/daerah (tambah wilayah/pengajian) — cukup di dalam cakupan pengirim
         const diLuarWilayah =
           tabel === 'usulan'
-            ? !kelompokBoleh.has(kel) && !(gabungan && (dalamCakupan(kel) || superPengirim))
+            ? !kelompokBoleh.has(kel) && !(gabungan && (dalamCakupan(kel) || superPengirim)) && !(rek.jenis === 'tetapkan_kurikulum' && dalamCakupan(kel))
             : tabel === 'catatan_bidang'
               ? !dalamCakupan(kel)
               : !kelompokBoleh.has(kel)
@@ -491,6 +505,14 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     let usulanOtomatis = 0
     if (daerah && superPengirim) usulanOtomatis = setujuiUsulanSuper(db, isi.rekaman?.usulan ?? [], pengirim, ditolak)
     if (daerah) usulanOtomatis += setujuiUbahJenjang(db, isi.rekaman?.usulan ?? [], ditolak)
+    // §18 (J-KR3): penetapan kurikulum dari HP jabatan Bidang Kurikulum
+    if (daerah) usulanOtomatis += setujuiKurikulumOtomatis(db, isi.rekaman?.usulan ?? [], ditolak)
+    // §18 (J-M5): keputusan musyawarah yang sudah disahkan diterapkan EXE Daerah
+    let keputusan: HasilPenerapan | undefined
+    if (daerah) {
+      keputusan = terapkanKeputusanTertunda(db, kunci as KunciAdmin)
+      for (const t of keputusan.ditolak) ditolak.push({ tabel: 'kebijakan', id: t.notulen_id, alasan: `Keputusan "${t.teks.slice(0, 40)}" tidak diterapkan: ${t.alasan}` })
+    }
 
     let tokenDilaporkan = 0
     const pencabutan = daftarPencabutan(db)
@@ -554,6 +576,7 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
       gabungan,
       perangkatBawah,
       pencabutanDiterima,
+      ...(keputusan ? { keputusanDiterapkan: keputusan.diterapkan, keputusanTertunda: keputusan.tertunda.length, kunciKeuanganDiganti: keputusan.kunciKeuanganDiganti } : {}),
     }
     catatImpor(db, b.header, ringkasan, sidik, namaBerkas)
     return ringkasan
@@ -609,6 +632,24 @@ function setujuiUbahJenjang(db: Db, rekaman: unknown[], ditolak: RingkasanImporS
       n++
     } catch (e) {
       ditolak.push({ tabel: 'usulan', id: u.id, alasan: `Usulan jenjang belum bisa disetujui otomatis: ${adalahGalatPpg(e) ? e.pesan : String(e)}` })
+    }
+  }
+  return n
+}
+
+/** §18 (J-KR3): usulan `tetapkan_kurikulum` dari pemegang jabatan Bidang Kurikulum disetujui otomatis di daerah. */
+function setujuiKurikulumOtomatis(db: Db, rekaman: unknown[], ditolak: RingkasanImporSetor['ditolak']): number {
+  let n = 0
+  for (const r of rekaman) {
+    const id = (r as Rekaman | null)?.id
+    if (typeof id !== 'string') continue
+    const u = ambilUsulan(db, id)
+    if (!u || u.status !== 'menunggu' || u.jenis !== 'tetapkan_kurikulum') continue
+    try {
+      db.transaksi(() => setujuiPenetapanKurikulum(db, u.id))
+      n++
+    } catch (e) {
+      ditolak.push({ tabel: 'usulan', id: u.id, alasan: `Penetapan kurikulum belum bisa diterapkan: ${adalahGalatPpg(e) ? e.pesan : String(e)}` })
     }
   }
   return n

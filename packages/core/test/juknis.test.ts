@@ -106,10 +106,13 @@ describe('Rumus persen (juknis)', () => {
     expect(hitungPersenMateri(m('praremaja', 'makna_quran'), { rincian: { '21': 4, '22': 6, '30': 15 } })).toBe(12.5)
     expect(hitungPersenMateri(m('caberawit_c', 'makna_quran'), { rincian: { '30': 4 } })).toBe(20)
   })
-  it('kitab: contoh Caberawit C (K. Sholah 50/151 + K. Nawafil 50/98) ÷ 9 kitab ≈ 9,3 %', () => {
-    expect(hitungPersenMateri(m('caberawit_c', 'hadits'), { rincian: { '0': 50, '2': 50 } })).toBe(9.3)
+  it('kitab: contoh Caberawit C (K. Sholah 50/151 + K. Nawafil 50/98) ÷ 9 kitab ≈ 9,3 % — setelah semua halaman ditetapkan', () => {
+    // §18 (J-KR4): selama ada kitab tanpa halaman, materi belum ditetapkan Kurikulum → null (tidak ikut TOTAL)
+    expect(hitungPersenMateri(m('caberawit_c', 'hadits'), { rincian: { '0': 50, '2': 50 } })).toBeNull()
+    const lengkap = (x: ReturnType<typeof m>) => ({ ...x, rincian: { ...x.rincian, kitab: x.rincian.kitab!.map((k) => ({ ...k, halaman: k.halaman ?? 100 })) } })
+    expect(hitungPersenMateri(lengkap(m('caberawit_c', 'hadits')), { rincian: { '0': 50, '2': 50 } })).toBe(9.3)
     // contoh Generus 1: + Materi Pegon 10/19 + Materi Bacaan 20/37 → 190,7 % ÷ 21 ≈ 9,1 %
-    expect(hitungPersenMateri(m('praremaja', 'hadits'), { rincian: { '0': 50, '2': 50, '7': 10, '8': 20 } })).toBe(9.1)
+    expect(hitungPersenMateri(lengkap(m('praremaja', 'hadits')), { rincian: { '0': 50, '2': 50, '7': 10, '8': 20 } })).toBe(9.1)
   })
   it('subjektif: maks 75 %, < 1 ditolak; dikuasai > target ditolak; halaman juz > 20 ditolak', () => {
     expect(alasanEvaluasiTidakSah(m('paud', 'thoharoh'), { nilai: 76 })).toMatch(/75/)
@@ -276,8 +279,9 @@ describe('Evaluasi semester, raport & rekap', () => {
     expect(rp.items).toHaveLength(22)
     expect(rp.items.find((i) => i.materi.kode === 'surat')!.persen).toBe(100)
     expect(rp.items.find((i) => i.materi.kode === 'makna_quran')!.persen).toBe(50)
-    // (100 + 75 + 50) ÷ 22 materi (keaktifan 0, lainnya belum dinilai = 0)
-    expect(rp.total).toBe(10.2)
+    // (100 + 75 + 50) ÷ 21 materi (keaktifan 0, lainnya belum dinilai = 0; hadits belum ditetapkan Kurikulum → tidak ikut, §18)
+    expect(rp.total).toBe(10.7)
+    expect(rp.belumDitetapkan).toEqual(['Makna Al-Hadits (9 kitab)'])
     expect(rp.sisaSebelumnya).toMatchObject({ jenjang: 'caberawit_b' })
     expect(rp.sisaSebelumnya!.items.map((i) => [i.materi.kode, i.persen])).toEqual([['iqro', 51.3]])
     // semester berikutnya memakai nilai terakhir sebagai cadangan
@@ -289,7 +293,8 @@ describe('Evaluasi semester, raport & rekap', () => {
     const rk = rekapPenguasaan(a, { wilayahId: d.daerah.id, jenjang: 'caberawit_c', periode: '2026-S1' })
     expect(rk.kolom).toHaveLength(22)
     expect(rk.baris.map((b) => b.nama)).toEqual(['Ali', 'Budi', 'Citra'])
-    expect(rk.baris[0]!.total).toBe(10.2)
+    expect(rk.baris[0]!.total).toBe(10.7)
+    expect(rk.materiBelumDitetapkan).toEqual(["Makna Al-Hadits (9 kitab)"])
     expect(rk.perKelompok).toHaveLength(1)
     expect(rk.perDesa[0]!.nama).toBe('Klasaman')
 

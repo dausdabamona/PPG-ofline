@@ -602,6 +602,11 @@ export function aturBulanEvaluasi(db: Db, b: BulanEvaluasi): void {
 /** Id pengaturan yang ikut berkas MATERI/KURIKULUM/BALASAN (bukan rahasia). */
 export const PENGATURAN_KURIKULUM: readonly string[] = ['periode_aktif', 'bulan_evaluasi']
 
+/** §18 (J-KR6): pengaturan wewenang kurikulum = periode/bulan evaluasi + penetapan butir `kur:*` (berkas MATERI & KURIKULUM). */
+export function pengaturanKurikulumSah(id: unknown): boolean {
+  return typeof id === 'string' && (PENGATURAN_KURIKULUM.includes(id) || /^kur:K\d{2}$/.test(id))
+}
+
 // =====================================================================================================================
 // Evaluasi penguasaan materi
 // =====================================================================================================================
@@ -697,7 +702,8 @@ export function hitungPersenMateri(m: Pick<MateriEvaluasi, 'cara' | 'target' | '
     }
     case 'kitab': {
       const kitab = m.rincian.kitab ?? []
-      if (!kitab.length) return null
+      // §18 (J-KR4): ada kitab tanpa halaman → materi belum ditetapkan Kurikulum, tidak ikut TOTAL
+      if (!kitab.length || kitab.some((k) => !k.halaman)) return null
       const r = (h?.rincian ?? {}) as Record<string, number>
       const jumlah = kitab.reduce((s, k, i) => s + (k.halaman ? (Math.min(Math.max(0, Number(r[String(i)] ?? 0)), k.halaman) / k.halaman) * 100 : 0), 0)
       return satuDesimal(jumlah / kitab.length)
@@ -705,6 +711,22 @@ export function hitungPersenMateri(m: Pick<MateriEvaluasi, 'cara' | 'target' | '
     default:
       return null
   }
+}
+
+/** §18 (K09): rumus TOTAL — rata-rata semua materi (bawaan) atau tanpa keaktifan. */
+export type RumusTotal = 'rata_rata' | 'tanpa_keaktifan'
+/** Id pengaturan penetapan rumus TOTAL (butir Kurikulum K09). */
+export const ID_RUMUS_TOTAL = 'kur:K09'
+
+export function rumusTotal(db: Db): RumusTotal {
+  const r = ambilRekaman<{ isi: string | null; dihapus: number }>(db, 'pengaturan', ID_RUMUS_TOTAL)
+  const n = r && !r.dihapus ? uraiJson<{ nilai?: unknown }>(r.isi, {}).nilai : undefined
+  return n === 'tanpa_keaktifan' ? 'tanpa_keaktifan' : 'rata_rata'
+}
+
+/** Materi yang isiannya belum ditetapkan Kurikulum (target kosong / kitab tanpa halaman / tanpa juz). */
+export function materiBelumDitetapkan(m: Pick<MateriEvaluasi, 'cara' | 'target' | 'rincian'>): boolean {
+  return m.cara !== 'keaktifan' && m.cara !== 'subjektif' && hitungPersenMateri(m, undefined) === null
 }
 
 /** J-T11: TOTAL = rata-rata persen materi yang targetnya ditetapkan (tanpa bobot), satu desimal. */
@@ -821,8 +843,10 @@ function evaluasiTerbaru(db: Db, generusId: string, sampaiPeriode: string): Map<
 
 export interface ItemRapor {
   materi: MateriEvaluasi
-  /** null = target belum ditetapkan (tidak ikut TOTAL). */
+  /** null = materi belum ditetapkan Kurikulum (tidak ikut TOTAL). */
   persen: number | null
+  /** §18 (J-KR4): isian materi belum ditetapkan Kurikulum. */
+  belumDitetapkan: boolean
   /** Sudah pernah dinilai (periode ini atau sebelumnya). */
   dinilai: boolean
   /** Periode asal nilai bila diambil dari periode sebelumnya. */
@@ -841,17 +865,22 @@ export interface Rapor {
   keaktifan: KeaktifanPeriode | null
   /** J-T15: sisa target jenjang sebelumnya yang belum 100 %. */
   sisaSebelumnya: { jenjang: KategoriGenerus; items: ItemRapor[] } | null
+  /** §18: nama materi yang belum ditetapkan Kurikulum (tidak ikut TOTAL). */
+  belumDitetapkan: string[]
+  /** §18 (K09): rumus TOTAL yang dipakai. */
+  rumusTotal: RumusTotal
 }
 
 function itemRapor(db: Db, m: MateriEvaluasi, terbaru: Map<string, EvaluasiSemester>, periode: string, kp: KeaktifanPeriode | null): ItemRapor {
   if (m.cara === 'keaktifan') {
-    return { materi: m, persen: kp?.persen ?? 0, dinilai: (kp?.bulan.length ?? 0) > 0, dariPeriode: null, input: null, penguji: null }
+    return { materi: m, persen: kp?.persen ?? 0, belumDitetapkan: false, dinilai: (kp?.bulan.length ?? 0) > 0, dariPeriode: null, input: null, penguji: null }
   }
   const r = terbaru.get(m.id)
   const input = r ? inputDariRekaman(r) : null
   return {
     materi: m,
     persen: hitungPersenMateri(m, input ?? undefined),
+    belumDitetapkan: materiBelumDitetapkan(m),
     dinilai: !!r,
     dariPeriode: r && r.periode !== periode ? r.periode : null,
     input,
@@ -877,6 +906,8 @@ export function raporGenerus(db: Db, generusId: string, o: { periode?: string; t
     total: null,
     keaktifan: null,
     sisaSebelumnya: null,
+    belumDitetapkan: [],
+    rumusTotal: rumusTotal(db),
   }
   if (!jenjang) return base
   const tanggal = o.tanggal ?? tanggalHariIni()
@@ -884,7 +915,8 @@ export function raporGenerus(db: Db, generusId: string, o: { periode?: string; t
   const terbaru = evaluasiTerbaru(db, g.id, periode)
   base.keaktifan = kp
   base.items = daftarMateriEvaluasi(db, jenjang).map((m) => itemRapor(db, m, terbaru, periode, kp))
-  base.total = hitungTotal(base.items.map((i) => i.persen))
+  base.total = hitungTotal(base.items.filter((i) => base.rumusTotal === 'rata_rata' || i.materi.cara !== 'keaktifan').map((i) => i.persen))
+  base.belumDitetapkan = base.items.filter((i) => i.belumDitetapkan).map((i) => i.materi.nama)
   const sebelum = jenjangSebelumnya(jenjang)
   if (sebelum) {
     const sisa = daftarMateriEvaluasi(db, sebelum)

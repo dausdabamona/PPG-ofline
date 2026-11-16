@@ -30,7 +30,7 @@ export interface SeedMateriEvaluasi {
   rincian?: RincianMateriEvaluasi
 }
 
-const SURAT_45 = [
+export const SURAT_45 = [
   'An Naas', 'Al Falaq', 'Al Ikhlas', 'Al Lahab', 'An Nasr', 'Al Kafirun', 'Al Kautsar', "Al Ma'un", 'Al Quraisy', 'Al Fiil',
   'Al Humazah', 'Al Ashr', 'At Takasur', "Al Qori'ah", 'Al Adiyat', 'Az Zalzalah', 'Al Bayyinah', 'Al Qodr', 'Al Alaq', 'At Tiin',
   'As Syarh', 'Ad Dhuha', 'Al Lail', 'As Syams', 'Al Balad', 'Al Fajr', 'Al Ghosyiah', "Al A'la", 'At Toriq', 'Al Buruj',
@@ -38,7 +38,7 @@ const SURAT_45 = [
   'Akhir Al Baqoroh 284–286', 'Al Kahfi 1–10', 'Awal Al Mukminun 1–11', 'Akhir Al Mukminun 115–118', 'An Nuur ayat 35',
   'Akhir Al Hasyr', 'Akhir As Soof',
 ]
-const SURAT_51 = [...SURAT_45, 'Al Mulk', 'Yasin', 'Ad Dukhon', 'As Sajdah', 'Ar Rohman', "Al Waqi'ah"]
+export const SURAT_51 = [...SURAT_45, 'Al Mulk', 'Yasin', 'Ad Dukhon', 'As Sajdah', 'Ar Rohman', "Al Waqi'ah"]
 const SURAT_PAUD = ['Al Fatihah', 'An Naas', 'Al Falaq', 'Al Ikhlas', 'Al Lahab', 'An Nasr', 'Al Kafirun']
 
 const DOA_SORONG_PAUD = [
@@ -81,7 +81,7 @@ const DALIL_SORONG = [
   'Dalil Bicara yang baik', 'Dalil Jujur Amanah', 'Dalil Sabar kaporo ngalah', 'Dalil Tidak merusak sesama',
   'Dalil Saling memperhatikan & menjaga perasaan',
 ]
-const WUDHU_SHOLAT = [
+export const WUDHU_SHOLAT = [
   "Do'a Iftitah", "Do'a Ruku', I'tidal, Sujud, Duduk", "Do'a Tasyahud", "Do'a Sholawat", "Do'a setelah Tasyahud",
   'Dzikir setelah sholat', 'Wirit 1 & Wirit 2', 'Praktik wudhu & sholat',
 ]

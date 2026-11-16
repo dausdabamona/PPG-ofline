@@ -6,6 +6,7 @@ import {
   daftarMateriEvaluasi,
   hitungTotal,
   keaktifanBulan,
+  materiBelumDitetapkan,
   raporGenerus,
   type MateriEvaluasi,
 } from './juknis'
@@ -53,6 +54,8 @@ export interface RekapPenguasaan {
   rataTotal: number | null
   /** Generus wilayah ini yang jenjangnya masih "caberawit" lama (perlu ditetapkan A/B/C). */
   jenjangBelumDitetapkan: number
+  /** §18 (J-KR4): nama materi yang belum ditetapkan Kurikulum (kolom "—", tidak ikut TOTAL). */
+  materiBelumDitetapkan: string[]
 }
 
 function rataKolom(baris: { nilai: (number | null)[]; total: number | null }[], n: number): { rata: (number | null)[]; rataTotal: number | null } {
@@ -117,6 +120,7 @@ export function rekapPenguasaan(db: Db, o: { wilayahId: string; jenjang: Kategor
     perDesa: kelompokan(desaId, 'desa'),
     ...rataKolom(baris, kolom.length),
     jenjangBelumDitetapkan: semua.filter((g) => g.kategori === 'caberawit').length,
+    materiBelumDitetapkan: kolom.filter((m) => materiBelumDitetapkan(m)).map((m) => m.nama),
   }
 }
 

@@ -8,7 +8,7 @@ import { gabungSemua, rekamanKirim, type RekamanPerTabel } from '../gabung'
 import { GalatPpg } from '../galat'
 import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, type Rekaman } from '../repo/umum'
 import { sekarangIso } from '../waktu'
-import { PENGATURAN_KURIKULUM } from '../juknis'
+import { pengaturanKurikulumSah } from '../juknis'
 import { berkasLebihBaru, type RingkasanTerapkan } from './paket'
 import { bacaBerkasJenis, catatImpor, kunciAdminTerpasang, sidikBerkas } from './umum'
 
@@ -20,7 +20,8 @@ export function buatMateri(dbAdmin: Db, kunciAdmin: KunciAdmin): BerkasKeluar & 
     kategori_materi: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM kategori_materi')),
     materi: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM materi')),
     target_capaian: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM target_capaian')),
-    pengaturan: rekamanKirim(dbAdmin.kueri<Rekaman>(`SELECT * FROM pengaturan WHERE id IN ('periode_aktif', 'bulan_evaluasi')`)),
+    // §18 (J-KR6): periode/bulan evaluasi + penetapan Kurikulum (`kur:*`)
+    pengaturan: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM pengaturan').filter((x) => pengaturanKurikulumSah(x.id))),
     // §16 (J-T18): daftar materi evaluasi semester per jenjang
     materi_evaluasi: rekamanKirim(dbAdmin.kueri<Rekaman>('SELECT * FROM materi_evaluasi')),
   }
@@ -62,7 +63,7 @@ export function terapkanMateri(db: Db, bytes: Uint8Array, namaBerkas?: string): 
         kategori_materi: r.kategori_materi ?? [],
         materi: r.materi ?? [],
         target_capaian: r.target_capaian ?? [],
-        pengaturan: (r.pengaturan ?? []).filter((x) => PENGATURAN_KURIKULUM.includes(String((x as { id?: unknown })?.id))),
+        pengaturan: (r.pengaturan ?? []).filter((x) => pengaturanKurikulumSah((x as { id?: unknown })?.id)),
         materi_evaluasi: r.materi_evaluasi ?? [],
       },
       { sumber: 'admin', seqLokalBaru: 0 },

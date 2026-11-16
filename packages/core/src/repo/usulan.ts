@@ -15,6 +15,8 @@ export type JenisUsulan =
   | 'tambah_wilayah'
   /** Fase 9 (Super Admin HP): pengajian/kelas rutin baru untuk wilayah `kelompok_id`. */
   | 'tambah_pengajian'
+  /** §18 (Fase 12): HP jabatan Bidang Kurikulum menetapkan butir "Perlu Ditetapkan Kurikulum" — `kelompok_id` = wilayah token. */
+  | 'tetapkan_kurikulum'
 export const JENIS_USULAN: readonly JenisUsulan[] = [
   'tambah_generus',
   'ubah_generus',
@@ -23,6 +25,7 @@ export const JENIS_USULAN: readonly JenisUsulan[] = [
   'ubah_status',
   'tambah_wilayah',
   'tambah_pengajian',
+  'tetapkan_kurikulum',
 ]
 /** Jenis usulan yang membuat rekaman baru: id-nya ditetapkan saat diajukan (`data.id`) dan dipakai daerah saat disetujui. */
 const USULAN_REKAMAN_BARU: readonly JenisUsulan[] = ['tambah_generus', 'tambah_wilayah', 'tambah_pengajian']
@@ -57,6 +60,7 @@ export function ajukanUsulan(db: Db, d: { jenis: JenisUsulan; kelompokId: string
     ubah_status: ['generus_id', 'status', 'tanggal'],
     tambah_wilayah: ['tingkat', 'nama'],
     tambah_pengajian: ['nama'],
+    tetapkan_kurikulum: ['kode'],
   }
   for (const k of wajib[d.jenis]) {
     if (d.data[k] === undefined || d.data[k] === null || d.data[k] === '') throw new GalatPpg('DATA_KURANG', `Isian ${k} wajib diisi.`)

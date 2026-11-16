@@ -1,8 +1,9 @@
 // PAKET: tingkat atas → tingkat bawah. Isi dienkripsi kunci berkas acak yang disegel untuk tiap perangkat penerima (T10).
 // v3: daerah → EXE desa (+ kunci kelompok titipan), EXE desa/kelompok → EXE kelompok/HP (ditandatangani EXE penerbit).
-import { daftarKunciBidang, daftarKunciSetor, kunciUmumKelompokVersi, type KunciAdmin } from '../admin'
+import { daftarKunciSetor, kunciBidangUntukJabatan, kunciUmumKelompokVersi, type KunciAdmin } from '../admin'
 import { jabatanToken } from '../bidang'
-import { bidangRahasiaUntuk } from '../kepengurusan'
+import { adalahIdRegister } from '../penetapan-kurikulum'
+import { bidangRahasiaDitulis, bidangRahasiaUntuk, CALON_PEMBACA_RAHASIA } from '../kepengurusan'
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, slug, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { bukaSegel, dariB64url, dariUtf8, dekripsiRahasia, enkripsiRahasia, keB64url, keUtf8, kunciAcak32, segelKe } from '../crypto'
 import type { Db } from '../db'
@@ -133,7 +134,10 @@ export function dataWilayah(db: Db, wilayahId: string): RekamanPerTabel {
 /** Isi rekaman PAKET: EXE tidak mengirim tabel yang hanya boleh dari daerah (materi lewat berkas MATERI). */
 function rekamanPaket(db: Db, wilayahId: string, daerah: boolean): RekamanPerTabel {
   const r = dataWilayah(db, wilayahId)
-  if (!daerah) for (const t of TABEL_HANYA_DAERAH) delete r[t]
+  if (!daerah) {
+    for (const t of TABEL_HANYA_DAERAH) delete r[t]
+    if (r.pengaturan) r.pengaturan = r.pengaturan.filter((x) => !adalahIdRegister((x as { id?: unknown }).id))
+  }
   return r
 }
 
@@ -229,8 +233,9 @@ export function buatPaket(db: Db, wilayahId: string, kunci: KunciPemegang): Berk
   if (daerah) {
     const kb: Record<string, string> = {}
     for (const p of penerima.filter((x) => x.role === 'pengurus')) {
-      const bidang = bidangRahasiaUntuk(jabatanToken(p.token))
-      if (bidang.length) kb[p.perangkat_id] = segel(p, bidang.flatMap((b) => daftarKunciBidang(db, kunci as KunciAdmin, b)))
+      // §18 (J-M7): pembaca menurut kebijakan hak baca; penulis bukan pembaca hanya kunci publik
+      const daftar = kunciBidangUntukJabatan(db, kunci as KunciAdmin, jabatanToken(p.token))
+      if (daftar.length) kb[p.perangkat_id] = segel(p, daftar)
     }
     if (Object.keys(kb).length) isi.kunci_bidang = kb
   }
@@ -351,6 +356,8 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
       ? undefined
       : (tabel: NamaTabelSinkron) => (rek: Rekaman) => {
           if (TABEL_HANYA_DAERAH.includes(tabel)) return 'Materi hanya diterima dari berkas MATERI daerah.'
+          // §18 (J-KR6): register kebijakan & penetapan kurikulum hanya dari daerah
+          if (tabel === 'pengaturan' && adalahIdRegister(rek.id)) return 'Kebijakan & penetapan kurikulum hanya diterima dari daerah.'
           if ((tabel === 'generus' || tabel === 'jamaah' || tabel === 'penugasan_mubaligh') && diLuar(rek.kelompok_id)) return 'Data di luar wilayah pengirim.'
           const info = TABEL_SINKRON[tabel]
           const kol = 'kolomKelompok' in info ? info.kolomKelompok : undefined
@@ -404,11 +411,13 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
     if (segelBidang) {
       const daftar = JSON.parse(dariUtf8(bukaSegel(dariB64url(segelBidang), identitas.kotak))) as KunciBidang[]
       for (const p of daftarProfil(db, 'pengurus')) {
-        const boleh = new Set(bidangRahasiaUntuk(jabatanToken(p.token)))
+        const jab = jabatanToken(p.token)
+        const boleh = new Set([...bidangRahasiaUntuk(jab, CALON_PEMBACA_RAHASIA), ...bidangRahasiaDitulis(jab)])
         const baru = daftar.filter((k) => boleh.has(k.bidang))
         if (!baru.length) continue
         const peta = new Map((p.rahasia.kunci_bidang ?? []).map((k) => [`${k.bidang}:${k.versi}`, k]))
-        for (const k of baru) peta.set(`${k.bidang}:${k.versi}`, k)
+        // kunci lengkap yang sudah dipegang tidak ditimpa kunci publik saja (mekanisme Fase 11: catatan lama tetap terbaca)
+        for (const k of baru) if (k.rahasia || !peta.get(`${k.bidang}:${k.versi}`)?.rahasia) peta.set(`${k.bidang}:${k.versi}`, k)
         simpanRahasiaProfil(db, p.id, { ...p.rahasia, kunci_bidang: [...peta.values()] })
       }
     }

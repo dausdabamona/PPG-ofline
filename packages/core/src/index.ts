@@ -99,3 +99,7 @@ export { seedMateriEvaluasi, pecahCaberawitLama } from './skema'
 // §17 — kepengurusan PPG per jabatan/bidang
 export * from './kepengurusan'
 export * from './bidang'
+// §18 — penetapan kurikulum & kebijakan lewat musyawaroh
+export * from './kebijakan'
+export * from './musyawarah'
+export * from './penetapan-kurikulum'

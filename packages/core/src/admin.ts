@@ -22,7 +22,9 @@ import { adalahGalatPpg, GalatPpg } from './galat'
 import { ulid } from './ids'
 import { seedKurikulum } from './kurikulum'
 import { seedMateriEvaluasi } from './skema'
-import { alasanJabatanTidakSah, BIDANG_RAHASIA, bidangRahasiaUntuk, type BidangRahasia, type Jabatan } from './kepengurusan'
+import { alasanJabatanTidakSah, BIDANG_RAHASIA, bidangRahasiaDitulis, bidangRahasiaUntuk, type BidangRahasia, type Jabatan } from './kepengurusan'
+import { pembacaRahasiaDb } from './kebijakan'
+import { setujuiPenetapanKurikulum } from './penetapan-kurikulum'
 import { tambahGenerus, tambahJamaah, ubahGenerus, normalKategori, type KategoriGenerus, type StatusGenerus } from './repo/generus'
 import { ambilPerangkat, catatPencabutan, daftarkanToken, daftarPerangkat, type PerangkatTerdaftar } from './repo/perangkat'
 import { adalahAdmin, ambilMeta, ambilRekaman, aturMeta, ID_ADMIN, sisipkanRekaman, ubahRekaman } from './repo/umum'
@@ -297,6 +299,20 @@ export function daftarKunciBidang(db: Db, kunci: KunciAdmin, bidang: BidangRahas
 }
 
 /**
+ * §18 (J-M7): kunci bidang untuk satu daftar jabatan — pembaca (menurut kebijakan `hak_baca_keuangan`) mendapat semua
+ * versi lengkap; penulis yang bukan pembaca (mis. penggalang dana bila musyawarah mencabut hak bacanya) hanya kunci publik.
+ */
+export function kunciBidangUntukJabatan(db: Db, kunci: KunciAdmin, jabatan: readonly string[]): KunciBidang[] {
+  const baca = bidangRahasiaUntuk(jabatan, pembacaRahasiaDb(db))
+  const hasil = baca.flatMap((b) => daftarKunciBidang(db, kunci, b))
+  for (const b of bidangRahasiaDitulis(jabatan)) {
+    if (baca.includes(b)) continue
+    hasil.push(...daftarKunciBidang(db, kunci, b).map((k) => ({ ...k, rahasia: '' })))
+  }
+  return hasil
+}
+
+/**
  * Ganti kunci bidang rahasia (mis. setelah bendahara/BK lama dicabut): catatan baru dienkripsi versi baru, yang turun lewat
  * PAKET daerah hanya ke pemegang jabatan pembaca yang masih aktif.
  */
@@ -433,8 +449,8 @@ export function terbitkanToken(db: Db, kunci: KunciAdmin, o: OpsiTerbitToken): s
     }
     if (o.role === 'mubaligh') rahasia.kunci_kelompok_setor = daftarKunciSetor(db, kunci, w.id, true)
     // §17: kunci baca bidang rahasia hanya untuk jabatan pembacanya
-    const bidangBaca = jabatan ? bidangRahasiaUntuk(jabatan) : []
-    if (bidangBaca.length) rahasia.kunci_bidang = bidangBaca.flatMap((b) => daftarKunciBidang(db, kunci, b))
+    const kb = jabatan ? kunciBidangUntukJabatan(db, kunci, jabatan) : []
+    if (kb.length) rahasia.kunci_bidang = kb
     const terbit = sekarangIso()
     const payload: PayloadToken = {
       v: 1,
@@ -514,6 +530,11 @@ export function setujuiUsulan(db: Db, usulanId: string): { usulanId: string; has
   const u = ambilUsulan(db, usulanId)
   if (!u) throw new GalatPpg('TIDAK_DITEMUKAN', 'Usulan tidak ditemukan.')
   if (u.status !== 'menunggu') throw new GalatPpg('SUDAH_DIPUTUSKAN', 'Usulan ini sudah diputuskan.')
+  // §18 (J-KR3): penetapan kurikulum hanya dari pemegang jabatan Bidang Kurikulum
+  if (u.jenis === 'tetapkan_kurikulum') {
+    setujuiPenetapanKurikulum(db, usulanId)
+    return { usulanId }
+  }
   const d = u.data as Record<string, string | null | undefined> & { perubahan?: Record<string, string | null> }
   return db.transaksi(() => {
     let hasilId: string | undefined
