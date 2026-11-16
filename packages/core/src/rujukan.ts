@@ -565,6 +565,14 @@ export function bersihkanKonseling(db: Db, o: { tanggal?: string; kunciAdmin?: K
   })
 }
 
+/** M08 otomatis: dijalankan paling banyak sekali sehari (saat aplikasi dibuka / setelah impor di daerah). */
+export function bersihkanKonselingHarian(db: Db, tanggal: string = tanggalHariIni()): HasilBersihkan | null {
+  if (ambilMeta(db, 'bersih_konseling') === tanggal) return null
+  const h = bersihkanKonseling(db, { tanggal })
+  aturMeta(db, 'bersih_konseling', tanggal)
+  return h
+}
+
 /** Apakah HP ini memegang kunci baca konseling wilayah itu (BK). */
 export function adalahBkWilayah(db: Db, wilayahId: string): boolean {
   return bisaBacaBidang(db, 'konseling', wilayahId)

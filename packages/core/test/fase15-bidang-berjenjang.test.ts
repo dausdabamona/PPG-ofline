@@ -430,8 +430,8 @@ describe('Rujukan BK (§21.3)', () => {
     expect(r.dibersihkanLokal).toBe(1) // rujukan milik perujuk
     expect(daftarCatatan(bkRemu.db, { jenis: ['konseling', 'rujukan'] })).toEqual([])
     expect(setor(w, bkRemu.db).ditolak).toEqual([])
-    const rd = bersihkanKonseling(w.admin.db)
-    expect(rd.dihapus).toBeGreaterThanOrEqual(1)
+    // daerah membersihkan otomatis setelah impor (sekali sehari, J-BJ11); dipanggil lagi = tidak ada sisa
+    expect(bersihkanKonseling(w.admin.db).dihapus).toBe(0)
     expect(w.admin.db.nilai<number>(`SELECT COUNT(*) FROM catatan_bidang WHERE dihapus = 0 AND jenis IN ('konseling','rujukan')`)).toBe(0)
     pasangJam('2026-11-20T01:00:00.000Z')
     expect(nilaiKebijakan(w.admin.db, 'simpan_konseling')).toEqual({ bulan: 24 })

@@ -1,7 +1,10 @@
 // Akar aplikasi HP: memuat database (IndexedDB), simpan otomatis (jeda 500 ms + saat ke latar belakang),
 // layar awal (nama HP → Kode Perangkat → token), pilih profil (PIN), lalu kerangka sesuai peran.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { adalahAdmin, ambilIdentitas, bukaDb, daftarProfil, imporBanyak, profilAktif, type Db, type HasilImporBanyak } from '@ppg/core'
+import { adalahAdmin, ambilIdentitas, bersihkanKonselingHarian, bukaDb, daftarProfil, imporBanyak, profilAktif, type Db, type HasilImporBanyak } from '@ppg/core'
+
+/** Ada profil di HP ini (aplikasi sudah diaktifkan). */
+const ambilMetaAman = (d: Db) => daftarProfil(d).length > 0
 import { DaftarToast, PenyediaApp, useToast, type NilaiApp, type Tujuan } from './konteks'
 import type { BerkasKirim, BerkasMasuk, Platform } from './platform'
 import { KotakGalat, Memuat } from './komponen/ui'
@@ -88,6 +91,12 @@ export function App(p: { platform: Platform; jedaSimpanMs?: number; kunciSuperMs
         const opsi = await platform.opsiSqlJs()
         const bytes = await platform.muatDb()
         const d = await bukaDb(bytes ?? undefined, opsi)
+        // §21.5 M08: HP BK menghapus catatan konseling & rujukan Selesai yang melewati masa simpan (sekali sehari)
+        try {
+          if (!adalahAdmin(d) && ambilMetaAman(d)) bersihkanKonselingHarian(d)
+        } catch {
+          // belum aktivasi / tanpa profil BK — abaikan
+        }
         const sup = !!(await platform.muatDbSuper())
         if (batal) return
         pasangDb(d)

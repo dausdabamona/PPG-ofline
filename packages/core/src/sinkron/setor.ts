@@ -30,6 +30,7 @@ import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, JILID_IQRO, type Kategor
 import { alasanKeaktifanTidakSah, alasanRekamanEvaluasiTidakSah, KODE_DESA_DAERAH, type KodeKeaktifan } from '../juknis'
 import { alasanLaporanBulananTidakSah, idLaporanBulanan } from '../rekap-juknis'
 import { alasanIsiCatatan, idKontrolMt, penugasanToken } from '../bidang'
+import { bersihkanKonselingHarian } from '../rujukan'
 import { JABATAN_PENCATAT_AGENDA, JENIS_CATATAN, jabatanBolehMenulis, jabatanDariPenugasan, penugasanCocokWilayah, penugasanDari, type Jabatan, type Penugasan } from '../kepengurusan'
 import { PetaRiwayat } from '../laporan'
 import { terapkanKeputusanTertunda, type HasilPenerapan } from '../musyawarah'
@@ -530,6 +531,8 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
       keputusan = terapkanKeputusanTertunda(db, kunci as KunciAdmin)
       for (const t of keputusan.ditolak) ditolak.push({ tabel: 'kebijakan', id: t.notulen_id, alasan: `Keputusan "${t.teks.slice(0, 40)}" tidak diterapkan: ${t.alasan}` })
     }
+    // §21.5 M08: masa simpan konseling & rujukan Selesai — daerah membersihkan semua salinan (sekali sehari)
+    if (daerah) bersihkanKonselingHarian(db)
 
     let tokenDilaporkan = 0
     const pencabutan = daftarPencabutan(db)
