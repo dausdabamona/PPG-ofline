@@ -909,7 +909,8 @@ memakai istilah capaian GBMTPG (Mengenal/Tertanam/Terbiasa/Terampil/Memiliki). I
   dinilai vs 0, pemetaan GBMTPG, Karakter Luhur & validasi, SETOR/PAKET/BALASAN & pemalsuan, K09/K17/K18 ditetapkan → tersebar,
   K09 lama, data cetak & PDF 2 halaman/anak, migrasi v6→v7), desktop **9 / 23** (rekap + Karakter Luhur EXE, raport ringkas + lampiran),
   mobile **9 / 19** (Karakter Luhur HP, raport lipat, K09/K18) — semua lulus.
-- `npm run typecheck` bersih, `npm run build` sukses.
+- `npm run typecheck` bersih, `npm run build` sukses. CI GitHub Actions commit `b036540`: **Build APK (Capacitor)** dan **Build EXE
+  Admin (Electron)** lulus.
 - Uji asap peramban 360×740 (+ layar 12b, 28 Karakter Luhur, 29 raport Tri Sukses, 30 rincian lipat; data dummy): **LULUS**, 0 galat
   konsol, 0 tombol < 44 px.
 - Uji visual cetakan: HTML raport EXE → PDF Chrome headless → PNG, dan PDF core → PNG; diperbaiki (halaman meluber ke 4 → tepat 2 per
