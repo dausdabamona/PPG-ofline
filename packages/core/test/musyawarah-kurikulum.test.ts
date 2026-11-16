@@ -190,6 +190,14 @@ describe('Register kebijakan & musyawaroh (§18.3)', () => {
     segarkan(w, sarpras)
     expect(() => sahkanNotulen(wakil.db, n.id)).toThrow(/mandat/)
     expect(() => sahkanNotulen(sarpras.db, n.id)).toThrow(/Ketua/)
+    // ketua mundur-tanggal pengesahan sebelum musyawarah → tidak diterapkan
+    segarkan(w, ketua)
+    const { simpanCatatan: sc, sidikNotulen, daftarCatatan: dc, idPengesahan } = await import('../src/index')
+    const nn = dc(ketua.db, { jenis: 'notulen' }).find((c) => c.id === n.id)!
+    sc(ketua.db, { jenis: 'pengesahan', id: idPengesahan(n.id, ketua.id), isi: { notulen_id: n.id, sidik: sidikNotulen(nn) }, rujukanId: n.id, tanggal: '2026-11-01', wilayahId: nn.wilayah_id })
+    const mundur = setor(w, ketua)
+    expect(mundur.keputusanDiterapkan).toBe(0)
+    expect(mundur.keputusanTertunda).toBeGreaterThan(0)
     // sarpras merakit catatan pengesahan → ditolak saat impor (jabatan)
     expect(() => simpanCatatan(sarpras.db, { jenis: 'pengesahan', isi: { notulen_id: n.id, sidik: 'a'.repeat(64) } })).toThrow(/berwenang/)
     // ketua memberi mandat → wakil menerima lewat paket → mengesahkan

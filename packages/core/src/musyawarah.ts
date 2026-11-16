@@ -21,7 +21,7 @@ import {
 import type { Jabatan } from './kepengurusan'
 import { daftarPerangkat } from './repo/perangkat'
 import { daftarProfil, statusProfil, type Profil } from './repo/profil'
-import { adalahAdmin, ambilMeta, aturMeta } from './repo/umum'
+import { adalahAdmin, ambilMeta, aturMeta, idPerangkatLokal } from './repo/umum'
 import { ambilWilayah } from './repo/wilayah'
 import { formatTanggal, tanggalHariIni, tanggalSah } from './waktu'
 
@@ -59,8 +59,8 @@ export const LABEL_STATUS_NOTULEN: Record<StatusNotulen, string> = {
 
 const PENULIS_NOTULEN: readonly Jabatan[] = ['sekretaris', 'pj_desa', 'pj_kelompok']
 
-/** Id tetap pengesahan satu notulen. */
-export const idPengesahan = (notulenId: string) => `PSH-${notulenId}`
+/** Id tetap pengesahan satu notulen oleh satu perangkat (rekaman kegiatan milik pencatatnya, K5). */
+export const idPengesahan = (notulenId: string, perangkatId: string) => `PSH-${notulenId}-${perangkatId.slice(-12)}`
 
 /** Sidik SHA-256 isi yang disahkan: wilayah, tanggal, nomor, jenis, dan butir keputusan (J-M3). */
 export function sidikNotulen(n: Pick<CatatanBidang, 'wilayah_id' | 'tanggal'> & { isi: unknown }): string {
@@ -182,7 +182,7 @@ export function sahkanNotulen(db: Db, notulenId: string, o: { catatan?: string |
   if (!n?.isi) throw new GalatPpg('TIDAK_DITEMUKAN', 'Notulen tidak ditemukan.')
   return simpanCatatan(db, {
     jenis: 'pengesahan',
-    id: idPengesahan(notulenId),
+    id: idPengesahan(notulenId, idPerangkatLokal(db)),
     isi: { notulen_id: notulenId, sidik: sidikNotulen(n), catatan: o.catatan?.trim() || null },
     rujukanId: notulenId,
     wilayahId: n.wilayah_id,
@@ -215,16 +215,18 @@ function statusDari(db: Db, n: CatatanTerbaca, sidik: string, p: CatatanTerbaca 
 
 /** Daftar notulen (terbaru dulu) + status pengesahan & penerapan. */
 export function daftarNotulen(db: Db, o: { wilayahIds?: string[] } = {}): NotulenTerbaca[] {
-  const pengesahan = new Map<string, CatatanTerbaca>()
+  // semua pengesahan per notulen (terbaru dulu); yang sidiknya cocok dengan isi notulen sekarang diutamakan
+  const pengesahan = new Map<string, CatatanTerbaca[]>()
   for (const p of daftarCatatan(db, { jenis: 'pengesahan' })) {
     const nid = (p.isi as { notulen_id?: string } | null)?.notulen_id
-    if (nid && !pengesahan.has(nid)) pengesahan.set(nid, p)
+    if (nid) pengesahan.set(nid, [...(pengesahan.get(nid) ?? []), p])
   }
   return daftarCatatan(db, { jenis: 'notulen', wilayahIds: o.wilayahIds })
     .filter((c) => c.isi)
     .map((c) => {
       const sidik = sidikNotulen(c)
-      const p = pengesahan.get(c.id)
+      const l = pengesahan.get(c.id) ?? []
+      const p = l.find((x) => (x.isi as { sidik?: string } | null)?.sidik === sidik) ?? l[0]
       const isi = c.isi as unknown as IsiNotulen
       return {
         catatan: c,
@@ -276,12 +278,22 @@ export function terapkanKeputusanTertunda(db: Db, kunci: KunciAdmin): HasilPener
     if (!x) continue
     if (ambilMeta(db, `kbj_terapkan:${p.id}`) === x.sidik) continue
     const n = notulen.get(x.notulen_id)
+    // pengesahan lain (perangkat lain) untuk isi notulen yang sama sudah diterapkan → yang ini tidak perlu lagi
+    if (daftar.some((q) => q.id !== p.id && (q.isi as { notulen_id?: string } | null)?.notulen_id === x.notulen_id && ambilMeta(db, `kbj_terapkan:${q.id}`) === x.sidik)) {
+      aturMeta(db, `kbj_terapkan:${p.id}`, x.sidik)
+      continue
+    }
     if (!n?.isi) {
       hasil.tertunda.push({ pengesahan_id: p.id, alasan: 'Notulen belum diterima daerah.' })
       continue
     }
     if (sidikNotulen(n) !== x.sidik) {
       hasil.tertunda.push({ pengesahan_id: p.id, alasan: 'Notulen berubah sesudah disahkan — perlu disahkan ulang.' })
+      continue
+    }
+    // review keamanan: pengesahan tidak boleh bertanggal sebelum musyawarahnya atau di masa depan (tanggal ditulis HP)
+    if (p.tanggal < n.tanggal || p.tanggal > tanggalHariIni()) {
+      hasil.tertunda.push({ pengesahan_id: p.id, alasan: 'Tanggal pengesahan tidak sah (sebelum musyawarah atau di masa depan).' })
       continue
     }
     const sah = pengesahSah(db, p)
