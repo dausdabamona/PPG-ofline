@@ -533,7 +533,8 @@ Lembar Evaluasi Penguasaan Materi dan Rekap Penguasaan Materi per jenjang). Doku
 1. **Jenjang (7)**: `paud`, `caberawit_a` (SD 1–3), `caberawit_b` (SD 4–6 masih Iqro'), `caberawit_c` (SD 4–6 sudah
    Al-Qur'an), `praremaja` (Generus 1, SMP), `remaja` (Generus 2, SMA), `pranikah` (Generus 3, pasca SMA s.d. menikah).
    Kolom tetap `generus.kategori`. Jenjang ditetapkan admin (atau mubaligh lewat usulan `ubah_jenjang`); umur hanya saran.
-2. **Keaktifan**: target 20 kali/bulan (Pra Nikah 16). Satu hari dihitung paling banyak 1 kali. Sumber: (a) presensi
+2. **Keaktifan**: target 20 kali/bulan (Pra Nikah 16) — **nilai sementara** butir Kurikulum **K16** (§18.2, §19): semua
+   hitungan membaca target per jenjang dari materi evaluasi `keaktifan`, bukan konstanta. Satu hari dihitung paling banyak 1 kali. Sumber: (a) presensi
    **hadir** pada pengajian/kelas → kode **A** otomatis (pengajian tingkat desa → DS, daerah → DR); (b) tabel kegiatan baru
    `keaktifan` (lembar kontrol digital) berkode PAUD–Caberawit: A, B; Generus 1–3: A, MK, KL, T, MS, DS, MR, DR, AA, AS,
    TH, QR, HD; ditambah **IZ** (izin — dicatat, **tidak** dihitung). Hanya catatan **disahkan** yang dihitung resmi.
@@ -715,7 +716,7 @@ pemetaan & keputusan di bawah diambil agen dan dicatat.
 
 Ragu yang diputuskan: reward = kebijakan (menyangkut hadiah & dana, bukan isi materi) → Musyawarah; poin tahfidz (J-K11)
 tetap angka lembar penilaian (tidak termasuk daftar karena tidak pernah diminta konfirmasi); target keaktifan 20/16 tetap
-materi evaluasi `keaktifan` (sudah bisa diubah Kurikulum).
+materi evaluasi `keaktifan` — sejak Fase 13 dijadikan butir **K16** (lihat §19).
 
 ### 18.2 Daftar "Perlu Ditetapkan Kurikulum"
 
@@ -740,6 +741,7 @@ berbeda dari yang dipakai), bentuk isian, dan tombol **Tetapkan** (nilai sekaran
 | K13 | Dalil Generus Sorong no. 26 & 28 | teks 2 isian | butir 26 & 28 `EVL-*-dalil_sorong` |
 | K14 | Butir Caberawit C | pilihan: 22 (gabungan) / 21 tanpa Do'a GBMTPG / 21 tanpa Nasehat BPI | hapus lunak/pulihkan materi |
 | K15 | Cara nilai wudhu & sholat | pilihan: sesuai teks / semua per butir / semua subjektif | cara `EVL-*-wudhu_sholat` |
+| K16 | Target keaktifan bulanan per jenjang (Fase 13) | angka per jenjang (1–31) | target `EVL-<jenjang>-keaktifan` (7 jenjang) |
 
 Status butir (dihitung, J-KR2): **Belum ditetapkan** (ada isian kosong) · **Sementara** (belum pernah ditetapkan, atau
 nilai berubah sesudah ditetapkan — ditandai) · **Ditetapkan Kurikulum** (tanggal + nama penetap).
@@ -787,3 +789,70 @@ kebijakan sementara, notulen menunggu pengesahan, musyawarah terakhir & berikutn
 | J-M7 | Hak baca keuangan dinamis (M04, wajib memuat bendahara). Jabatan penulis keuangan yang bukan pembaca menerima **kunci publik saja**. Bila M04 berubah → `gantiKunciBidang('keuangan')` otomatis saat diterapkan; versi baru turun lewat PAKET daerah hanya ke pembaca baru (mekanisme Fase 11) | Pemegang lama tidak membaca catatan baru; penggalang dana tetap bisa mencatat |
 | J-M8 | Agenda berikutnya: bulan berjalan bila belum ada notulen jenis rutin bulan itu, selain itu bulan depan; jenis dari M05. Usulan agenda = kebijakan Sementara/Belum ditetapkan dalam lingkup wilayah (daerah: semua; desa: desanya). Teks WA: undangan (+agenda), hasil (keputusan + status pengesahan) | Proker sekretaris; tanpa jadwal tanggal pasti (tanggal diisi saat membuat undangan) |
 | J-M9 | Konsumen kebijakan: target tabungan = kebijakan ditetapkan > target bendahara (catatan) > nilai sementara; reward memakai bobot & jumlah juara; jadwal musyawarah & pengingat memakai M05/M07 | Satu sumber nilai per kebijakan |
+
+---
+
+## 19. Cetakan Laporan Bulanan format lembar, target keaktifan K16, data sekolah & Iqro' (Fase 13, 16 Nov 2026)
+
+Sumber: contoh laporan keaktifan nyata Oktober 2026 dari empat kelompok (lembar cetakan daerah bertema kuning "PRESENSI
+KEAKTIFAN …", lembar "KEAKTIFAN & PENGUASAAN MATERI …", lembar berkolom tanggal 1–31 gaya Bantemi, "ABSENSI PENGURUS &
+MUBALIGH-MUBALIGHOT PEDULI", "LAPORAN HASIL MUSYAWAROH", kotak "PENYAKSIAN"). Lembar & nama di dalamnya **tidak** masuk repo —
+hanya tata letaknya yang ditiru. Pemilik tidak ditanya: keputusan di bawah diambil agen dan dicatat.
+
+### 19.1 Target keaktifan → Kurikulum (K16)
+
+Temuan: semua kelompok di lapangan menghitung % keaktifan = jumlah ÷ **24** (Pra Nikah ÷ 16) karena lembar cetakan berkolom 24,
+sedangkan juknis menulis **20** (Pra Nikah 16). Keputusan pemilik: **20 sementara** sampai Kurikulum menetapkan.
+
+- Butir baru **K16 "Target keaktifan bulanan per jenjang"** di daftar Perlu Ditetapkan Kurikulum: bentuk angka per jenjang (7 isian,
+  bilangan bulat 1–31, tidak boleh kosong), nilai sementara 20 (Pra Nikah 16), sumber "juknis 20 vs lembar cetakan 24 kolom yang
+  dipakai semua kelompok". Status **Sementara** sampai ditetapkan.
+- Penyimpanan = target materi evaluasi `EVL-<jenjang>-keaktifan` (sudah tersinkron lewat KURIKULUM/MATERI/PAKET) + penetapan
+  `kur:K16`. Satu pembaca: `targetKeaktifan(db, jenjang)`; dipakai `keaktifanBulan` → keaktifan semester, raport, rekap, kejar
+  target, reward, kontrol HP/EXE, cetakan lembar. Teks layar "target N kali/bulan" dibaca dari `ringkasTargetKeaktifan(db)`.
+
+### 19.2 Cetakan laporan bulanan format lembar (EXE)
+
+Menu **Evaluasi & Keaktifan → Cetak Laporan Bulanan (format lembar)** (EXE daerah/desa/kelompok). Pilih wilayah (kelompok, atau
+desa/daerah = gabungan semua kelompok) + bulan + format → **pratinjau A4 lanskap** → Cetak / PDF, atau Ekspor Excel (.xlsx, tata
+letak sama). Data dirakit core `lembarLaporanBulanan(db, {kelompokId, bulan})` / `lembarLaporanWilayah(db, {wilayahId, bulan})`;
+tampilan di `apps/desktop/src/komponen/lembar-laporan.tsx`. Urutan per kelompok:
+
+1. **Sampul**: "LAPORAN GENERUS KELOMPOK <NAMA>" / "BULAN <BULAN TAHUN>" / "Ust. <nama mubaligh kelompok>".
+2. **Lembar keaktifan per jenjang** — judul kuning seperti lembar daerah: PRESENSI KEAKTIFAN PAUD · CB. RAWIT A (Kelas 1 sampai
+   Kelas 3) · CB. RAWIT B (Kelas 4-6, yg masih baca IQRO) · CB. RAWIT C (Usia SD yang sudah baca Al Qur'an) · Pra REMAJA (Usia SMP) ·
+   REMAJA (Usia SMA) · Pra NIKAH (Usia Pasca SMA); kepala "# KLP : … BULAN : …"; kolom NO · NAMA + UMUR + IQRO' · kolom kegiatan ·
+   % Keaktifan · % Peng. Materi; baris bawah IQRO' 1–6 : … ORG (PAUD, Caberawit A & B) dan **Total** (rata-rata).
+   - **Format bawaan = kolom tanggal 1–31** (koreksi pemilik): kode kegiatan ditulis di kolom tanggal kejadiannya, kolom hari
+     libur diarsir, ditambah JK, Sekolah/Kelas, Orang Tua, Iqro'/Al-Qur'an (gaya lembar Bantemi) — tetap dengan judul & warna kuning
+     lembar daerah.
+   - **Format alternatif = urutan kegiatan** (slot 1–24, Pra Nikah 1–16, seperti lembar daerah): kode kegiatan diisi berurutan.
+3. **Absensi Pengurus & Mubaligh-Mubalighot Peduli** (NUNGGONI bulan itu: TGL 1–31, Nama, Dapukan, Paraf kosong) + **Laporan Hasil
+   Musyawaroh** (Muda-Mudi terlaksana + hasil; 5 Unsur terlaksana + hasil) + kotak **PENYAKSIAN** (KI/Wkl KI/Penerobos/MT Kelompok;
+   KI/Wkl KI/Penerobos/Mubaligh/Kord PPG Desa) dengan catatan AMSHOL.
+
+### 19.3 Data generus: sekolah, kelas sekolah, jilid Iqro'
+
+Skema **v6**: kolom master `generus.sekolah`, `generus.kelas_sekolah`, `generus.iqro` (`'1'`–`'6'` = Iqro' jilid, `'alquran'`),
+ditambahkan di akhir tabel (migrasi ALTER aman; aplikasi lama mengabaikan kolom baru, nilai kosong = tidak diketahui). Diisi lewat
+impor CSV (kolom opsional `sekolah`, `kelas_sekolah`, `iqro`), form tambah/ubah generus EXE, Super Admin HP, usulan mubaligh.
+Mubaligh memperbarui jilid Iqro' anak lewat usulan `ubah_generus` → **disetujui otomatis** di daerah (perluasan J-T4).
+
+### 19.4 Keputusan teknis otonom (Fase 13)
+
+| Kode | Keputusan | Alasan |
+|---|---|---|
+| J-C1 | K16 = target materi evaluasi `keaktifan` 7 jenjang, isian 1–31 (satu hari dihitung satu kali, jadi target > 31 tidak bermakna), tidak boleh kosong. Bila HP belum menerima materi evaluasi, `targetKeaktifan` memakai nilai sementara 20/16 | Satu sumber nilai; tersebar seperti butir lain; tidak ada konstanta di layar |
+| J-C2 | Format cetakan bawaan **kolom tanggal 1–31**; urutan kegiatan (slot) jadi alternatif. Isi sel = kode-kode yang **dihitung** pada hari itu digabung (mis. "AB", seperti lembar Kaimana); ajuan murid yang belum disahkan tidak dicetak; izin dicetak "IZ" (abu-abu) hanya di format tanggal | Koreksi pemilik; lembar adalah bukti resmi |
+| J-C3 | **Hari libur** (arsir) = hari pekan yang tidak punya jadwal pengajian rutin kelompok untuk jenjang itu **dan** tidak ada kegiatan tercatat bagi jenjang itu; kelompok tanpa jadwal rutin → tanpa arsir | Meniru baris "Libur / Tidak" lembar Bantemi tanpa isian baru |
+| J-C4 | Jumlah slot format urutan = maks(target K16, 24; Pra Nikah 16, jumlah hari aktif terbanyak di jenjang itu) | Tetap mirip lembar; tidak memotong data |
+| J-C5 | % Keaktifan memakai target K16; **% Peng. Materi** = TOTAL raport periode evaluasi terakhir (≤ periode bulan itu) yang sudah punya nilai; kosong bila belum. **Total** = rata-rata kolom anak yang terisi | Juknis & lembar |
+| J-C6 | Anak yang dicetak = generus **aktif** kelompok itu berjenjang tersebut (sama dengan rekap keaktifan bulanan), urut nama; jenjang lama `caberawit` dicetak di blok Caberawit A dengan tanda "(perlu ditetapkan)". Tiap blok minimal 10 baris (baris kosong seperti lembar); dua blok berurutan digabung satu halaman bila muat (≤ 24 baris) | Meniru lembar daerah (dua jenjang per halaman) |
+| J-C7 | NUNGGONI lembar pengurus = gabungan daftar NUNGGONI laporan bulanan kelompok + catatan NUNGGONI pengurus/mubaligh untuk kelompok itu pada bulan itu (ganda nama+tanggal dibuang). Dapukan = unsur (MS → Mubaligh/MS, 4S …) atau jabatan penulis; kolom Paraf selalu kosong | Lembar untuk ditandatangani manual |
+| J-C8 | Nama di PENYAKSIAN: **MT Kelompok** = nama token mubaligh aktif kelompok; **Kord PPG Desa** = pengurus jabatan PJ Desa; jabatan lain (KI, Wkl KI, Penerobos, Mubaligh Desa) kosong karena tidak ada di data. Sampul: "Ust. <mubaligh>" atau titik-titik | Tidak mengarang nama |
+| J-C9 | Laporan Hasil Musyawaroh: Muda-Mudi terlaksana bila salah satu musyawaroh muda/i (kelompok/desa/daerah) terlaksana, hasil = gabungan catatannya; 5 Unsur dari `mus5` | Lembar hanya punya satu baris Muda-Mudi |
+| J-C10 | Ekspor Excel memakai tata letak yang sama (exceljs): lembar Sampul, satu lembar kerja per jenjang yang berisi anak, lembar Pengurus; isi kuning & garis sama; lebar kolom disetel untuk A4 lanskap | Bisa diedit/ditandatangani setelah dicetak |
+| J-C11 | Gabungan desa/daerah = semua kelompok wilayah (urut desa, nama kelompok), tiap kelompok mulai dari sampulnya, satu berkas cetak/PDF/Excel (Excel: lembar kerja diberi awalan kode/nama kelompok) | Meniru "LapGen Desa …" |
+| J-C12 | Kolom generus baru `sekolah`, `kelas_sekolah` (teks ≤ 100), `iqro` (`1`–`6`/`alquran`); skema v6 (ALTER di akhir, KOLOM_AKHIR). CSV menerima "Iqro 3", "IQRO' 3", "3", "Al-Qur'an", "Quran", "AQ" | Data lapangan |
+| J-C13 | Saran jenjang dari Iqro': generus **Caberawit B** yang sudah Al-Qur'an → saran **C**; **Caberawit C** yang masih Iqro' → saran **B**; Caberawit A tidak disarankan (ditentukan kelas). Hanya saran (lencana) — jenjang tetap ditetapkan admin/mubaligh | Juknis: B vs C dari kemampuan baca |
+| J-C14 | Usulan `ubah_generus` yang perubahannya hanya `kategori` dan/atau `iqro` dari perangkat ber-hak `sahkan` di kelompok itu disetujui otomatis di daerah (memperluas J-T4). Perubahan sekolah/kelas tetap usulan biasa (admin menyetujui) | Iqro' & jenjang adalah data belajar milik mubaligh; data diri lain tetap K6 |
