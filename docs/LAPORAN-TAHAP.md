@@ -726,16 +726,73 @@ Kontrak: RENCANA §17 (J-K1–J-K14, perlu dikonfirmasi §17.3). Nama pengurus d
 
 ---
 
-## Fase 12 — DITUNDA (16 Nov 2026, 08.15 WIT) — lanjut malam ini
+## Fase 12 — Penetapan Kurikulum & Kebijakan lewat Musyawaroh (2026-11-16)
 
-Status: belum ada kode; pohon kerja bersih di `cf5cd07`. Dihentikan atas permintaan pemilik (batas token harian).
+Kontrak: RENCANA §18 (pemetaan §18.1, katalog K01–K15 & M01–M07, keputusan J-KR1–J-KR7, J-M1–J-M9); §16.4 dan §17.3 kini menunjuk
+ke §18. Arahan pemilik: *"yang berkaitan dengan kurikulum agar diserahkan ke role kurikulum, yang berkaitan dengan kebijakan lainnya
+agar diatur dalam mekanisme musyawaroh"*. Pemilik tidak ditanya; pemetaan & keputusan dicatat di §18.
 
-Arahan pemilik: "yang berkaitan dengan kurikulum agar diserahkan ke role kurikulum, yang berkaitan dengan kebijakan lainnya agar diatur dalam mekanisme musyawaroh".
+### Pemetaan
+- **Ke Kurikulum (15 butir)**: bulan evaluasi (K01), definisi Caberawit A (K02), pembagi keilmuan PAUD (K03), pembagi adab PAUD &
+  Caberawit A (K04), do'a Sorong PAUD 24 vs 12 (K05), surat PAUD 6 vs 7 (K06), surat Caberawit B 24 vs 16 (K07), jurus ASAD (K08),
+  rumus TOTAL (K09), surat Generus 2 & 3 51 vs 45 (K10), target GBMTPG Generus 2 & 3 (K11), halaman kitab hadits (K12), dalil Sorong
+  26 & 28 (K13), 22 butir Caberawit C (K14), cara nilai wudhu & sholat (K15).
+- **Ke Musyawarah (7 kebijakan)**: tabungan bulanan tiap desa (M01; Fakfak & Kaimana "Belum ditetapkan"), rumus skor reward (M02),
+  jumlah juara santri/kelompok/desa (M03), hak baca keuangan termasuk penggalang dana & wakil ketua (M04), jadwal musyawarah rutin
+  sebulan sekali ganjil bersama/genap muda-i (M05), nominal kebutuhan dana kegiatan (M06), tanggal pengingat laporan (M07).
+- **Bukan keduanya**: kode desa Modan = data wilayah (Admin Daerah). Poin tahfidz tetap angka lembar penilaian.
 
-**A. Diserahkan ke role Kurikulum** — daftar "Perlu Ditetapkan Kurikulum" di EXE kurikulum (dan HP jabatan Bidang Kurikulum): target surat Generus 2 & 3 (51 vs 45), halaman kitab hadits & target GBMTPG kosong, dalil Sorong no. 26 & 28 sama, periode evaluasi, definisi Caberawit A, pembagi yang contohnya tidak cocok, jurus ASAD, rumus TOTAL, 22 butir Caberawit C, cara nilai wudhu & sholat. Tiap butir: nilai sementara + alasan + tetapkan/ubah → status "Ditetapkan Kurikulum" (tanggal, siapa), tersebar lewat paket kurikulum, riwayat tersimpan. Isian kosong = "belum ditetapkan" dan tidak ikut TOTAL; raport/rekap menuliskannya.
+### Yang dibuat
+- **Core** — `penetapan-kurikulum.ts`: katalog butir; nilai sementara dibaca dari data yang dipakai; penetapan di master
+  `pengaturan` `kur:<kode>` (nilai, penetap, tanggal, catatan, riwayat); status Belum ditetapkan / Sementara (+ "berubah sesudah
+  ditetapkan") / Ditetapkan Kurikulum; EXE Kurikulum menetapkan langsung, HP jabatan Kurikulum lewat usulan `tetapkan_kurikulum`
+  yang disetujui otomatis di daerah; EXE Daerah ditolak (`HANYA_KURIKULUM`). Butir struktural (K10/K14/K15) mengubah materi
+  evaluasi. `juknis.ts`: materi berisian kosong (target null / kitab tanpa halaman) = belum ditetapkan → persen null, **tidak ikut
+  TOTAL** (menggantikan J-T13); `rumusTotal` (K09); raport `belumDitetapkan`, rekap `materiBelumDitetapkan`.
+- **Core** — `kebijakan.ts` (katalog M01–M07, register `kbj:<kunci>:<lingkup>`, nilai berlaku, riwayat) dan `musyawarah.ts` (notulen
+  berbutir keputusan, sidik SHA-256 keputusan, pengesahan ketua / wakil bermandat, mandat, penerapan hanya di EXE Daerah otomatis
+  saat impor SETOR, agenda berikutnya dengan kebijakan sementara, teks WA undangan & hasil, ringkasan beranda). Konsumen kebijakan:
+  target tabungan (musyawarah > bendahara > sementara), reward (bobot & jumlah juara), jadwal musyawarah, pengingat laporan, kebutuhan
+  dana. Hak baca keuangan dinamis: token & paket daerah memberi kunci lengkap ke pembaca, kunci publik saja ke penulis bukan pembaca;
+  perubahan M04 → `gantiKunciBidang('keuangan')` otomatis.
+- **Penyebaran**: berkas KURIKULUM membawa `kur:*`; MATERI membawa `kur:*`; PAKET daerah membawa semua pengaturan; PAKET EXE
+  desa/kelompok **tidak** meneruskan `kbj:*`/`kur:*` dan penerima menolaknya bila ada.
+- **Tanpa skema baru** (tetap v5): register memakai master `pengaturan`, notulen/pengesahan/mandat memakai `catatan_bidang`. DB lama
+  langsung memakai nilai sementara katalog (diuji: DB disimpan → dibuka ulang → register terbaca).
 
-**B. Kebijakan lain lewat Musyawaroh** — register Kebijakan (Sementara / Ditetapkan Musyawarah, nomor & tanggal, riwayat); notulen oleh Sekretaris berisi butir keputusan yang ditautkan ke kunci kebijakan; disahkan Ketua (atau Wakil bermandat) → berlaku & tersebar; EXE Daerah yang menerapkan; musyawarah desa hanya kebijakan lingkup desa; perubahan hak baca keuangan → rotasi kunci; agenda berikutnya otomatis memuat kebijakan sementara; teks WA undangan/agenda/hasil; ringkasan di beranda Ketua/Sekretaris. Contoh kebijakan: nominal tabungan 4 desa, rumus & jumlah juara reward, hak baca keuangan (penggalang dana, wakil ketua), jadwal musyawarah rutin, nominal dana kegiatan, nilai sementara lain di §17.
+### Keamanan (review mandiri)
+Hak divalidasi di core, bukan hanya UI: notulen hanya sekretaris (semua wilayah dalam cakupan) / PJ desa & PJ kelompok (wilayahnya) —
+di HP (`simpanCatatan`/`simpanNotulen`) dan di impor SETOR; EXE (daerah/desa/Super Admin HP) tidak menulis notulen/pengesahan/mandat;
+pengesahan hanya ketua, atau wakil dengan mandat berlaku; mandat hanya ketua; penerapan hanya EXE Daerah; musyawarah desa hanya lingkup
+desanya, kelompok tidak mengubah kebijakan; nilai kebijakan & lingkup diperiksa saat menulis, saat impor, dan saat menerapkan; isi yang
+disahkan diikat sidik (notulen diubah → "perlu disahkan ulang"); keputusan musyawarah lebih lama tidak menimpa yang lebih baru.
+Temuan review & perbaikan: (1) id pengesahan satu per notulen membuat pengesahan kedua (wakil sesudah ketua) ditolak sebagai "milik
+perangkat lain" → id kini per perangkat pengesah; (2) tanggal pengesahan ditulis HP → pengesahan bertanggal sebelum musyawarah atau di
+masa depan tidak diterapkan (test pemalsuan mundur-tanggal). Usulan `tetapkan_kurikulum` dari HP tanpa jabatan kurikulum tidak
+disetujui otomatis maupun manual.
 
-Proses: §18 RENCANA (perbarui §16.4 & §17) → TDD core → UI EXE & HP → test/typecheck/build → uji asap 360×740 → review keamanan → LAPORAN & PANDUAN → push & CI.
+### Hasil uji
+- `npm test`: core **28 berkas / 205 test** (baru: `test/musyawarah-kurikulum.test.ts`, 7 skenario), desktop **8 / 20**, mobile
+  **9 / 18** (baru: `mobile/test/musyawarah.test.tsx`) — semua lulus. `npm run typecheck` bersih, `npm run build` sukses.
+- Uji asap peramban 360×740 ditambah layar 21–25 (Musyawarah & Kebijakan, tulis notulen berbutir kebijakan, notulen disahkan, Perlu
+  Ditetapkan Kurikulum, penetapan diajukan): **LULUS**, 0 galat konsol, 0 tombol < 44 px.
 
-Antrean sesudahnya: pembaruan video tutorial untuk layar Fase 10–12; PDF tautan video (setelah pemilik menjalankan JALANKAN-SUARA.bat dan Drive tersinkron).
+### Layar yang berubah (untuk video & panduan)
+- **EXE Daerah**: menu baru **Musyawarah & Kebijakan** (ringkasan, agenda + undangan WA, Register Kebijakan + Riwayat, notulen + hasil
+  WA) dan **Perlu Ditetapkan Kurikulum** (lihat saja); Beranda kartu **Musyawarah & kebijakan**; Impor Setoran ("N keputusan
+  musyawarah diterapkan", "kunci keuangan diganti"); Usulan (jenis penetapan kurikulum); Evaluasi & Keaktifan / raport / Excel
+  ("Materi … belum ditetapkan Kurikulum").
+- **EXE Desa**: menu **Musyawarah Desa**; kartu beranda.
+- **EXE Kurikulum**: menu **Perlu Ditetapkan Kurikulum** (Tetapkan / ubah, Riwayat); Beranda angka "Butir belum ditetapkan".
+- **APK pengurus**: Bidang → **Musyawarah & Kebijakan** (ketua, wakil, sekretaris, PJ desa/kelompok) dan **Perlu Ditetapkan
+  Kurikulum** (jabatan Kurikulum); Beranda ketua/sekretaris kartu **Musyawarah & kebijakan**; Keuangan menampilkan asal target tabungan
+  & kebutuhan dana. **APK murid/orang tua/mubaligh**: raport menulis materi yang belum ditetapkan Kurikulum.
+
+### Sisa masalah (jujur)
+- Riwayat penetapan/kebijakan disimpan di dalam satu rekaman (≤ 50 entri); bila EXE Kurikulum dan HP Kurikulum menetapkan butir yang
+  sama bersamaan, penulis terakhir menang dan satu entri riwayat bisa hilang.
+- HP di bawah EXE desa (mubaligh, pengurus kelompok tanpa jabatan) tidak menerima register kebijakan (hanya dari paket daerah); mereka
+  tidak memerlukannya.
+- Pengesahan & mandat memakai tanggal HP (offline): pengesah yang sengaja memundurkan jam HP di dalam masa mandat tidak bisa dibedakan.
+- Notulen ditulis di HP saja (EXE tidak punya formulir notulen).
+- Video tutorial untuk layar Fase 10–12 belum diperbarui.

@@ -316,6 +316,29 @@ Menu **Materi Evaluasi** (EXE kurikulum & daerah): pilih jenjang → **Ubah** un
 Generus 2/3 masih "Belum ditetapkan"), daftar butir, atau **halaman terakhir kitab** hadits. **Bulan evaluasi semester** (bawaan
 November & Mei) → **Simpan**. Perubahan ikut berkas Kurikulum → daerah → berkas Materi ke semua HP.
 
+### 5.2b Perlu Ditetapkan Kurikulum (Fase 12)
+
+Hal-hal juknis yang dulu "perlu dikonfirmasi" kini **diserahkan ke Kurikulum**. Menu **Perlu Ditetapkan Kurikulum** berisi 15 butir
+(K01–K15): bulan evaluasi, definisi Caberawit A, pembagi keilmuan/adab PAUD, do'a & surat PAUD, surat Caberawit B, nama jurus
+ASAD, rumus TOTAL, surat Generus 2 & 3 (51/45), target GBMTPG Generus 2 & 3, halaman kitab hadits, dalil Sorong no. 26 & 28,
+butir Caberawit C, dan cara nilai wudhu & sholat.
+
+1. Tiap butir menampilkan **nilai sementara yang sedang dipakai**, **sumber/alasan**, dan status: **Belum ditetapkan** (merah — ada
+   isian kosong), **Sementara** (kuning), **Ditetapkan Kurikulum** (hijau, dengan tanggal & nama penetap).
+2. Tekan **Tetapkan / ubah** (atau **Isi & tetapkan**) → ubah isian bila perlu → tulis catatan (opsional) → **Simpan & tetapkan**.
+   Isian yang masih kosong boleh disimpan sebagian; statusnya tetap "Belum ditetapkan" sampai semua terisi.
+3. Butir daftar (do'a/surat) diubah di **Materi Evaluasi**, lalu kembali ke sini → **Tetapkan nilai ini**.
+4. **Riwayat** menampilkan semua penetapan sebelumnya.
+5. Kirim lewat **Buat berkas Kurikulum** → daerah mengimpor → turun ke semua HP lewat Berkas Materi/paket.
+
+Penting: **materi yang belum ditetapkan** (mis. target GBMTPG Generus 2 & 3, hadits yang halaman kitabnya belum lengkap) **tidak ikut
+dihitung di TOTAL**. Raport dan rekap menuliskan "Materi … belum ditetapkan Kurikulum". Bila Admin Daerah mengubah materi sesudah
+ditetapkan, butir kembali **Sementara** dengan tanda "Berubah sesudah ditetapkan".
+
+Pengurus HP berjabatan **Bidang Kurikulum** punya menu yang sama: **Bidang → Perlu Ditetapkan Kurikulum → Tetapkan**. Penetapan dari HP
+berstatus **Diajukan ke Daerah**; kirim lewat **Setor ke Daerah**, daerah menerapkannya otomatis, lalu statusnya berubah setelah paket
+berikutnya dibuka. EXE Daerah hanya **melihat** daftar ini (menu **Perlu Ditetapkan Kurikulum**).
+
 ### 5.3 Materi dan berkas Kurikulum
 
 1. Menu **Materi**: tambah atau ubah materi bila perlu (**+ Bidang**, **+ Kategori**, **+ Materi**, **Unggah PDF**).
@@ -424,18 +447,18 @@ berisi tugas jabatan Anda:
 
 | Jabatan | Yang dikerjakan di HP |
 |---|---|
-| Ketua / Wakil | **Ringkasan PPG** (keaktifan, kelompok belum lapor, NUNGGONI, jumlah kasus BK, saldo), notulen, rekap; bulan ganjil musyawarah bersama, genap musyawarah muda/i |
-| Sekretaris | Notulen musyawarah, rekap keaktifan → **Bagikan ke grup WA**, database generus per jenjang & mubaligh, pengingat kelompok yang belum lapor (tanggal 1–7) |
-| Bendahara | **Keuangan**: + Buku kas (pemasukan/pengeluaran, rupiah bulat), + Target tabungan desa (mis. Sorong 700.000 & Aimas 600.000 untuk Mumi Daerah), **Konfirmasi** dana masuk dari penggalang dana |
+| Ketua / Wakil | **Ringkasan PPG** (keaktifan, kelompok belum lapor, NUNGGONI, jumlah kasus BK, saldo), rekap; **Musyawarah & Kebijakan** → **Sahkan** notulen; Ketua memberi **mandat** ke Wakil (7B) |
+| Sekretaris | **Musyawarah & Kebijakan** (notulen berbutir keputusan, undangan & hasil WA — 7B), rekap keaktifan → **Bagikan ke grup WA**, database generus per jenjang & mubaligh, pengingat kelompok yang belum lapor |
+| Bendahara | **Keuangan**: + Buku kas (pemasukan/pengeluaran, rupiah bulat), tabungan desa (target = kebijakan musyawarah; sebelum ditetapkan dipakai nilai sementara Sorong 700.000 & Aimas 600.000), **Konfirmasi** dana masuk dari penggalang dana |
 | Penggalang Dana | + Dana masuk (wali/aghniya/lain) → masuk kas setelah dikonfirmasi bendahara |
-| Kurikulum | **Reward Hasil Belajar**: santri terbaik per jenjang, kelompok & desa terbaik |
+| Kurikulum | **Perlu Ditetapkan Kurikulum** (5.2b) dan **Reward Hasil Belajar**: santri terbaik per jenjang, kelompok & desa terbaik (jumlah juara & bobot skor = kebijakan musyawarah) |
 | Tenaga Pendidik | Data mubaligh/mubalighot (tugasan/setempat), kebutuhan pengajar, program SDM, rekap **Kontrol Keaktifan MT** |
 | Sarana & Prasarana | Inventaris per kelompok (kondisi, tanggal cek), usulan pengadaan |
 | Muda/i & Kepramukaan | 10 group pembinaan, agenda (LDK, CAI, pengajian muda/i daerah, …) → **Catat hadir** = keaktifan MR/DR/AA/AS peserta |
 | Olahraga & Seni · Kemandirian · Keputrian | Agenda program; kemandirian juga data lulus/dropout, bakat & minat, info kerja; keputrian hanya generus putri |
 | Bimbingan Konseling | Catatan konseling — **hanya BK yang bisa membaca** (ketua melihat jumlah kasus saja) |
 | Tahfidz | Peserta, **ujian** (centang surat yang lulus, 2 penguji, poin otomatis), peringkat |
-| PJ Desa / PJ Kelompok | Pengingat akhir bulan "kejar absensi & laporan", temuan keaktifan < 50%; laporan KBM bulanan kelompok |
+| PJ Desa / PJ Kelompok | Pengingat akhir bulan "kejar absensi & laporan", temuan keaktifan < 50%; laporan KBM bulanan kelompok; notulen musyawarah desa/5 unsur wilayahnya |
 | Semua | **NUNGGONI** — catat setelah menunggui 1 KBM (Semua Pengurus & Mubaligh Peduli) |
 
 Semua catatan ikut **Setor** seperti biasa. Mubaligh mengisi **Lainnya → Kontrol Keaktifan MT** (sholat subuh/tahajud/dhuha, kolom
@@ -443,6 +466,39 @@ hafalan, tadarus) setiap hari; diperiksa pengajian MT minggu pertama.
 
 Di EXE Daerah/Desa: menu **Kepengurusan** — daftar pengurus berjabatan, ringkasan bidang, keuangan & tabungan desa, reward, kontrol MT,
 tahfidz, catatan bidang. Bila bendahara/BK lama dicabut: **Ganti kunci keuangan/konseling**, lalu **Kirim Paket** seluruh daerah.
+
+### 7B. Musyawarah & Kebijakan (Fase 12)
+
+Kebijakan yang bukan urusan kurikulum diputuskan lewat **musyawaroh**. Daftar kebijakan (**Register Kebijakan**): M01 tabungan bulanan
+tiap desa, M02 rumus skor reward, M03 jumlah juara reward, M04 hak baca keuangan, M05 jadwal musyawarah rutin (sebulan sekali: ganjil
+bersama, genap PPG muda/i), M06 kebutuhan dana kegiatan, M07 tanggal pengingat laporan. Status: **Sementara** (nilai sementara masih
+dipakai), **Belum ditetapkan** (mis. tabungan Fakfak & Kaimana), **Ditetapkan Musyawarah** (nomor & tanggal musyawarah, pengesah).
+
+Alur:
+
+1. **Sekretaris** (HP): **Bidang → Musyawarah & Kebijakan**. Kartu **Agenda berikutnya & undangan** sudah memuat "kebijakan yang masih
+   sementara" sebagai usulan agenda → isi tanggal/jam/tempat → **Kirim undangan + agenda ke WA**.
+2. Sesudah musyawarah: **+ Tulis notulen** → jenis (rutin bersama / PPG muda/i / desa / 5 unsur), tanggal, peserta, agenda, uraian →
+   **+ Butir keputusan**. Bila keputusan mengubah kebijakan, pilih di **Mengubah kebijakan** lalu isi nilai barunya (untuk tabungan
+   desa pilih desanya) → **Simpan notulen** → **Setor ke Daerah**.
+3. **Ketua** (HP): buka paket terbaru → **Musyawarah & Kebijakan** → **Sahkan** pada notulen → **Setor ke Daerah**. Wakil Ketua hanya
+   bisa mengesahkan bila Ketua memberi **mandat** (**Beri mandat pengesahan ke Wakil Ketua**, mulai–sampai, paling lama 1 tahun).
+4. **EXE Daerah** menerapkan keputusan yang sudah disahkan **otomatis saat Impor Setoran** (ringkasan impor: "N keputusan musyawarah
+   diterapkan") → **Kirim Paket** agar kebijakan baru sampai ke semua HP pengurus.
+5. **Hasil WA**: tombol di tiap notulen (HP) atau **Salin hasil WA** (EXE) — berisi keputusan dan status pengesahan.
+
+Aturan yang dijaga aplikasi:
+
+- Tanpa pengesahan Ketua, keputusan tetap **usulan** (nilai lama tetap dipakai).
+- Notulen yang diubah sesudah disahkan **tidak diterapkan** sampai disahkan ulang; notulen yang sudah disahkan tidak bisa diubah.
+- Musyawarah **desa** (dicatat PJ Desa) hanya boleh mengubah kebijakan lingkup desanya; musyawarah kelompok/5 unsur tidak mengubah
+  kebijakan.
+- Bila **hak baca keuangan** berubah, kunci keuangan diganti otomatis: catatan kas baru hanya terbaca jabatan yang diputuskan.
+  Penggalang dana yang tidak lagi membaca tetap bisa mencatat dana masuk.
+
+Di EXE Daerah/Desa: menu **Musyawarah & Kebijakan** (desa: **Musyawarah Desa**) — ringkasan (kebijakan sementara, notulen menunggu
+pengesahan, musyawarah terakhir & berikutnya), undangan WA, **Register Kebijakan** (+ **Riwayat**), daftar notulen. Beranda Daerah/Desa
+dan Beranda HP Ketua/Sekretaris menampilkan kartu **Musyawarah & kebijakan**.
 
 ---
 
