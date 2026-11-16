@@ -202,7 +202,9 @@ Daerah juga bisa menerbitkan token HP pengurus/mubaligh dan **EXE Kelompok** lan
 
 Menu **Evaluasi & Keaktifan** (juga di EXE desa dan kelompok):
 - **Rekap Penguasaan Materi** → pilih **Wilayah** (kelompok/desa/daerah), **Semester**, dan jenjang → tabel No · Nama · kolom tiap
-  materi · TOTAL, rata-rata, ringkasan per desa/kelompok → **Ekspor Excel** (lembar per kelompok + ringkasan) atau **Cetak / PDF**.
+  materi (format juknis) · kolom ringkas **Alim-Faqih · Akhlaqul Karimah · Mandiri · Nilai Akhir**, rata-rata, ringkasan per
+  desa/kelompok (+ predikat) → **Ekspor Excel** (lembar per kelompok + ringkasan) atau **Cetak / PDF**. Sel **bd** = belum dinilai
+  (tidak ikut rata-rata), **—** = belum ditetapkan Kurikulum.
 - **Keaktifan Bulanan** → pilih **Bulan** → rata-rata per kelompok dan daftar anak (merah = di bawah 50%, bahan musyawarah).
 - **Laporan Bulanan** → Musyawaroh 5 Unsur, Muda/i, NUNGGONI tiap kelompok (**Isi/ubah** bila kelompok melapor lewat kertas).
 - **Cetak Laporan Bulanan (format lembar)** → pilih **Wilayah** (kelompok; atau desa/daerah = gabungan semua kelompok seperti
@@ -211,7 +213,7 @@ Menu **Evaluasi & Keaktifan** (juga di EXE desa dan kelompok):
   daerah) → **Pratinjau & Cetak / PDF** atau **Ekspor Excel**. Isi per kelompok:
   1. Sampul **LAPORAN GENERUS KELOMPOK … / BULAN … / Ust. <mubaligh>**.
   2. Lembar kuning **PRESENSI KEAKTIFAN** per jenjang (PAUD, CB. RAWIT A/B/C, Pra REMAJA, REMAJA, Pra NIKAH), dua jenjang per halaman
-     bila muat, dengan **% Keaktifan** (target Kurikulum K16), **% Peng. Materi** (TOTAL evaluasi semester terakhir), baris **IQRO' 1–6 : … ORG**
+     bila muat, dengan **% Keaktifan** (target Kurikulum K16), **% Peng. Materi** (Nilai Akhir evaluasi semester terakhir), baris **IQRO' 1–6 : … ORG**
      dan **Total**. Jenjang tanpa anak tetap dicetak kosong untuk diisi tangan.
   3. **Absensi Pengurus & Mubaligh-Mubalighot Peduli** (NUNGGONI bulan itu per tanggal, kolom **Paraf** kosong untuk ditandatangani),
      **Laporan Hasil Musyawaroh** (Muda-Mudi & 5 Unsur dari Laporan Bulanan), dan kotak **PENYAKSIAN** (KI/Wkl KI/Penerobos/MT Kelompok,
@@ -220,13 +222,40 @@ Menu **Evaluasi & Keaktifan** (juga di EXE desa dan kelompok):
 
   Saat dialog cetak muncul pilih printer, atau **Simpan sebagai PDF / Microsoft Print to PDF**. Ukuran kertas A4 (lembar lanskap, lembar
   pengurus tegak) sudah diatur otomatis.
-- **Laporan Hasil Belajar** (raport):
+- **Laporan Hasil Belajar** (raport) — disusun per **Tri Sukses Generus** + **Karakter Luhur** (lihat **2.12b**):
   - **Cetak semua raport** → pilih **Kelompok** (atau semua kelompok di wilayah) dan **Jenjang / kelas** → **Pratinjau & Cetak semua**
-    (satu anak per halaman A4) atau **Simpan PDF**. Isi raport: kop **PPG Daerah** + logo, identitas anak, tabel **Materi · Target ·
-    Dikuasai · %**, **TOTAL**, keaktifan semester, catatan materi yang belum ditetapkan Kurikulum, dan kolom tanda tangan **MT/Mubaligh
-    Kelompok**, **KI Kelompok**, **Orang Tua/Wali**.
-  - **Raport satu anak** → pilih generus → **Cetak / PDF** atau **Simpan PDF**.
+    (dua halaman A4 per anak) atau **Simpan PDF**.
+  - **Raport satu anak** → pilih generus → raport tampil di layar persis seperti cetakannya → **Cetak / PDF** atau **Simpan PDF**.
+  - **Nilai Karakter Luhur** (EXE Kelompok/Desa/Daerah) → pilih **Predikat** tiap butir (Baik / Cukup / Perlu Bimbingan, kosong = belum
+    dinilai), catatan singkat bila perlu, dan **Catatan mubaligh** → **Simpan**. Ikut **Setor** ke desa → daerah seperti nilai lain.
 - **Generus & Jamaah**: tanda kuning **tetapkan A/B/C** / **saran umur — cek** → buka generus, pilih jenjang yang benar.
+
+### 2.12b Membaca raport Tri Sukses Generus (Fase 14)
+
+Raport disusun menurut **Tri Sukses Generus: Alim-Faqih, Akhlaqul Karimah, Mandiri** (susunan mengikuti **GBMTPG Pembina Generus
+Pusat 2022**; pemetaan materi bisa diubah Kurikulum lewat butir **K18**).
+
+**Halaman 1 — ringkas**
+1. Kop PPG Daerah, identitas anak.
+2. **A. Tri Sukses Generus**: **Alim-Faqih** dengan dua baris di bawahnya — **Alim** (mankul & hafalan) dan **Faqih** (kefahaman &
+   praktik ibadah) — lalu **Akhlaqul Karimah**, **Mandiri**, dan **NILAI AKHIR**; masing-masing nilai + predikat.
+3. **B. Karakter Luhur**: **4 Tali Keimanan** (bersyukur atas hidayah, mengagungkan hidayah, mempersungguh hidayah, senantiasa
+   berdoa) dan **6 Thobiat Luhur** (jujur, amanah, mujhid-muzhid, rukun, kompak, kerja sama yang baik) — predikat **Baik / Cukup /
+   Perlu Bimbingan** dari praktik sehari-hari + catatan; **Target jenjang** (istilah capaian GBMTPG: PAUD *Mengenal*, Caberawit
+   *Tertanam*, Pra Remaja *Terbiasa*, Remaja *Terampil*, Pra Nikah *Memiliki*). **Data pendukung**: keaktifan pengajian semester,
+   jumlah hari kegiatan mandiri yang disahkan, dan catatan sholat yang diisi orang tua di HP (bila ada) — hanya keterangan.
+4. **C. Keaktifan semester**, **D. Catatan mubaligh**, tempat & tanggal, tanda tangan **MT/Mubaligh**, **KI Kelompok**, **Orang Tua/Wali**.
+
+**Halaman 2 — Lampiran "Rincian Penguasaan Materi"**: tiap subbagian (Alim — Mankul, Alim — Hafalan, Faqih — Kefahaman, Faqih —
+Praktik Ibadah, Akhlaqul Karimah, Mandiri) berisi **Materi · Target · Dikuasai · %**.
+
+**Cara nilai dihitung**
+- Persen tiap materi tetap rumus juknis (nilai praktik penguji paling tinggi 75%).
+- **"belum dinilai" bukan 0%**: materi yang belum diuji tidak ikut rata-rata. Materi **belum ditetapkan Kurikulum** (—) juga tidak.
+- Subbagian = rata-rata materi yang dinilai; **Alim** = rata-rata Mankul & Hafalan; **Faqih** = rata-rata Kefahaman & Praktik Ibadah;
+  **Alim-Faqih** = rata-rata Alim & Faqih; **Nilai Akhir** = rata-rata **Alim-Faqih, Akhlaqul Karimah, Mandiri** (bobot sama, K09).
+- **Keaktifan tidak masuk nilai** (tetap ditulis sebagai baris keaktifan dan data pendukung). **Karakter Luhur tidak masuk persen.**
+- Predikat angka (sementara, butir **K17**): **≥ 85 Sangat Baik**, **70–84 Baik**, **55–69 Cukup**, **< 55 Perlu Bimbingan**.
 
 ### 2.13 Mencabut perangkat
 
@@ -315,7 +344,7 @@ Menu **Generus & Data** hanya untuk melihat. Perubahan diajukan lewat **+ Usulka
 3. **Kirim Balasan**: seperti 3.7.
 4. **Rekap & Laporan**: capaian kelompok + **Ekspor Excel**.
 5. **Evaluasi & Keaktifan** → **Cetak Laporan Bulanan (format lembar)** dan **Laporan Hasil Belajar → Cetak semua raport**: kelompok
-   mencetak laporan bulanan & raport sendiri (lihat 2.12a).
+   mencetak laporan bulanan & raport sendiri (lihat 2.12a); **Nilai Karakter Luhur** per anak di Laporan Hasil Belajar (lihat 2.12b).
 
 ---
 
@@ -345,10 +374,22 @@ November & Mei) → **Simpan**. Perubahan ikut berkas Kurikulum → daerah → b
 
 ### 5.2b Perlu Ditetapkan Kurikulum (Fase 12)
 
-Hal-hal juknis yang dulu "perlu dikonfirmasi" kini **diserahkan ke Kurikulum**. Menu **Perlu Ditetapkan Kurikulum** berisi 16 butir
-(K01–K16): bulan evaluasi, definisi Caberawit A, pembagi keilmuan/adab PAUD, do'a & surat PAUD, surat Caberawit B, nama jurus
-ASAD, rumus TOTAL, surat Generus 2 & 3 (51/45), target GBMTPG Generus 2 & 3, halaman kitab hadits, dalil Sorong no. 26 & 28,
-butir Caberawit C, cara nilai wudhu & sholat, dan **K16 Target keaktifan bulanan per jenjang**.
+Hal-hal juknis yang dulu "perlu dikonfirmasi" kini **diserahkan ke Kurikulum**. Menu **Perlu Ditetapkan Kurikulum** berisi 18 butir
+(K01–K18): bulan evaluasi, definisi Caberawit A, pembagi keilmuan/adab PAUD, do'a & surat PAUD, surat Caberawit B, nama jurus
+ASAD, **rumus Nilai Akhir**, surat Generus 2 & 3 (51/45), target GBMTPG Generus 2 & 3, halaman kitab hadits, dalil Sorong no. 26 & 28,
+butir Caberawit C, cara nilai wudhu & sholat, **K16 Target keaktifan bulanan per jenjang**, **K17 Ambang predikat** dan **K18 Pemetaan
+materi → aspek Tri Sukses**.
+
+**Fase 14 — raport Tri Sukses Generus.**
+- **K09 Rumus Nilai Akhir**: bawaan **rata-rata 3 aspek Tri Sukses Generus** (Alim-Faqih, Akhlaqul Karimah, Mandiri; bobot sama),
+  atau **rata-rata semua butir materi yang dinilai**. Pilihan lama "dengan/tanpa keaktifan" tidak berlaku lagi — bila dulu sudah
+  ditetapkan, butir ini tampil **Sementara (berubah sesudah ditetapkan)** dan perlu ditetapkan ulang.
+- **K17 Ambang predikat**: tiga angka (Sangat Baik ≥, Baik ≥, Cukup ≥; harus menurun). Sementara 85 / 70 / 55. Catatan: nilai praktik
+  penguji maksimal 75%, jadi subbagian yang hanya berisi praktik tidak bisa mencapai Sangat Baik.
+- **K18 Pemetaan materi**: tiap materi evaluasi dipilihkan subbagian **Alim · Mankul**, **Alim · Hafalan**, **Faqih · Kefahaman**,
+  **Faqih · Praktik Ibadah**, **Akhlaqul Karimah**, atau **Mandiri**. Nilai sementara mengikuti GBMTPG Pembina Generus Pusat 2022
+  (lihat 2.12b). Materi baru yang ditambah Kurikulum otomatis masuk **Alim · Mankul** sampai dipindahkan. Keaktifan tidak bisa dipetakan
+  (bukan nilai).
 
 **K16 — Target keaktifan.** Juknis menulis **20 kali/bulan (Pra Nikah 16)**, tetapi lembar cetakan daerah berkolom **24** dan semua
 kelompok selama ini menghitung % = jumlah ÷ 24. Sampai Kurikulum menetapkan, aplikasi memakai **20 (Pra Nikah 16)** — status
@@ -364,7 +405,7 @@ Angka ini langsung dipakai semua hitungan: % keaktifan bulanan & semester, rapor
 5. Kirim lewat **Buat berkas Kurikulum** → daerah mengimpor → turun ke semua HP lewat Berkas Materi/paket.
 
 Penting: **materi yang belum ditetapkan** (mis. target GBMTPG Generus 2 & 3, hadits yang halaman kitabnya belum lengkap) **tidak ikut
-dihitung di TOTAL**. Raport dan rekap menuliskan "Materi … belum ditetapkan Kurikulum". Bila Admin Daerah mengubah materi sesudah
+dihitung di Nilai Akhir**. Raport dan rekap menuliskan "Materi … belum ditetapkan Kurikulum". Bila Admin Daerah mengubah materi sesudah
 ditetapkan, butir kembali **Sementara** dengan tanda "Berubah sesudah ditetapkan".
 
 Pengurus HP berjabatan **Bidang Kurikulum** punya menu yang sama: **Bidang → Perlu Ditetapkan Kurikulum → Tetapkan**. Penetapan dari HP
@@ -437,7 +478,9 @@ bawah judul layar **Keaktifan**. Satu hari dihitung **satu kali** walau ada bebe
 
 Evaluasi penguasaan materi tiap **Mei** dan **November** (bisa diubah Kurikulum).
 
-1. **Lainnya → Evaluasi Semester** → pilih **Semester** dan (opsional) **Jenjang** → ketuk tombol nilai di samping nama anak.
+1. **Lainnya → Evaluasi Semester** → pilih **Semester** dan (opsional) **Jenjang** → ketuk tombol nilai di samping nama anak. Halaman
+   anak menampilkan **Nilai Akhir**, nilai Alim-Faqih / Akhlaqul Karimah / Mandiri, dan materi dikelompokkan per subbagian
+   (Alim — Mankul, Alim — Hafalan, Faqih — Kefahaman, Faqih — Praktik Ibadah, Akhlaqul Karimah, Mandiri).
 2. Bila ada tanda **jenjang perlu dicek** / "Caberawit (perlu ditetapkan)": pilih jenjang di **Tetapkan jenjang** → **Ajukan jenjang**
    (Caberawit **B** = masih Iqro', **C** = sudah Al-Qur'an). Berlaku setelah Setor sampai daerah.
 3. Ketuk **Nilai** pada materi:
@@ -446,14 +489,19 @@ Evaluasi penguasaan materi tiap **Mei** dan **November** (bisa diubah Kurikulum)
    - Makna Al-Qur'an → halaman makna **penuh** per juz (0–20);
    - Hadits → halaman makna penuh per kitab (sampai halaman terakhir kitab);
    - Praktik (thoharoh, wudhu & sholat C–G3, ASAD, kualitas bacaan, pegon, jenazah) → nilai penguji **1–75%** (lebih dari 75 ditolak).
-4. **TOTAL** = rata-rata semua materi; yang belum dinilai = 0%. Nilai semester lalu dipakai sampai dinilai ulang ("Nilai dari …").
-5. **Raport** → Laporan Hasil Belajar anak → **Simpan PDF / Cetak** (PDF dibuat di HP tanpa internet; terbuka di aplikasi pembaca
+4. **Nilai Akhir** = rata-rata 3 aspek Tri Sukses Generus (lihat 2.12b). Materi yang **belum dinilai tidak dihitung** (bukan 0%);
+   keaktifan tidak masuk nilai. Nilai semester lalu dipakai sampai dinilai ulang ("Nilai dari …").
+5. **Karakter Luhur** (di bawah daftar materi, halaman anak): untuk tiap **Tali Keimanan** dan **Thobiat Luhur** ketuk **Baik**,
+   **Cukup**, atau **Perlu Bimbingan** sesuai praktik sehari-hari anak — **langsung tersimpan** ("Sudah dinilai: n/10"). **+ catatan**
+   untuk catatan singkat. Isi **Catatan mubaligh semester ini** → **Simpan catatan mubaligh** (tampil di raport bagian D). Penilaian
+   sikap tidak dihitung ke Nilai Akhir dan ikut **Setor** seperti nilai materi.
+6. **Raport** → Laporan Hasil Belajar anak → **Simpan PDF / Cetak** (PDF dibuat di HP tanpa internet; terbuka di aplikasi pembaca
    PDF — pilih menu **Cetak** di sana untuk printer/Print service Android) atau **Bagikan PDF (WA)** ke orang tua. Jangan lupa **Setor**
    dan **Kirim Balasan** agar orang tua melihatnya di HP-nya.
-6. **Semua raport kelas ini**: di daftar Evaluasi Semester pilih **Jenjang** (kosong = semua) → **PDF semua raport / Cetak** atau
-   **Bagikan PDF (WA)** — satu PDF, satu anak per halaman A4 (kop PPG Daerah, tabel materi, TOTAL, keaktifan, tanda tangan MT, KI
-   Kelompok, Orang Tua/Wali).
-7. **Jilid Iqro' / Al-Qur'an**: di halaman anak pilih **Jilid sekarang** → **Ajukan jilid Iqro'**. Disetujui otomatis setelah Setor sampai
+7. **Semua raport kelas ini**: di daftar Evaluasi Semester pilih **Jenjang** (kosong = semua) → **PDF semua raport / Cetak** atau
+   **Bagikan PDF (WA)** — satu PDF, dua halaman A4 per anak (halaman ringkas Tri Sukses Generus + Karakter Luhur + tanda tangan, dan
+   lampiran Rincian Penguasaan Materi).
+8. **Jilid Iqro' / Al-Qur'an**: di halaman anak pilih **Jilid sekarang** → **Ajukan jilid Iqro'**. Disetujui otomatis setelah Setor sampai
    daerah. Bila jilid tidak cocok dengan jenjang, muncul **Saran jenjang** (Caberawit B = masih Iqro', C = sudah Al-Qur'an).
    Rincian generus (**Lainnya → Generus**) menampilkan sekolah, kelas, dan jilid.
 
@@ -604,7 +652,9 @@ Menu bawah: **Target · Materiku · Catat · Jadwal · Setor**.
    Kolom **SB ZH AS MG IS** = catatan sholat 5 waktu untuk diri sendiri/orang tua (tidak dinilai, tidak dikirim).
 8. Mulai tanggal 20, bila keaktifan belum mencapai target (sementara 20 kali; ditetapkan Kurikulum) muncul kartu **Kejar target
    keaktifan!** — isi lembar kontrol setiap hari.
-9. **Laporan Hasil Belajar** (di Target): nilai penguasaan materi per semester dan TOTAL → **Simpan PDF / Cetak** atau **Bagikan PDF (WA)**.
+9. **Laporan Hasil Belajar** (di Target): ringkasan **Tri Sukses Generus** (Nilai Akhir, Alim-Faqih, Akhlaqul Karimah, Mandiri),
+   **Karakter Luhur**, keaktifan & catatan mubaligh; ketuk **Rincian Penguasaan Materi** untuk membuka nilai tiap materi →
+   **Simpan PDF / Cetak** atau **Bagikan PDF (WA)**.
 10. Kakak-adik di satu HP: **Profil & HP** → **+ Tambah Profil** untuk anak berikutnya (lihat bagian 8).
 
 ---
@@ -619,7 +669,9 @@ Menu bawah: **Target · Laporan · Kemajuan · Kehadiran · Berkas**.
 4. **Laporan**: laporan pekanan (geser pekan dengan **‹** / **›**).
 5. **Kemajuan** dan **Kehadiran** (60 hari terakhir) per anak.
 6. Di **Target**: kartu **Kejar target** (mulai tanggal 20), **Keaktifan bulan ini** → **Lihat Lembar Kontrol** (orang tua boleh
-   mencentang sholat 5 waktu sebagai catatan di HP ini), dan **Laporan Hasil Belajar** (**Simpan PDF / Cetak** raport anak sendiri).
+   mencentang sholat 5 waktu sebagai catatan di HP ini — muncul sebagai *data pendukung* di raport, tidak dinilai), dan **Laporan Hasil
+   Belajar**: ringkasan dulu (Tri Sukses Generus + Nilai Akhir, Karakter Luhur, keaktifan, catatan mubaligh), rincian materi bisa
+   dibuka; **Simpan PDF / Cetak** raport anak sendiri.
    Bila banyak kolom kosong menjelang akhir bulan,
    bantu anak mengaji di rumah atau hubungi mubaligh.
 

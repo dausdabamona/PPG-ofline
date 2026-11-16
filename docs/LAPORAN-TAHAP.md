@@ -864,3 +864,73 @@ repo; uji & contoh memakai data dummy. Koreksi pemilik di tengah fase: format **
 - Font PDF raport = Helvetica bawaan PDF (huruf Arab tidak didukung; nama dengan huruf di luar WinAnsi tampil "?").
 - Data sekolah/Iqro' kosong untuk generus lama sampai diisi (CSV ulang / usulan mubaligh / form EXE).
 - Video tutorial untuk layar Fase 10–13 belum diperbarui.
+
+---
+
+## Fase 14 — Raport Tri Sukses Generus + Karakter Luhur (2026-11-16)
+
+Kontrak: RENCANA §20 (keputusan J-R1–J-R18); §16.1, §18.2 (K09 diperbarui, K17, K18), §19.3a & J-C5 diperbarui. Keputusan pemilik:
+raport disederhanakan per aspek **Tri Sukses Generus** + penilaian sikap **Karakter Luhur**. Di tengah fase pemilik merevisi susunan
+setelah membaca **GBMTPG Pembina Generus Pusat 2022**: Alim-Faqih dirinci **Alim** (Mankul, Hafalan) dan **Faqih** (Kefahaman, Praktik
+Ibadah); nilai Alim-Faqih = rata-rata Alim & Faqih; Nilai Akhir tetap rata-rata 3 aspek; keterangan **target jenjang** Karakter Luhur
+memakai istilah capaian GBMTPG (Mengenal/Tertanam/Terbiasa/Terampil/Memiliki). Isi buku tidak disalin ke repo.
+
+### Yang dibuat
+1. **Core `tri-sukses.ts`**: pemetaan materi → 6 subbagian (K18, nilai sementara GBMTPG 2022; kode baru → Alim · Mankul), rumus
+   subbagian/Alim/Faqih/Alim-Faqih/Akhlaqul Karimah/Mandiri/Nilai Akhir (`hitungTriSukses`), ambang predikat (K17, 85/70/55,
+   `predikatAngka`), rumus Nilai Akhir K09 baru (`rata_aspek` bawaan / `rata_materi`; nilai lama dibaca `rata_aspek` → Sementara).
+2. **Belum dinilai ≠ 0 %**: `raporGenerus` memberi `persen = null` untuk butir yang belum pernah dinilai (subjektif tanpa nilai juga);
+   tidak ikut rata-rata apa pun. `Rapor.total` = Nilai Akhir (lembar bulanan "% Peng. Materi" dan reward otomatis ikut). Keaktifan
+   keluar dari nilai → baris keaktifan semester + data pendukung.
+3. **Karakter Luhur** — skema **v7** tabel kegiatan `penilaian_karakter` (4 Tali Keimanan, 6 Thobiat Luhur, catatan mubaligh; id tetap
+   `KRL-…`), `simpanPenilaianKarakter` (hak `sahkan` di kelompok generus), ikut SETOR/BALASAN/PAKET; data pendukung (keaktifan semester,
+   hari kegiatan mandiri disahkan, catatan sholat lokal bila orang tua mengisi).
+4. **Raport cetak** (EXE HTML & PDF core): halaman 1 ringkas (identitas, A. Tri Sukses Generus — Alim-Faqih › Alim, Faqih; Akhlaqul
+   Karimah; Mandiri; NILAI AKHIR + predikat; B. Karakter Luhur; C. Keaktifan; D. Catatan mubaligh; tanda tangan) + halaman 2 lampiran
+   "Rincian Penguasaan Materi" per subbagian (Materi · Target · Dikuasai · % / belum dinilai / —).
+5. **EXE**: raport satu anak tampil di layar sama dengan cetakan; tombol **Nilai Karakter Luhur** (kelompok/desa/daerah); Rekap Penguasaan
+   Materi + kolom **Alim-Faqih · Akhlaqul Karimah · Mandiri · Nilai Akhir**, sel **bd**, ringkasan per desa/kelompok + predikat; Excel
+   sama; Perlu Ditetapkan Kurikulum bentuk **pemetaan** (K18).
+6. **APK**: Evaluasi Semester per anak dikelompokkan per subbagian + kartu **Karakter Luhur** (ketuk Baik/Cukup/Perlu Bimbingan →
+   langsung tersimpan, + catatan, catatan mubaligh); raport HP (murid/orang tua/mubaligh): ringkasan dulu, **Rincian Penguasaan Materi**
+   dilipat (`<details>`); HP Bidang Kurikulum: K18 pemetaan.
+
+### Keamanan (review mandiri)
+- `penilaian_karakter` di `imporSetor`: wilayah dalam cakupan pengirim, penulis (perangkat_id) pemegang hak `sahkan` untuk kelompok itu
+  (pengirim atau terdaftar), generus anggota kelompok pada tanggal penilaian, butir/predikat/catatan/periode sah, **id = id tetap**
+  (generus|periode|butir) — diuji: predikat palsu, generus kelompok lain, pengurus tanpa hak sahkan ditolak.
+- K17/K18 dari berkas KURIKULUM/PAKET divalidasi saat dibaca; nilai tidak sah diabaikan (kembali ke sementara); `kur:*` dari PAKET EXE
+  desa/kelompok tetap ditolak (J-KR6). Keaktifan tidak bisa dipetakan ke aspek.
+- Teks catatan dibatasi panjangnya (300 / 1000) dan di-escape (React; `escPdf` di PDF). Catatan sholat tetap lokal (tidak dikirim).
+- Tidak ada kalimat penilaian otomatis; data pendukung hanya fakta angka dari data.
+
+### Hasil uji
+- `npm test`: core **30 berkas / 227 test** (baru `test/fase14-tri-sukses.test.ts`, 9 skenario: rumus aspek, predikat batas, belum
+  dinilai vs 0, pemetaan GBMTPG, Karakter Luhur & validasi, SETOR/PAKET/BALASAN & pemalsuan, K09/K17/K18 ditetapkan → tersebar,
+  K09 lama, data cetak & PDF 2 halaman/anak, migrasi v6→v7), desktop **9 / 23** (rekap + Karakter Luhur EXE, raport ringkas + lampiran),
+  mobile **9 / 19** (Karakter Luhur HP, raport lipat, K09/K18) — semua lulus.
+- `npm run typecheck` bersih, `npm run build` sukses.
+- Uji asap peramban 360×740 (+ layar 12b, 28 Karakter Luhur, 29 raport Tri Sukses, 30 rincian lipat; data dummy): **LULUS**, 0 galat
+  konsol, 0 tombol < 44 px.
+- Uji visual cetakan: HTML raport EXE → PDF Chrome headless → PNG, dan PDF core → PNG; diperbaiki (halaman meluber ke 4 → tepat 2 per
+  anak, garis hitam baris zebra di PDF, paragraf menimpa tabel, target juz diringkas "Juz 21–30", lebar kolom lampiran seragam).
+- Contoh PNG (data dummy) di `/home/claude/contoh-cetakan/`: `10-raport-ringkas-tri-sukses-karakter-exe.png`,
+  `11-raport-lampiran-rincian-materi-exe.png`, `12-hp-orang-tua-raport-ringkas.png`, `12b-hp-orang-tua-karakter-luhur.png`,
+  `12c-hp-raport-rincian-lipat.png` (+ PDF `raport-tri-sukses-cetak-exe.pdf`, `raport-tri-sukses-pdf-hp-offline.pdf`).
+
+### Layar yang berubah (untuk video & panduan)
+- **EXE**: Evaluasi & Keaktifan → Rekap Penguasaan Materi (kolom aspek, bd, predikat), Laporan Hasil Belajar (raport resmi di layar,
+  **Nilai Karakter Luhur**, cetak 2 halaman/anak); Perlu Ditetapkan Kurikulum (K09 baru, K17, K18 pemetaan).
+- **APK mubaligh**: Evaluasi Semester → halaman anak (per subbagian, kartu Karakter Luhur), Raport (ringkas + lipat).
+- **APK murid/orang tua**: Laporan Hasil Belajar (Tri Sukses Generus, Karakter Luhur, keaktifan & catatan mubaligh, rincian lipat).
+- **APK Bidang Kurikulum**: Perlu Ditetapkan Kurikulum (K09, K17, K18).
+- Panduan: 2.12a, **2.12b (baru)**, 4, 5.2b, 6.7, 9, 10 (`PANDUAN-PENGGUNA.md` + `panduan-pengguna.html`).
+
+### Sisa masalah (jujur)
+- Nilai praktik subjektif tetap maksimal 75 % (juknis) → subbagian yang hanya berisi praktik tidak bisa "Sangat Baik" pada ambang
+  sementara 85; dicatat di sumber K17 agar Kurikulum memutuskan.
+- Butir Karakter Luhur (4 + 6) tetap di kode (bukan butir Kurikulum); istilah target jenjang hanya keterangan.
+- Raport yang sudah dicetak/dibagikan sebelum Fase 14 memakai rumus lama (TOTAL termasuk keaktifan, belum dinilai = 0); cetak ulang
+  untuk angka baru. K09 yang dulu ditetapkan perlu ditetapkan ulang Kurikulum.
+- Catatan sholat orang tua hanya terlihat di raport yang dibuat di HP tempat catatan diisi (lokal, sesuai J-T17).
+- Video tutorial untuk layar Fase 10–14 belum diperbarui.
