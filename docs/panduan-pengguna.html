@@ -87,7 +87,7 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 </ol>
 <p>Menu Super Admin (bawah layar): <strong>Beranda · Daftarkan · Data · Sinkron · Lainnya</strong>.</p>
 <ul>
-<li><strong>Data → Generus</strong>: pilih <strong>Kelompok</strong> → <strong>+ Tambah generus</strong> → isi <strong>Nama generus</strong>, jenis kelamin, <strong>Kategori</strong>, <strong>Nama orang tua</strong>, <strong>No. HP orang tua</strong> → <strong>Simpan generus</strong>. Anak baru bertanda <strong>Baru</strong> dan <strong>langsung bisa dipilih</strong> saat membuat token orang tua/murid. Tekan <strong>Ubah</strong> pada generus untuk <strong>Ajukan status</strong> (mis. mondok) atau <strong>Ajukan pindah</strong>.</li>
+<li><strong>Data → Generus</strong>: pilih <strong>Kelompok</strong> → <strong>+ Tambah generus</strong> → isi <strong>Nama generus</strong>, jenis kelamin, <strong>Kategori</strong>, <strong>Nama orang tua</strong>, <strong>No. HP orang tua</strong>, dan (bila tahu) <strong>Sekolah</strong>, <strong>Kelas sekolah</strong>, <strong>Jilid Iqro' / Al-Qur'an</strong> → <strong>Simpan generus</strong>. Anak baru bertanda <strong>Baru</strong> dan <strong>langsung bisa dipilih</strong> saat membuat token orang tua/murid. Tekan <strong>Ubah</strong> pada generus untuk <strong>Ajukan status</strong> (mis. mondok) atau <strong>Ajukan pindah</strong>.</li>
 <li><strong>Data → Wilayah</strong> (desa/kelompok baru) → <strong>Ajukan wilayah</strong>; <strong>Data → Pengajian / kelas</strong> → <strong>Ajukan pengajian</strong>. Semua tambahan ini disetujui otomatis saat setoran HP ini sampai di Admin Daerah. Token untuk kelompok baru bisa diterbitkan setelah paket berikutnya dari Daerah dibuka.</li>
 <li><strong>Daftarkan</strong>: pilih <strong>Peran</strong> (Pengurus, Mubaligh, Orang tua, Murid, EXE Desa, EXE Kelompok, EXE Kurikulum) → pilih kelompok/desa → (orang tua: centang semua anaknya; murid: pilih satu anak) → isi nama → untuk pengurus/mubaligh pilih <strong>Setoran HP itu dikirim ke</strong> (<strong>HP Super Admin ini</strong> atau <strong>Langsung ke Admin Daerah (laptop)</strong>) → <strong>Pindai QR Kode Perangkat</strong> atau tempel di <strong>Kode Perangkat</strong> → <strong>Terbitkan token</strong>. Token tampil sebagai QR bergantian (penerima menekan <strong>Pindai QR Token</strong>), atau tekan <strong>Kirim lewat WA</strong> / <strong>Salin token</strong>. Token EXE ditempel di laptop (menu "Aktifkan dengan kode").</li>
 <li><strong>Sinkron</strong>: <strong>Setor ke Daerah</strong> (kirim berkas <code>PPG_SETOR_…</code> ke Admin Daerah; <strong>Kirim ulang semua data</strong> bila berkas sebelumnya hilang) · <strong>Buka Paket / Impor Setoran</strong> (paket Daerah dan setoran HP pengurus/mubaligh yang Anda daftarkan; boleh banyak berkas) · <strong>Kirim Paket</strong> (pilih <strong>Wilayah paket</strong>, atau <strong>Paket semua kelompok</strong>) · <strong>Kirim Balasan</strong> ke HP murid/orang tua.</li>
@@ -124,10 +124,11 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <h3 id="24-data-generus-csv">2.4 Data generus (CSV)</h3>
 <ol type="1">
 <li>Menu <strong>Generus &amp; Jamaah</strong> → <strong>Unduh templat CSV</strong> → buka di Excel.</li>
-<li>Isi satu baris per generus: <code>nama</code>, <code>jenis_kelamin</code> (L/P), <code>tanggal_lahir</code> (boleh <code>DD/MM/YYYY</code>), <code>kategori</code> (boleh kosong, dihitung dari umur), <code>kelompok_kode</code>, <code>wali_nama</code>, <code>wali_no_hp</code>.</li>
+<li>Isi satu baris per generus: <code>nama</code>, <code>jenis_kelamin</code> (L/P), <code>tanggal_lahir</code> (boleh <code>DD/MM/YYYY</code>), <code>kategori</code> (boleh kosong, dihitung dari umur), <code>kelompok_kode</code>, <code>wali_nama</code>, <code>wali_no_hp</code>. Kolom tambahan (boleh kosong): <code>sekolah</code> (mis. SD Negeri 1), <code>kelas_sekolah</code> (mis. 4), <code>iqro</code> (<code>Iqro 1</code> … <code>Iqro 6</code>, atau <code>Al-Qur'an</code>). Data ini dipakai di cetakan lembar keaktifan (kolom <strong>NAMA + UMUR + IQRO'</strong>, <strong>Sekolah/Kelas</strong>, ringkasan <strong>IQRO' 1 : … ORG</strong>).</li>
 <li>Simpan sebagai <strong>CSV</strong> → tekan <strong>Impor CSV</strong> → pilih berkasnya.</li>
 <li>Baris yang gagal tampil dengan alasannya. Perbaiki baris itu lalu impor lagi.</li>
-<li>Satu per satu: <strong>+ Tambah generus</strong>. Pindah kelompok dan ubah status lewat tombol <strong>Pindah</strong> dan <strong>Status</strong> di baris generus.</li>
+<li>Satu per satu: <strong>+ Tambah generus</strong> (isian <strong>Sekolah</strong>, <strong>Kelas sekolah</strong>, <strong>Jilid Iqro' / Al-Qur'an</strong> ada di formulir tambah/ubah). Pindah kelompok dan ubah status lewat tombol <strong>Pindah</strong> dan <strong>Status</strong> di baris generus.</li>
+<li>Tanda kuning <strong>saran Caberawit C (Al-Qur'an)</strong> / <strong>saran Caberawit B (Iqro' …)</strong>: jenjang tidak cocok dengan jilid bacaannya (B = masih Iqro', C = sudah Al-Qur'an). Periksa lalu ubah jenjangnya bila perlu.</li>
 </ol>
 <h3 id="25-pengajian--kelas-per-kategori">2.5 Pengajian = kelas per kategori</h3>
 <ol type="1">
@@ -191,11 +192,22 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <h3 id="212a-evaluasi--keaktifan-juknis-2025">2.12a Evaluasi &amp; Keaktifan (Juknis 2025)</h3>
 <p>Menu <strong>Evaluasi &amp; Keaktifan</strong> (juga di EXE desa dan kelompok):</p>
 <ul>
-<li><strong>Rekap Penguasaan Materi</strong> → pilih <strong>Wilayah</strong> (kelompok/desa/daerah), <strong>Semester</strong>, dan jenjang → tabel No · Nama · kolom tiap materi · TOTAL, rata-rata, ringkasan per desa/kelompok → <strong>Ekspor Excel</strong> (lembar per kelompok + ringkasan) atau <strong>Cetak / PDF</strong>.</li>
-<li><strong>Keaktifan Bulanan</strong> → pilih <strong>Bulan</strong> → rata-rata per kelompok dan daftar anak (merah = di bawah 50%, bahan musyawarah).</li>
-<li><strong>Laporan Bulanan</strong> → Musyawaroh 5 Unsur, Muda/i, NUNGGONI tiap kelompok (<strong>Isi/ubah</strong> bila kelompok melapor lewat kertas).</li>
-<li><strong>Laporan Hasil Belajar</strong> → pilih generus → <strong>Cetak / PDF</strong> (raport).</li>
-<li><strong>Generus &amp; Jamaah</strong>: tanda kuning <strong>tetapkan A/B/C</strong> / <strong>saran umur — cek</strong> → buka generus, pilih jenjang yang benar.</li>
+<li><p><strong>Rekap Penguasaan Materi</strong> → pilih <strong>Wilayah</strong> (kelompok/desa/daerah), <strong>Semester</strong>, dan jenjang → tabel No · Nama · kolom tiap materi · TOTAL, rata-rata, ringkasan per desa/kelompok → <strong>Ekspor Excel</strong> (lembar per kelompok + ringkasan) atau <strong>Cetak / PDF</strong>.</p></li>
+<li><p><strong>Keaktifan Bulanan</strong> → pilih <strong>Bulan</strong> → rata-rata per kelompok dan daftar anak (merah = di bawah 50%, bahan musyawarah).</p></li>
+<li><p><strong>Laporan Bulanan</strong> → Musyawaroh 5 Unsur, Muda/i, NUNGGONI tiap kelompok (<strong>Isi/ubah</strong> bila kelompok melapor lewat kertas).</p></li>
+<li><p><strong>Cetak Laporan Bulanan (format lembar)</strong> → pilih <strong>Wilayah</strong> (kelompok; atau desa/daerah = gabungan semua kelompok seperti "LapGen Desa …") dan <strong>Bulan</strong> → <strong>Format lembar</strong>: <strong>Kolom tanggal 1–31</strong> (bawaan — kode kegiatan ditulis di tanggal kejadiannya, hari libur diarsir, ada JK, Sekolah/Kelas, Orang Tua, Iqro'/Qur'an) atau <strong>Urutan kegiatan 1–24</strong> (Pra Nikah 1–16, seperti lembar daerah) → <strong>Pratinjau &amp; Cetak / PDF</strong> atau <strong>Ekspor Excel</strong>. Isi per kelompok:</p>
+<ol type="1">
+<li>Sampul <strong>LAPORAN GENERUS KELOMPOK … / BULAN … / Ust. <mubaligh></strong>.</li>
+<li>Lembar kuning <strong>PRESENSI KEAKTIFAN</strong> per jenjang (PAUD, CB. RAWIT A/B/C, Pra REMAJA, REMAJA, Pra NIKAH), dua jenjang per halaman bila muat, dengan <strong>% Keaktifan</strong> (target Kurikulum K16), <strong>% Peng. Materi</strong> (TOTAL evaluasi semester terakhir), baris <strong>IQRO' 1–6 : … ORG</strong> dan <strong>Total</strong>. Jenjang tanpa anak tetap dicetak kosong untuk diisi tangan.</li>
+<li><strong>Absensi Pengurus &amp; Mubaligh-Mubalighot Peduli</strong> (NUNGGONI bulan itu per tanggal, kolom <strong>Paraf</strong> kosong untuk ditandatangani), <strong>Laporan Hasil Musyawaroh</strong> (Muda-Mudi &amp; 5 Unsur dari Laporan Bulanan), dan kotak <strong>PENYAKSIAN</strong> (KI/Wkl KI/Penerobos/MT Kelompok, KI/Wkl KI/Penerobos/Mubaligh/Kord PPG Desa). Nama MT diambil dari token mubaligh kelompok, Kord PPG Desa dari pengurus <strong>PJ Desa</strong>; yang lain ditulis tangan.</li>
+</ol>
+<p>Saat dialog cetak muncul pilih printer, atau <strong>Simpan sebagai PDF / Microsoft Print to PDF</strong>. Ukuran kertas A4 (lembar lanskap, lembar pengurus tegak) sudah diatur otomatis.</p></li>
+<li><p><strong>Laporan Hasil Belajar</strong> (raport):</p>
+<ul>
+<li><strong>Cetak semua raport</strong> → pilih <strong>Kelompok</strong> (atau semua kelompok di wilayah) dan <strong>Jenjang / kelas</strong> → <strong>Pratinjau &amp; Cetak semua</strong> (satu anak per halaman A4) atau <strong>Simpan PDF</strong>. Isi raport: kop <strong>PPG Daerah</strong> + logo, identitas anak, tabel <strong>Materi · Target · Dikuasai · %</strong>, <strong>TOTAL</strong>, keaktifan semester, catatan materi yang belum ditetapkan Kurikulum, dan kolom tanda tangan <strong>MT/Mubaligh Kelompok</strong>, <strong>KI Kelompok</strong>, <strong>Orang Tua/Wali</strong>.</li>
+<li><strong>Raport satu anak</strong> → pilih generus → <strong>Cetak / PDF</strong> atau <strong>Simpan PDF</strong>.</li>
+</ul></li>
+<li><p><strong>Generus &amp; Jamaah</strong>: tanda kuning <strong>tetapkan A/B/C</strong> / <strong>saran umur — cek</strong> → buka generus, pilih jenjang yang benar.</p></li>
 </ul>
 <h3 id="213-mencabut-perangkat">2.13 Mencabut perangkat</h3>
 <ol type="1">
@@ -276,6 +288,7 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li><strong>Setor ke Desa</strong> → tekan <strong>Setor ke Desa</strong> → kirim berkasnya ke admin desa.</li>
 <li><strong>Kirim Balasan</strong>: seperti 3.7.</li>
 <li><strong>Rekap &amp; Laporan</strong>: capaian kelompok + <strong>Ekspor Excel</strong>.</li>
+<li><strong>Evaluasi &amp; Keaktifan</strong> → <strong>Cetak Laporan Bulanan (format lembar)</strong> dan <strong>Laporan Hasil Belajar → Cetak semua raport</strong>: kelompok mencetak laporan bulanan &amp; raport sendiri (lihat 2.12a).</li>
 </ol>
 <hr />
 <h2 id="5-petugas-kurikulum-laptop--exe-kurikulum">5. Petugas Kurikulum (laptop / EXE Kurikulum)</h2>
@@ -297,7 +310,8 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <h3 id="52a-materi-evaluasi-juknis-2025">5.2a Materi Evaluasi (Juknis 2025)</h3>
 <p>Menu <strong>Materi Evaluasi</strong> (EXE kurikulum &amp; daerah): pilih jenjang → <strong>Ubah</strong> untuk mengganti nama, <strong>target</strong> (materi GBMTPG Generus 2/3 masih "Belum ditetapkan"), daftar butir, atau <strong>halaman terakhir kitab</strong> hadits. <strong>Bulan evaluasi semester</strong> (bawaan November &amp; Mei) → <strong>Simpan</strong>. Perubahan ikut berkas Kurikulum → daerah → berkas Materi ke semua HP.</p>
 <h3 id="52b-perlu-ditetapkan-kurikulum-fase-12">5.2b Perlu Ditetapkan Kurikulum (Fase 12)</h3>
-<p>Hal-hal juknis yang dulu "perlu dikonfirmasi" kini <strong>diserahkan ke Kurikulum</strong>. Menu <strong>Perlu Ditetapkan Kurikulum</strong> berisi 15 butir (K01–K15): bulan evaluasi, definisi Caberawit A, pembagi keilmuan/adab PAUD, do'a &amp; surat PAUD, surat Caberawit B, nama jurus ASAD, rumus TOTAL, surat Generus 2 &amp; 3 (51/45), target GBMTPG Generus 2 &amp; 3, halaman kitab hadits, dalil Sorong no. 26 &amp; 28, butir Caberawit C, dan cara nilai wudhu &amp; sholat.</p>
+<p>Hal-hal juknis yang dulu "perlu dikonfirmasi" kini <strong>diserahkan ke Kurikulum</strong>. Menu <strong>Perlu Ditetapkan Kurikulum</strong> berisi 16 butir (K01–K16): bulan evaluasi, definisi Caberawit A, pembagi keilmuan/adab PAUD, do'a &amp; surat PAUD, surat Caberawit B, nama jurus ASAD, rumus TOTAL, surat Generus 2 &amp; 3 (51/45), target GBMTPG Generus 2 &amp; 3, halaman kitab hadits, dalil Sorong no. 26 &amp; 28, butir Caberawit C, cara nilai wudhu &amp; sholat, dan <strong>K16 Target keaktifan bulanan per jenjang</strong>.</p>
+<p><strong>K16 — Target keaktifan.</strong> Juknis menulis <strong>20 kali/bulan (Pra Nikah 16)</strong>, tetapi lembar cetakan daerah berkolom <strong>24</strong> dan semua kelompok selama ini menghitung % = jumlah ÷ 24. Sampai Kurikulum menetapkan, aplikasi memakai <strong>20 (Pra Nikah 16)</strong> — status <strong>Sementara</strong>. Tekan <strong>Tetapkan / ubah</strong> → isi angka tiap jenjang (1–31; boleh berbeda per jenjang, mis. 24) → <strong>Simpan &amp; tetapkan</strong>. Angka ini langsung dipakai semua hitungan: % keaktifan bulanan &amp; semester, raport, rekap, kejar target, reward, dan cetakan lembar.</p>
 <ol type="1">
 <li>Tiap butir menampilkan <strong>nilai sementara yang sedang dipakai</strong>, <strong>sumber/alasan</strong>, dan status: <strong>Belum ditetapkan</strong> (merah — ada isian kosong), <strong>Sementara</strong> (kuning), <strong>Ditetapkan Kurikulum</strong> (hijau, dengan tanggal &amp; nama penetap).</li>
 <li>Tekan <strong>Tetapkan / ubah</strong> (atau <strong>Isi &amp; tetapkan</strong>) → ubah isian bila perlu → tulis catatan (opsional) → <strong>Simpan &amp; tetapkan</strong>. Isian yang masih kosong boleh disimpan sebagian; statusnya tetap "Belum ditetapkan" sampai semua terisi.</li>
@@ -351,7 +365,7 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li><strong>Buka Berkas</strong> → paket dari desa, setoran generus, dan berkas lain.</li>
 </ol>
 <h3 id="66-keaktifan-lembar-kontrol--juknis-2025">6.6 Keaktifan (Lembar Kontrol) — Juknis 2025</h3>
-<p>Target keaktifan <strong>20 kali sebulan</strong> (Pra Nikah <strong>16</strong>). Satu hari dihitung <strong>satu kali</strong> walau ada beberapa kegiatan.</p>
+<p>Target keaktifan ditetapkan <strong>Kurikulum (butir K16)</strong>; sementara <strong>20 kali sebulan</strong> (Pra Nikah <strong>16</strong>) — angka yang berlaku tampil di bawah judul layar <strong>Keaktifan</strong>. Satu hari dihitung <strong>satu kali</strong> walau ada beberapa kegiatan.</p>
 <ul>
 <li>Hadir di pengajian (Absen) otomatis tercatat <strong>A</strong> (pengajian desa = DS, daerah = DR). Izin tidak dihitung.</li>
 <li><strong>Lainnya → Keaktifan</strong>:
@@ -376,7 +390,9 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Praktik (thoharoh, wudhu &amp; sholat C–G3, ASAD, kualitas bacaan, pegon, jenazah) → nilai penguji <strong>1–75%</strong> (lebih dari 75 ditolak).</li>
 </ul></li>
 <li><strong>TOTAL</strong> = rata-rata semua materi; yang belum dinilai = 0%. Nilai semester lalu dipakai sampai dinilai ulang ("Nilai dari …").</li>
-<li><strong>Raport</strong> → Laporan Hasil Belajar anak. Jangan lupa <strong>Setor</strong> dan <strong>Kirim Balasan</strong> agar orang tua melihatnya.</li>
+<li><strong>Raport</strong> → Laporan Hasil Belajar anak → <strong>Simpan PDF / Cetak</strong> (PDF dibuat di HP tanpa internet; terbuka di aplikasi pembaca PDF — pilih menu <strong>Cetak</strong> di sana untuk printer/Print service Android) atau <strong>Bagikan PDF (WA)</strong> ke orang tua. Jangan lupa <strong>Setor</strong> dan <strong>Kirim Balasan</strong> agar orang tua melihatnya di HP-nya.</li>
+<li><strong>Semua raport kelas ini</strong>: di daftar Evaluasi Semester pilih <strong>Jenjang</strong> (kosong = semua) → <strong>PDF semua raport / Cetak</strong> atau <strong>Bagikan PDF (WA)</strong> — satu PDF, satu anak per halaman A4 (kop PPG Daerah, tabel materi, TOTAL, keaktifan, tanda tangan MT, KI Kelompok, Orang Tua/Wali).</li>
+<li><strong>Jilid Iqro' / Al-Qur'an</strong>: di halaman anak pilih <strong>Jilid sekarang</strong> → <strong>Ajukan jilid Iqro'</strong>. Disetujui otomatis setelah Setor sampai daerah. Bila jilid tidak cocok dengan jenjang, muncul <strong>Saran jenjang</strong> (Caberawit B = masih Iqro', C = sudah Al-Qur'an). Rincian generus (<strong>Lainnya → Generus</strong>) menampilkan sekolah, kelas, dan jilid.</li>
 </ol>
 <h3 id="68-laporan-bulanan">6.8 Laporan Bulanan</h3>
 <p><strong>Lainnya → Laporan Bulanan</strong> → pilih bulan (<strong>‹ / ›</strong>) → isi <strong>Musyawaroh 5 Unsur</strong> (Terlaksana/Tidak + tanggal + hasil), <strong>Muda/i kelompok/desa/daerah</strong>, daftar <strong>NUNGGONI</strong> (nama, unsur, tanggal, kelas, temuan/saran → <strong>+ Tambah ke daftar</strong>) → <strong>Simpan laporan</strong>. Laporan ikut terkirim saat <strong>Setor</strong>.</p>
@@ -387,7 +403,7 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Aktivasi seperti 6.1 (token dari Admin Desa).</li>
 <li><strong>Beranda</strong>: kartu pengingat <strong>Setor ke …</strong> dan ringkasan generus.</li>
 <li><strong>Absen</strong>: seperti 6.2, tanpa centang tuntas (hanya kehadiran).</li>
-<li><strong>Data</strong>: lihat generus → <strong>+ Usulkan generus baru</strong> bila ada anak baru.</li>
+<li><strong>Data</strong>: lihat generus (termasuk sekolah &amp; jilid Iqro') → <strong>+ Usulkan generus baru</strong> bila ada anak baru (isian sekolah, kelas, jilid Iqro' ikut). Pengurus <strong>kelompok</strong>: kartu <strong>Raport semua generus kelompok (PDF)</strong> → <strong>PDF semua raport / Cetak</strong> atau <strong>Bagikan PDF (WA)</strong> — untuk kelompok yang tidak punya laptop.</li>
 <li><strong>Rekap</strong>: kehadiran dan kemajuan wilayah Anda.</li>
 <li><strong>Sinkron</strong> → <strong>Setor ke …</strong> → kirim berkasnya; buka paket baru dari desa lewat <strong>Buka Berkas</strong>.</li>
 <li>Pengurus kelompok: <strong>Beranda → Laporan Bulanan (Musyawaroh &amp; NUNGGONI)</strong> — sama seperti 6.8.</li>
@@ -525,8 +541,8 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li>Menu <strong>Catat</strong> (atau <strong>Catat yang sudah kupelajari</strong> di Target) → pilih materi → <strong>Simpan catatan</strong>.</li>
 <li>Menu <strong>Setor</strong> → <strong>Setor Belajar</strong> → kirim berkasnya ke mubaligh.</li>
 <li><strong>Lembar Kontrol (keaktifan)</strong>: di <strong>Target</strong> ada kartu <strong>Keaktifan bulan ini</strong> → <strong>Isi Lembar Kontrol</strong> → ketuk <strong>+</strong> pada tanggal → pilih kegiatan (mis. <strong>B</strong> mengulang hafalan 20 kali + baca Iqro'/Qur'an disimak 1 halaman; Generus: <strong>TH</strong>, <strong>QR</strong>, <strong>HD</strong>, …) → <strong>Simpan</strong>. Tanda kuning "B?" = menunggu disahkan mubaligh; hijau = sudah dihitung. Kirim lewat <strong>Setor Belajar</strong>. Kolom <strong>SB ZH AS MG IS</strong> = catatan sholat 5 waktu untuk diri sendiri/orang tua (tidak dinilai, tidak dikirim).</li>
-<li>Mulai tanggal 20, bila keaktifan belum 20 kali muncul kartu <strong>Kejar target keaktifan!</strong> — isi lembar kontrol setiap hari.</li>
-<li><strong>Laporan Hasil Belajar</strong> (di Target): nilai penguasaan materi per semester dan TOTAL.</li>
+<li>Mulai tanggal 20, bila keaktifan belum mencapai target (sementara 20 kali; ditetapkan Kurikulum) muncul kartu <strong>Kejar target keaktifan!</strong> — isi lembar kontrol setiap hari.</li>
+<li><strong>Laporan Hasil Belajar</strong> (di Target): nilai penguasaan materi per semester dan TOTAL → <strong>Simpan PDF / Cetak</strong> atau <strong>Bagikan PDF (WA)</strong>.</li>
 <li>Kakak-adik di satu HP: <strong>Profil &amp; HP</strong> → <strong>+ Tambah Profil</strong> untuk anak berikutnya (lihat bagian 8).</li>
 </ol>
 <hr />
@@ -538,7 +554,7 @@ HP mubaligh atau EXE Desa/Kelompok ──(Balasan)──► HP murid / HP orang 
 <li><strong>Target</strong>: materi yang perlu dituntaskan anak. Punya beberapa anak: pilih nama di <strong>Pilih anak</strong>.</li>
 <li><strong>Laporan</strong>: laporan pekanan (geser pekan dengan <strong>‹</strong> / <strong>›</strong>).</li>
 <li><strong>Kemajuan</strong> dan <strong>Kehadiran</strong> (60 hari terakhir) per anak.</li>
-<li>Di <strong>Target</strong>: kartu <strong>Kejar target</strong> (mulai tanggal 20), <strong>Keaktifan bulan ini</strong> → <strong>Lihat Lembar Kontrol</strong> (orang tua boleh mencentang sholat 5 waktu sebagai catatan di HP ini), dan <strong>Laporan Hasil Belajar</strong>. Bila banyak kolom kosong menjelang akhir bulan, bantu anak mengaji di rumah atau hubungi mubaligh.</li>
+<li>Di <strong>Target</strong>: kartu <strong>Kejar target</strong> (mulai tanggal 20), <strong>Keaktifan bulan ini</strong> → <strong>Lihat Lembar Kontrol</strong> (orang tua boleh mencentang sholat 5 waktu sebagai catatan di HP ini), dan <strong>Laporan Hasil Belajar</strong> (<strong>Simpan PDF / Cetak</strong> raport anak sendiri). Bila banyak kolom kosong menjelang akhir bulan, bantu anak mengaji di rumah atau hubungi mubaligh.</li>
 </ol>
 <hr />
 <h2 id="11-jadwal-rutin">11. Jadwal rutin</h2>

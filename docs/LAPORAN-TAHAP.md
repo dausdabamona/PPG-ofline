@@ -796,3 +796,71 @@ disetujui otomatis maupun manual.
 - Pengesahan & mandat memakai tanggal HP (offline): pengesah yang sengaja memundurkan jam HP di dalam masa mandat tidak bisa dibedakan.
 - Notulen ditulis di HP saja (EXE tidak punya formulir notulen).
 - Video tutorial untuk layar Fase 10–12 belum diperbarui.
+
+---
+
+## Fase 13 — Cetakan Laporan Bulanan format lembar, K16 target keaktifan, data sekolah & Iqro', raport dicetak kelompok (2026-11-16)
+
+Kontrak: RENCANA §19 (§19.1 K16, §19.2 cetakan lembar, §19.3 sekolah & Iqro', §19.3a raport; keputusan J-C1–J-C18); §16.1 & §18.2
+diperbarui. Sumber tampilan: contoh laporan keaktifan nyata Oktober 2026 dari empat kelompok — lembar & nama di dalamnya **tidak** masuk
+repo; uji & contoh memakai data dummy. Koreksi pemilik di tengah fase: format **bawaan = kolom tanggal 1–31** (gaya Bantemi, tetap judul
+& warna kuning lembar daerah), format urutan 1–24 jadi alternatif. Permintaan tambahan: kelompok mencetak raport sendiri (EXE & HP).
+
+### Yang dibuat
+1. **K16 "Target keaktifan bulanan per jenjang"** di daftar Perlu Ditetapkan Kurikulum (sekarang 16 butir): angka per jenjang 1–31,
+   nilai sementara 20 (Pra Nikah 16), sumber "juknis 20 vs lembar cetakan 24 kolom yang dipakai semua kelompok". Disimpan sebagai target
+   materi evaluasi `keaktifan` (tersebar lewat KURIKULUM → daerah → MATERI/PAKET); satu pembaca `targetKeaktifan` untuk keaktifan
+   bulanan/semester, raport, rekap, kejar target, reward, cetakan; teks layar dari `ringkasTargetKeaktifan`.
+2. **Data generus** (skema **v6**, migrasi ALTER aman): `sekolah`, `kelas_sekolah`, `iqro` (Iqro' 1–6 / Al-Qur'an) — impor CSV (kolom
+   opsional, alias "Iqro 3", "AQ", "Al-Qur'an"), form EXE tambah/ubah/usulan, Super Admin HP, usulan generus baru HP; tampil di daftar &
+   rincian generus; **saran jenjang** B/C dari jilid. Mubaligh **Ajukan jilid Iqro'** → usulan disetujui otomatis di daerah (J-C14).
+3. **Cetak Laporan Bulanan (format lembar)** — EXE Evaluasi & Keaktifan (daerah/desa/kelompok): core `lembarLaporanBulanan` /
+   `lembarLaporanWilayah`; pratinjau A4 layar penuh → Cetak/PDF; **Ekspor Excel** bertata letak sama. Sampul kelompok, lembar kuning
+   PRESENSI KEAKTIFAN per jenjang (judul persis lembar daerah, "# KLP : … BULAN : …", NAMA + UMUR + IQRO', % Keaktifan, % Peng. Materi,
+   IQRO' 1–6 : … ORG, Total, legenda kode, arsir libur), dua jenjang per halaman bila muat; Absensi Pengurus & Mubaligh Peduli (TGL 1–31,
+   Nama, Dapukan, Paraf kosong), Laporan Hasil Musyawaroh, kotak PENYAKSIAN dengan catatan AMSHOL; gabungan desa/daerah satu berkas.
+4. **Raport resmi** — core `dataRaportCetak` + `raporPdf` (penulis PDF tanpa pustaka luar, offline): kop PPG Daerah + logo, identitas,
+   Materi · Target · Dikuasai · %, TOTAL, keaktifan semester, catatan belum ditetapkan Kurikulum & sisa jenjang sebelumnya, tanda tangan
+   MT/Mubaligh, KI Kelompok, Orang Tua/Wali. EXE: **Cetak semua raport** per kelompok/jenjang/kelas + Simpan PDF, raport satu anak resmi.
+   HP: mubaligh **Semua raport kelas ini** & raport satu anak, pengurus kelompok **Raport semua generus kelompok**, murid/orang tua raport
+   anaknya — **Simpan PDF / Cetak** (pembaca PDF Android → Cetak) dan **Bagikan PDF (WA)**.
+
+### Keamanan (review mandiri)
+- Cetakan hanya membaca data; teks dari data di-escape (React untuk HTML, `escPdf` untuk PDF — tanda kurung/garis miring dan karakter di
+  luar WinAnsi tidak bisa menyisipkan perintah PDF; nilai Excel ditulis sebagai teks/angka, bukan rumus).
+- Persetujuan otomatis jilid Iqro' hanya bila perubahan **hanya** `kategori`/`iqro`, nilai jilid sah, dan pengusul memegang hak `sahkan`
+  di kelompok generus itu (token tidak dicabut); jilid tidak sah → tetap menunggu (diuji). Data sekolah divalidasi panjangnya di core.
+- Temuan & perbaikan: target materi evaluasi `keaktifan` dari berkas KURIKULUM/suntingan Materi Evaluasi sebelumnya bisa sampai 10000 →
+  kini dibatasi **1–31** juga di `alasanMateriEvaluasiTidakSah` (bukan hanya di form K16), diuji.
+- HP murid/orang tua hanya bisa membuat PDF raport generus yang ada di HP-nya (data BALASAN miliknya); tidak ada izin/plugin baru.
+
+### Hasil uji
+- `npm test`: core **29 berkas / 218 test** (baru `test/fase13-lembar.test.ts`, 13 skenario: K16 sementara → ditetapkan 24 → daerah & HP,
+  ringkasan target per jenjang, sekolah & Iqro', CSV, migrasi v5→v6, usulan jilid otomatis, data lembar kolom tanggal/urutan/libur/Peng.
+  Materi/Total, NUNGGONI + penyaksian, gabungan desa, data raport, keabsahan PDF + xref, pilihan generus raport), desktop **9 / 23** (baru
+  `test/lembar-laporan.test.tsx` + `halaman-lain` §19), mobile **9 / 19** (`juknis.test.tsx` §19) — semua lulus.
+- `npm run typecheck` bersih, `npm run build` sukses.
+- Uji visual cetakan: HTML contoh (data dummy) → PDF Chrome headless (`apps/desktop/uji-peramban/uji-cetak.mjs`) → PNG, dibandingkan dengan
+  lembar asli; diperbaiki (dua blok per halaman, lebar kolom UMUR/%, kode ganda "AMK" mengecil, baris tabel pengurus rata).
+- Uji asap peramban 360×740 ditambah layar 26–27 (Semua raport kelas ini → PDF, Ajukan jilid Iqro') dan butir K16 di Perlu Ditetapkan
+  Kurikulum: **LULUS**, 0 galat konsol, 0 tombol < 44 px.
+
+### Layar yang berubah (untuk video & panduan)
+- **EXE**: Evaluasi & Keaktifan → tab baru **Cetak Laporan Bulanan (format lembar)** (format, pratinjau, Excel); tab **Laporan Hasil
+  Belajar** → kartu **Cetak semua raport** + raport satu anak (Cetak / PDF, Simpan PDF); keterangan target keaktifan dari K16; Generus &
+  Jamaah (kolom sekolah/Iqro', lencana saran jenjang, formulir +3 isian, templat CSV); Usulan (uraian jilid Iqro'); Perlu Ditetapkan
+  Kurikulum (K16).
+- **APK mubaligh**: Evaluasi Semester (kartu **Semua raport kelas ini**, kartu **Jilid Iqro' / Al-Qur'an** di halaman anak), Generus
+  (rincian sekolah/Iqro'), Keaktifan (teks target), Raport (**Simpan PDF / Cetak**, **Bagikan PDF (WA)**).
+- **APK pengurus kelompok**: Data (kartu **Raport semua generus kelompok (PDF)**, rincian sekolah/Iqro', usulan generus +3 isian).
+- **APK murid/orang tua**: Laporan Hasil Belajar (tombol PDF). **Super Admin HP**: Tambah generus (+3 isian).
+- Panduan: 2.4, 2.12a, 4.3, 5.2b (K16), 6.6, 6.7, 7, 9, 10, 1A (`PANDUAN-PENGGUNA.md` + `panduan-pengguna.html`).
+
+### Sisa masalah (jujur)
+- Cetak langsung dari HP lewat Print service Android ditempuh melalui aplikasi pembaca PDF (tanpa plugin cetak native); HP tanpa
+  pembaca PDF perlu memasang satu (mis. Google Drive / pembaca PDF bawaan).
+- Nama KI, Wkl KI, Penerobos, Mubaligh Desa di kotak Penyaksian dan KI Kelompok di raport tidak ada di data → ditulis tangan.
+- Hari libur ditebak dari jadwal pengajian rutin kelompok; kelompok tanpa jadwal rutin di aplikasi tidak mendapat arsir libur.
+- Font PDF raport = Helvetica bawaan PDF (huruf Arab tidak didukung; nama dengan huruf di luar WinAnsi tampil "?").
+- Data sekolah/Iqro' kosong untuk generus lama sampai diisi (CSV ulang / usulan mubaligh / form EXE).
+- Video tutorial untuk layar Fase 10–13 belum diperbarui.
