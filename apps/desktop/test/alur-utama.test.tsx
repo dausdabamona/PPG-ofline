@@ -106,7 +106,7 @@ describe('alur utama EXE admin', () => {
     await u.click(screen.getByRole('button', { name: 'Unduh templat CSV' }))
     await waitFor(() => expect(pf.tersimpan.some((b) => b.nama === 'templat-generus.csv')).toBe(true))
     const templat = new TextDecoder().decode(berkasTerakhir(pf, 'templat-generus').bytes)
-    expect(templat).toContain('nama,jenis_kelamin,tanggal_lahir,kategori,kelompok_kode,wali_nama,wali_no_hp,mulai')
+    expect(templat).toContain('nama,jenis_kelamin,tanggal_lahir,kategori,kelompok_kode,wali_nama,wali_no_hp,sekolah,kelas_sekolah,iqro,mulai')
     const csv = [
       'nama;jenis_kelamin;tanggal_lahir;kategori;kelompok_kode;wali_nama;wali_no_hp',
       'Ahmad;L;2015-03-21;;K1;Pak Fauzi;081234567890',

@@ -1,6 +1,6 @@
 // Layar 9: Usulan — perubahan master dari HP (K6): setujui / tolak dengan alasan.
 import { useState } from 'react'
-import { ambilGenerus, ambilWilayah, daftarPerangkat, daftarUsulan, setujuiUsulan, tolakUsulan, type Db, type StatusUsulan, type Usulan } from '@ppg/core'
+import { ambilGenerus, ambilWilayah, daftarPerangkat, daftarUsulan, labelIqro, setujuiUsulan, tolakUsulan, type Db, type StatusUsulan, type Usulan } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { Isian, KeadaanData, Kartu, KepalaHalaman, Lencana, Modal, Pilihan, Tombol } from '../komponen/ui'
 import { LABEL_JENIS_USULAN, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_USULAN, label, tanggalLokal, waktuLokal } from '../utils/label'
@@ -15,12 +15,12 @@ function uraian(db: Db, u: UsulanData): string {
   const namaG = (id: unknown) => ambilGenerus(db, String(id))?.nama ?? `(generus ${String(id).slice(-6)})`
   switch (u.jenis) {
     case 'tambah_generus':
-      return `${s(d.nama)} (${s(d.jenis_kelamin)}), lahir ${tanggalLokal(d.tanggal_lahir as string)}, ${label(LABEL_KATEGORI, d.kategori as string)}, wali ${s(d.wali_nama)} ${d.wali_no_hp ? `(${s(d.wali_no_hp)})` : ''}`
+      return `${s(d.nama)} (${s(d.jenis_kelamin)}), lahir ${tanggalLokal(d.tanggal_lahir as string)}, ${label(LABEL_KATEGORI, d.kategori as string)}, wali ${s(d.wali_nama)} ${d.wali_no_hp ? `(${s(d.wali_no_hp)})` : ''}${d.iqro ? `, ${labelIqro(String(d.iqro))}` : ''}${d.sekolah ? `, ${s(d.sekolah)}${d.kelas_sekolah ? ` kelas ${s(d.kelas_sekolah)}` : ''}` : ''}`
     case 'tambah_jamaah':
       return `${s(d.nama)} (${s(d.jenis_kelamin)}), lahir ${tanggalLokal(d.tanggal_lahir as string)}, HP ${s(d.no_hp)}`
     case 'ubah_generus': {
       const p = (d.perubahan ?? {}) as Record<string, unknown>
-      return `${namaG(d.generus_id)}: ${Object.entries(p).map(([k, v]) => `${k.replace(/_/g, ' ')} → ${s(v)}`).join('; ')}`
+      return `${namaG(d.generus_id)}: ${Object.entries(p).map(([k, v]) => (k === 'iqro' ? `jilid Iqro' → ${labelIqro(String(v)) || '(kosong)'}` : `${k.replace(/_/g, ' ')} → ${s(v)}`)).join('; ')}`
     }
     case 'pindah_kelompok':
       return `${namaG(d.generus_id)} pindah ke ${ambilWilayah(db, String(d.kelompok_tujuan_id))?.nama ?? '?'} mulai ${tanggalLokal(String(d.tanggal))}`

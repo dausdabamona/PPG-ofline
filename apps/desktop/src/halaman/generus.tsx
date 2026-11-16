@@ -4,6 +4,9 @@ import { useState } from 'react'
 import {
   KATEGORI_GENERUS,
   KOLOM_CSV_GENERUS,
+  JILID_IQRO,
+  labelIqro,
+  saranJenjangIqro,
   STATUS_GENERUS,
   ajukanUsulan,
   ambilWilayah,
@@ -107,8 +110,8 @@ function TabGenerus() {
   const unduhTemplat = async () => {
     const kode = daftarWilayah(db, { tingkat: 'kelompok' }).find((k) => k.kode)?.kode ?? 'K1'
     const contoh = [
-      { nama: 'Ahmad Fauzi', jenis_kelamin: 'L', tanggal_lahir: '2015-03-21', kategori: '', kelompok_kode: kode, wali_nama: 'Bapak Fauzi', wali_no_hp: '081234567890', mulai: '' },
-      { nama: 'Siti Aminah', jenis_kelamin: 'P', tanggal_lahir: '21/07/2010', kategori: 'praremaja', kelompok_kode: kode, wali_nama: 'Ibu Aminah', wali_no_hp: '', mulai: '' },
+      { nama: 'Ahmad Fauzi', jenis_kelamin: 'L', tanggal_lahir: '2015-03-21', kategori: '', kelompok_kode: kode, wali_nama: 'Bapak Fauzi', wali_no_hp: '081234567890', sekolah: 'SD Negeri 1', kelas_sekolah: '5', iqro: "Al-Qur'an", mulai: '' },
+      { nama: 'Siti Aminah', jenis_kelamin: 'P', tanggal_lahir: '21/07/2010', kategori: 'praremaja', kelompok_kode: kode, wali_nama: 'Ibu Aminah', wali_no_hp: '', sekolah: 'SMP Negeri 2', kelas_sekolah: '8', iqro: '', mulai: '' },
     ]
     const csv = '﻿' + buatCsv([...KOLOM_CSV_GENERUS, 'mulai'], contoh)
     const p = await aksi(() => platform.simpanBerkas('templat-generus.csv', new TextEncoder().encode(csv)))
@@ -169,6 +172,10 @@ function TabGenerus() {
                           {label(LABEL_KATEGORI, g.kategori)}
                           {g.kategori === 'caberawit' || g.kategori_saran ? (
                             <Lencana warna="kuning">{g.kategori === 'caberawit' ? 'tetapkan A/B/C' : 'saran umur — cek'}</Lencana>
+                          ) : null}
+                          {saranJenjangIqro(g) ? <Lencana warna="kuning">{`saran ${label(LABEL_KATEGORI, saranJenjangIqro(g)!)} (${labelIqro(g.iqro)})`}</Lencana> : null}
+                          {g.iqro || g.sekolah ? (
+                            <small className="blok">{[labelIqro(g.iqro), [g.sekolah, g.kelas_sekolah ? `kelas ${g.kelas_sekolah}` : ''].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</small>
                           ) : null}
                         </td>
                         <td>{g.kelompok_nama}</td>
@@ -233,6 +240,8 @@ function TabGenerus() {
   )
 }
 
+const OPSI_IQRO = JILID_IQRO.map((j) => ({ nilai: j, teks: labelIqro(j) }))
+
 function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void; usulan?: boolean }) {
   const { db, wilayahId, aksi } = useApp()
   const g = p.g
@@ -243,6 +252,9 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void; usulan?: bo
   const [kategori, setKategori] = useState<string>(g?.kategori ?? '')
   const [waliNama, setWaliNama] = useState(g?.wali_nama ?? '')
   const [waliHp, setWaliHp] = useState(g?.wali_no_hp ?? '')
+  const [sekolah, setSekolah] = useState(g?.sekolah ?? '')
+  const [kelasSekolah, setKelasSekolah] = useState(g?.kelas_sekolah ?? '')
+  const [iqro, setIqro] = useState(g?.iqro ?? '')
   const [mulai, setMulai] = useState(tanggalHariIni())
   const simpan = async () => {
     if (p.usulan) {
@@ -258,6 +270,9 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void; usulan?: bo
               kategori: kategori || null,
               wali_nama: waliNama.trim() || null,
               wali_no_hp: waliHp.trim() || null,
+              sekolah: sekolah.trim() || null,
+              kelas_sekolah: kelasSekolah.trim() || null,
+              iqro: iqro || null,
             },
           }),
         `Usulan generus "${nama.trim()}" tersimpan. Ikut terkirim saat Setor ke Daerah.`,
@@ -275,6 +290,9 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void; usulan?: bo
               ...(kategori ? { kategori } : {}),
               wali_nama: waliNama || null,
               wali_no_hp: waliHp || null,
+              sekolah: sekolah || null,
+              kelas_sekolah: kelasSekolah || null,
+              iqro: iqro || null,
             })
           : tambahGenerus(db, {
               kelompokId: kelompok,
@@ -284,6 +302,9 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void; usulan?: bo
               kategori: (kategori || null) as KategoriGenerus | null,
               waliNama: waliNama || null,
               waliNoHp: waliHp || null,
+              sekolah: sekolah || null,
+              kelasSekolah: kelasSekolah || null,
+              iqro: iqro || null,
               mulai: mulai || undefined,
             }),
       (x) => `Generus "${x.nama}" disimpan.`,
@@ -314,6 +335,9 @@ function FormGenerus(p: { g: GenerusRinci | null; tutup: () => void; usulan?: bo
         <Pilihan label="Kategori" nilai={kategori} ubah={setKategori} pilihan={OPSI_KATEGORI} kosong={g ? '(tidak diubah)' : 'Otomatis dari umur'} />
         <Isian label="Nama wali" nilai={waliNama} ubah={setWaliNama} />
         <Isian label="No. HP wali" nilai={waliHp} ubah={setWaliHp} placeholder="08…" />
+        <Isian label="Sekolah" nilai={sekolah} ubah={setSekolah} placeholder="mis. SD Negeri 1" />
+        <Isian label="Kelas sekolah" nilai={kelasSekolah} ubah={setKelasSekolah} placeholder="mis. 4" />
+        <Pilihan label="Jilid Iqro' / Al-Qur'an" nilai={iqro} ubah={setIqro} pilihan={OPSI_IQRO} kosong="— belum diketahui —" />
         {g || p.usulan ? null : <Isian label="Mulai menjadi anggota" type="date" nilai={mulai} ubah={setMulai} />}
       </div>
     </Modal>

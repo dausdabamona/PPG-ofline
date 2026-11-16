@@ -275,6 +275,35 @@ describe('§16 juknis (Fase 10)', () => {
   })
 })
 
+describe('§19 cetakan lembar & raport (Fase 13)', () => {
+  it('Cetak Laporan Bulanan (format lembar): pratinjau, ekspor Excel; Laporan Hasil Belajar: cetak semua raport & simpan PDF', async () => {
+    const w = await dunia()
+    const u = userEvent.setup()
+    const pf = await masuk(u, simpanDb(w.db))
+    await buka(u, 'Evaluasi & Keaktifan')
+    await pilihOpsi(u, 'Wilayah', /Klasaman 1/)
+    await u.click(screen.getByRole('tab', { name: 'Cetak Laporan Bulanan (format lembar)' }))
+    expect((screen.getByLabelText('Format lembar') as HTMLSelectElement).value).toBe('tanggal')
+    await u.click(await screen.findByRole('button', { name: /Pratinjau & Cetak/ }))
+    const dlg = await screen.findByRole('dialog', { name: /Laporan Generus/ })
+    expect(within(dlg).getByText('LAPORAN GENERUS KELOMPOK')).toBeTruthy()
+    expect(within(dlg).getAllByText(/PRESENSI KEAKTIFAN CB. RAWIT B/).length).toBeGreaterThan(0)
+    expect(within(dlg).getByText('PENYAKSIAN')).toBeTruthy()
+    await u.click(within(dlg).getByRole('button', { name: 'Ekspor Excel' }))
+    await waitFor(() => expect(pf.tersimpan.some((b) => b.nama.startsWith('Laporan_Generus_') && b.nama.endsWith('.xlsx'))).toBe(true))
+    await u.click(within(dlg).getByRole('button', { name: 'Tutup' }))
+    await u.click(screen.getByRole('tab', { name: 'Laporan Hasil Belajar' }))
+    await u.click(await screen.findByRole('button', { name: /Pratinjau & Cetak semua \(\d+\)/ }))
+    const r = await screen.findByRole('dialog', { name: /Raport/ })
+    expect(within(r).getAllByText('LAPORAN HASIL BELAJAR GENERUS').length).toBeGreaterThan(0)
+    expect(within(r).getAllByText('Orang Tua / Wali').length).toBeGreaterThan(0)
+    await u.click(within(r).getByRole('button', { name: 'Simpan PDF' }))
+    await waitFor(() => expect(pf.tersimpan.some((b) => b.nama.startsWith('Raport_') && b.nama.endsWith('.pdf'))).toBe(true))
+    const pdf = pf.tersimpan.find((b) => b.nama.endsWith('.pdf'))!
+    expect(new TextDecoder().decode(pdf.bytes.slice(0, 8))).toBe('%PDF-1.4')
+  })
+})
+
 describe('§17 kepengurusan (Fase 11)', () => {
   it('terbitkan token pengurus daerah berjabatan → Kepengurusan menampilkan jabatan', async () => {
     const w = await dunia()

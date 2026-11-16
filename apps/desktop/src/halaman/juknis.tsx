@@ -21,6 +21,15 @@ import {
   tanggalHariIni,
   ubahMateriEvaluasi,
   UNSUR_NUNGGONI,
+  dataRaportCetak,
+  generusUntukRaport,
+  kelompokDalamWilayah,
+  lembarLaporanWilayah,
+  raporPdf,
+  ringkasTargetKeaktifan,
+  daftarPengajian,
+  kategoriKelas,
+  type FormatLembar,
   type IsiLaporanBulanan,
   type KategoriGenerus,
   type MateriEvaluasi,
@@ -31,6 +40,9 @@ import { useApp, useData } from '../konteks'
 import { AreaTeks, Isian, KeadaanData, Kartu, KepalaHalaman, Kosong, Lencana, Modal, Pilihan, Tombol } from '../komponen/ui'
 import { PilihWilayah } from '../komponen/wilayah'
 import { buatExcelKeaktifan, buatExcelLaporanBulanan, buatExcelPenguasaan } from '../utils/excel-juknis'
+import { buatExcelLembar } from '../utils/excel-lembar'
+import { LembarLaporan, LembarRaport } from '../komponen/lembar-laporan'
+import { PratinjauCetak } from '../komponen/pratinjau-cetak'
 import { label, LABEL_KATEGORI } from '../utils/label'
 
 const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -50,7 +62,7 @@ function daftarPeriode(aktif: string): string[] {
   return out
 }
 
-type Tab = 'penguasaan' | 'keaktifan' | 'bulanan' | 'raport'
+type Tab = 'penguasaan' | 'keaktifan' | 'bulanan' | 'lembar' | 'raport'
 
 export function HalamanEvaluasi() {
   const { db, peran, wilayahId } = useApp()
@@ -65,7 +77,7 @@ export function HalamanEvaluasi() {
     <>
       <KepalaHalaman
         judul="Evaluasi & Keaktifan"
-        keterangan="Juknis Pembinaan 2025: penguasaan materi per semester, keaktifan 20×/bulan (Pra Nikah 16), laporan bulanan kelompok, dan Laporan Hasil Belajar."
+        keterangan={`Juknis Pembinaan 2025: penguasaan materi per semester, target keaktifan ${ringkasTargetKeaktifan(db)} (butir Kurikulum K16), laporan bulanan kelompok, dan Laporan Hasil Belajar.`}
       />
       <div className="tab tidak-cetak" role="tablist">
         {(
@@ -73,6 +85,7 @@ export function HalamanEvaluasi() {
             ['penguasaan', 'Rekap Penguasaan Materi'],
             ['keaktifan', 'Keaktifan Bulanan'],
             ['bulanan', 'Laporan Bulanan'],
+            ['lembar', 'Cetak Laporan Bulanan (format lembar)'],
             ['raport', 'Laporan Hasil Belajar'],
           ] as [Tab, string][]
         ).map(([k, t]) => (
@@ -101,6 +114,8 @@ export function HalamanEvaluasi() {
         <RekapKeaktifanExe wilayahId={wilayah} bulan={bulan} />
       ) : tab === 'bulanan' ? (
         <LaporanBulananExe wilayahId={wilayah} bulan={bulan} />
+      ) : tab === 'lembar' ? (
+        <CetakLembarExe wilayahId={wilayah} bulan={bulan} />
       ) : (
         <RaporExe wilayahId={wilayah} periode={per} />
       )}
@@ -483,15 +498,181 @@ function FormLaporanExe(p: { kelompokId: string; bulan: string; tutup: () => voi
   )
 }
 
+// §19 — Cetak Laporan Bulanan format lembar (sampul, lembar keaktifan per jenjang, absensi pengurus, penyaksian)
+function CetakLembarExe(p: { wilayahId: string; bulan: string }) {
+  const { db } = useApp()
+  const simpan = useSimpanExcel()
+  const [format, setFormat] = useState<FormatLembar>('tanggal')
+  const [buka, setBuka] = useState(false)
+  const r = useData(() => lembarLaporanWilayah(db, { wilayahId: p.wilayahId, bulan: p.bulan }), [db, p.wilayahId, p.bulan])
+  const w = ambilWilayah(db, p.wilayahId)
+  const namaBerkas = `Laporan_Generus_${slug(w?.nama ?? '')}_${p.bulan}`
+  const excel = () => r.data && simpan(`${namaBerkas}.xlsx`, () => buatExcelLembar(r.data!, format))
+  return (
+    <Kartu
+      judul={`Cetak Laporan Bulanan (format lembar) — ${w?.nama ?? ''} — ${teksBulan(p.bulan)}`}
+      aksi={
+        <span className="tidak-cetak aksi-baris">
+          <Tombol disabled={!r.data?.length} onClick={() => setBuka(true)}>
+            Pratinjau &amp; Cetak / PDF
+          </Tombol>
+          <Tombol varian="kedua" disabled={!r.data?.length} onClick={excel}>
+            Ekspor Excel
+          </Tombol>
+        </span>
+      }
+    >
+      <div className="filter">
+        <Pilihan
+          label="Format lembar"
+          nilai={format}
+          ubah={(v) => setFormat(v as FormatLembar)}
+          pilihan={[
+            { nilai: 'tanggal', teks: 'Kolom tanggal 1–31 (bawaan)' },
+            { nilai: 'urutan', teks: 'Urutan kegiatan 1–24 (Pra Nikah 1–16)' },
+          ]}
+        />
+      </div>
+      <p className="keterangan">
+        Berisi, untuk tiap kelompok: sampul "Laporan Generus Kelompok", lembar Presensi Keaktifan per jenjang (judul &amp; warna kuning seperti lembar daerah, % Keaktifan
+        memakai target Kurikulum K16, % Peng. Materi dari evaluasi semester terakhir), lembar Absensi Pengurus &amp; Mubaligh Peduli, Laporan Hasil Musyawaroh, dan kotak
+        Penyaksian. Wilayah desa/daerah = gabungan semua kelompok dalam satu berkas.
+      </p>
+      <KeadaanData hasil={r} kosong={(d) => d.length === 0} teksKosong="Tidak ada kelompok di wilayah ini.">
+        {(d) => (
+          <ul className="daftar-ringkas" aria-label="Kelompok dalam cetakan">
+            {d.map((l) => (
+              <li key={l.kelompok.id}>
+                <b>{l.kelompok.nama}</b>
+                {l.desa ? ` (${l.desa.nama})` : ''} — {l.blok.reduce((s, b) => s + b.baris.length, 0)} generus aktif · MT: {l.mubaligh ?? 'belum ada token mubaligh'} ·{' '}
+                {l.adaLaporanBulanan ? 'laporan bulanan ada' : <Lencana warna="kuning">laporan bulanan belum diisi</Lencana>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </KeadaanData>
+      {buka && r.data ? (
+        <PratinjauCetak
+          judul={`Laporan Generus ${w?.nama ?? ''} — ${teksBulan(p.bulan)}`}
+          tutup={() => setBuka(false)}
+          aksi={
+            <Tombol varian="kedua" onClick={excel}>
+              Ekspor Excel
+            </Tombol>
+          }
+        >
+          <LembarLaporan data={r.data} format={format} />
+        </PratinjauCetak>
+      ) : null}
+    </Kartu>
+  )
+}
+
+// §19 — Cetak semua raport (satu anak per halaman A4) & simpan PDF
+function CetakSemuaRaport(p: { wilayahId: string; periode: string }) {
+  const { db, platform, aksi, toast } = useApp()
+  const kelompok = useData(() => kelompokDalamWilayah(db, p.wilayahId).map((id) => ({ id, nama: ambilWilayah(db, id)?.nama ?? id })), [db, p.wilayahId])
+  const [kel, setKel] = useState('')
+  const [saring, setSaring] = useState('')
+  const [buka, setBuka] = useState<string[] | null>(null)
+  const wil = kel || p.wilayahId
+  const kelas = useData(() => (kel ? daftarPengajian(db, [kel]).filter((x) => !x.dihapus && kategoriKelas(x)) : []), [db, kel])
+  const anak = useData(
+    () =>
+      generusUntukRaport(db, {
+        wilayahId: wil,
+        jenjang: saring.startsWith('j:') ? saring.slice(2) : null,
+        pengajianId: saring.startsWith('k:') ? saring.slice(2) : null,
+      }),
+    [db, wil, saring],
+  )
+  const ids = (anak.data ?? []).map((g) => g.id)
+  const nama = ambilWilayah(db, wil)?.nama ?? ''
+  const pdf = async (daftar: string[], berkas: string) => {
+    const bytes = await aksi(() => raporPdf(db, { generusIds: daftar, periode: p.periode }))
+    if (!bytes) return
+    const r = await aksi(() => platform.simpanBerkas(berkas, bytes))
+    if (r) toast('sukses', 'PDF raport disimpan.')
+  }
+  return (
+    <Kartu
+      judul="Cetak semua raport"
+      aksi={
+        <span className="tidak-cetak aksi-baris">
+          <Tombol disabled={!ids.length} onClick={() => setBuka(ids)}>
+            Pratinjau &amp; Cetak semua ({ids.length})
+          </Tombol>
+          <Tombol varian="kedua" disabled={!ids.length} onClick={() => pdf(ids, `Raport_${slug(nama)}_${p.periode}.pdf`)}>
+            Simpan PDF
+          </Tombol>
+        </span>
+      }
+    >
+      <div className="filter tidak-cetak">
+        <Pilihan label="Kelompok" nilai={kel} ubah={(v) => (setKel(v), setSaring(''))} kosong="Semua kelompok di wilayah" pilihan={(kelompok.data ?? []).map((k) => ({ nilai: k.id, teks: k.nama }))} />
+        <Pilihan
+          label="Jenjang / kelas"
+          nilai={saring}
+          ubah={setSaring}
+          kosong="Semua jenjang"
+          pilihan={[
+            ...KATEGORI_GENERUS.map((j) => ({ nilai: `j:${j}`, teks: LABEL_JENJANG[j]! })),
+            ...(kelas.data ?? []).map((x) => ({ nilai: `k:${x.id}`, teks: `Kelas: ${x.nama}` })),
+          ]}
+        />
+      </div>
+      <p className="keterangan">Satu anak per halaman A4: kop PPG Daerah, identitas, tabel materi · target · dikuasai · %, TOTAL, keaktifan semester, dan kolom tanda tangan MT, KI Kelompok, Orang Tua/Wali.</p>
+      {buka ? (
+        <PratinjauCetak
+          judul={`Raport ${nama} — ${teksPeriode(p.periode)} (${buka.length} anak)`}
+          tutup={() => setBuka(null)}
+          aksi={
+            <Tombol varian="kedua" onClick={() => pdf(buka, `Raport_${slug(nama)}_${p.periode}.pdf`)}>
+              Simpan PDF
+            </Tombol>
+          }
+        >
+          <LembarRaport data={buka.map((id) => dataRaportCetak(db, id, { periode: p.periode }))} />
+        </PratinjauCetak>
+      ) : null}
+    </Kartu>
+  )
+}
+
 function RaporExe(p: { wilayahId: string; periode: string }) {
   const { db } = useApp()
   const [cari, setCari] = useState('')
   const [gid, setGid] = useState('')
   const daftar = useData(() => cariGenerus(db, { wilayahId: p.wilayahId, status: 'aktif', cari }), [db, p.wilayahId, cari])
   const r = useData(() => (gid ? raporGenerus(db, gid, { periode: p.periode }) : null), [db, gid, p.periode])
+  const [cetak, setCetak] = useState(false)
+  const { platform, aksi, toast } = useApp()
+  const simpanPdf = async () => {
+    const bytes = await aksi(() => raporPdf(db, { generusIds: [gid], periode: p.periode }))
+    if (!bytes) return
+    if (await aksi(() => platform.simpanBerkas(`Raport_${slug(r.data?.generus.nama ?? 'generus')}_${p.periode}.pdf`, bytes))) toast('sukses', 'PDF raport disimpan.')
+  }
   return (
     <>
-      <Kartu judul="Pilih generus" aksi={gid ? <Tombol onClick={() => window.print()}>Cetak / PDF</Tombol> : undefined}>
+      {cetak && gid ? (
+        <PratinjauCetak judul="Laporan Hasil Belajar" tutup={() => setCetak(false)}>
+          <LembarRaport data={[dataRaportCetak(db, gid, { periode: p.periode })]} />
+        </PratinjauCetak>
+      ) : null}
+      <CetakSemuaRaport wilayahId={p.wilayahId} periode={p.periode} />
+      <Kartu
+        judul="Raport satu anak"
+        aksi={
+          gid ? (
+            <span className="tidak-cetak aksi-baris">
+              <Tombol onClick={() => setCetak(true)}>Cetak / PDF</Tombol>
+              <Tombol varian="kedua" onClick={() => simpanPdf()}>
+                Simpan PDF
+              </Tombol>
+            </span>
+          ) : undefined
+        }
+      >
         <div className="filter tidak-cetak">
           <Isian label="Cari nama" nilai={cari} ubah={setCari} />
           <Pilihan
