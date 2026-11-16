@@ -94,6 +94,7 @@ export { bukaBerkasApaSaja, imporBanyak, type HasilImporBanyak, type RingkasanBe
 // §16 — juknis pembinaan & evaluasi hasil belajar generus 2025
 export * from './juknis'
 export * from './rekap-juknis'
+export * from './tri-sukses'
 export { SEED_JUKNIS_2025, type SeedMateriEvaluasi, type KitabTarget } from './data/juknis-2025'
 export { seedMateriEvaluasi, pecahCaberawitLama } from './skema'
 // §17 — kepengurusan PPG per jabatan/bidang

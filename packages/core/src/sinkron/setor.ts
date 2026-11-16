@@ -35,6 +35,7 @@ import { PetaRiwayat } from '../laporan'
 import { terapkanKeputusanTertunda, type HasilPenerapan } from '../musyawarah'
 import { setujuiPenetapanKurikulum } from '../penetapan-kurikulum'
 import { DAFTAR_TABEL_SINKRON, TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
+import { alasanPenilaianKarakterTidakSah } from '../tri-sukses'
 import { adalahTokenSuperHp, periksaToken, uraiToken, type PayloadToken } from '../token'
 import { sekarangIso, tanggalHariIni, tanggalRingkas } from '../waktu'
 import { bacaBerkasJenis, catatImpor, imporTerdahulu, kunciAdminTerpasang, sidikBerkas } from './umum'
@@ -227,7 +228,7 @@ export interface RingkasanImporSetor {
 }
 
 /** Tabel kegiatan per generus: generus harus anggota kelompok rekaman pada tanggal kegiatan (T25, §16). */
-const TABEL_GENERUS = ['presensi', 'kemajuan_belajar', 'penilaian_akhlaq', 'keaktifan', 'evaluasi_semester'] as const
+const TABEL_GENERUS = ['presensi', 'kemajuan_belajar', 'penilaian_akhlaq', 'keaktifan', 'evaluasi_semester', 'penilaian_karakter'] as const
 
 const ROLE_PENYETOR: readonly PayloadToken['role'][] = ['pengurus', 'mubaligh', 'admin']
 
@@ -480,6 +481,12 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
         if (tabel === 'evaluasi_semester') {
           if (!kelompokSahkan.has(kel) || !penulisBerhakSahkan(String(rek.perangkat_id), kel)) return 'Pengirim tidak berhak menilai generus kelompok ini.'
           const a = alasanRekamanEvaluasiTidakSah(db, rek)
+          if (a) return a
+        }
+        // §20 (J-R10): Karakter Luhur hanya dari pemegang hak sahkan kelompok itu, isi sah, id tetap
+        if (tabel === 'penilaian_karakter') {
+          if (!kelompokSahkan.has(kel) || !penulisBerhakSahkan(String(rek.perangkat_id), kel)) return 'Pengirim tidak berhak menilai karakter generus kelompok ini.'
+          const a = alasanPenilaianKarakterTidakSah(rek)
           if (a) return a
         }
         if (tabel === 'keaktifan' && !rek.dihapus) {

@@ -16,6 +16,16 @@ import {
   type RumusTotal,
 } from './juknis'
 import { AWALAN_KEBIJAKAN, jsonKanonik, samaNilai } from './kebijakan'
+import {
+  alasanAmbangTidakSah,
+  alasanPemetaanTidakSah,
+  ambangPredikat,
+  BAGIAN_ASPEK,
+  pemetaanAspek,
+  rumusNilaiAkhir,
+  type AmbangPredikat,
+  type BagianAspek,
+} from './tri-sukses'
 import { KATEGORI_GENERUS } from './repo/generus'
 import { daftarPerangkat } from './repo/perangkat'
 import { daftarProfil, statusProfil } from './repo/profil'
@@ -33,7 +43,7 @@ export function adalahIdRegister(id: unknown): boolean {
   return typeof id === 'string' && (id.startsWith(AWALAN_KEBIJAKAN) || id.startsWith(AWALAN_KURIKULUM))
 }
 
-export type BentukButir = 'bulan' | 'pilihan' | 'angka' | 'teks' | 'konfirmasi'
+export type BentukButir = 'bulan' | 'pilihan' | 'angka' | 'teks' | 'konfirmasi' | 'pemetaan'
 
 /** Satu isian butir (bentuk angka/teks): kunci = id materi / nama kitab / nomor dalil. */
 export interface IsianButir {
@@ -156,6 +166,12 @@ function aturAda(db: Db, id: string, ada: boolean): void {
 
 // ---------------- katalog ----------------
 
+const LABEL_AMBANG: [keyof AmbangPredikat, string][] = [
+  ['sangat_baik', 'Sangat Baik bila nilai ≥'],
+  ['baik', 'Baik bila nilai ≥'],
+  ['cukup', 'Cukup bila nilai ≥ (di bawahnya Perlu Bimbingan)'],
+]
+
 /** Katalog butir "Perlu Ditetapkan Kurikulum" (§18.2). */
 export const BUTIR_KURIKULUM: readonly DefButir[] = [
   {
@@ -213,16 +229,18 @@ export const BUTIR_KURIKULUM: readonly DefButir[] = [
   },
   {
     kode: 'K09',
-    judul: 'Rumus TOTAL penguasaan materi',
-    sumber: 'Juknis tidak menetapkan rumus TOTAL; sementara rata-rata semua materi tanpa bobot (J-T11). Materi belum ditetapkan tidak ikut dihitung.',
+    judul: 'Rumus Nilai Akhir (Tri Sukses Generus)',
+    sumber:
+      'Juknis tidak menetapkan rumus; keputusan pemilik Fase 14: Nilai Akhir = rata-rata 3 aspek Tri Sukses Generus (Alim-Faqih, Akhlaqul Karimah, Mandiri), bobot sama. Butir belum dinilai & materi belum ditetapkan tidak ikut dihitung; keaktifan tidak masuk nilai (data pendukung).',
     bentuk: 'pilihan',
     opsi: [
-      ['rata_rata', 'Rata-rata semua materi (termasuk keaktifan)'],
-      ['tanpa_keaktifan', 'Rata-rata semua materi tanpa keaktifan'],
+      ['rata_aspek', 'Rata-rata 3 aspek Tri Sukses Generus (bobot sama)'],
+      ['rata_materi', 'Rata-rata semua butir materi yang dinilai (tanpa keaktifan)'],
     ],
-    baca: (db) => bacaPenetapan(db, 'K09')?.nilai ?? 'rata_rata',
-    alasan: (_db, v) => (v === 'rata_rata' || v === 'tanpa_keaktifan' ? null : 'Pilihan tidak dikenal.'),
-    ringkas: (_db, v) => (v === 'tanpa_keaktifan' ? 'Rata-rata tanpa keaktifan' : 'Rata-rata semua materi'),
+    // J-R5: nilai lama (rata_rata / tanpa_keaktifan) tidak berlaku lagi → dibaca rata_aspek
+    baca: (db) => (rumusNilaiAkhir(db) === 'rata_materi' ? 'rata_materi' : 'rata_aspek'),
+    alasan: (_db, v) => (v === 'rata_aspek' || v === 'rata_materi' ? null : 'Pilihan tidak dikenal.'),
+    ringkas: (_db, v) => (v === 'rata_materi' ? 'Rata-rata semua butir materi' : 'Rata-rata 3 aspek Tri Sukses Generus'),
   },
   {
     kode: 'K10',
@@ -362,7 +380,48 @@ export const BUTIR_KURIKULUM: readonly DefButir[] = [
         ? null
         : 'Target keaktifan harus bilangan bulat 1–31 kali/bulan (satu hari dihitung satu kali) dan tidak boleh kosong.',
   },
+  {
+    kode: 'K17',
+    judul: 'Ambang predikat angka (aspek & Nilai Akhir)',
+    sumber:
+      'Juknis tidak menetapkan predikat; sementara ≥ 85 Sangat Baik, 70–84 Baik, 55–69 Cukup, < 55 Perlu Bimbingan. Catatan: nilai praktik subjektif dibatasi 75% (juknis), sehingga subbagian yang hanya berisi praktik subjektif tidak bisa mencapai Sangat Baik.',
+    bentuk: 'angka',
+    isian: (db) => {
+      const a = ambangPredikat(db)
+      return LABEL_AMBANG.map(([k, label]) => ({ kunci: k, label, nilai: a[k] }))
+    },
+    baca: (db) => ambangPredikat(db),
+    alasan: (_db, v) => alasanAmbangTidakSah(v),
+    ringkas: (_db, v) => {
+      const a = v as AmbangPredikat
+      return `Sangat Baik ≥ ${a.sangat_baik} · Baik ≥ ${a.baik} · Cukup ≥ ${a.cukup} · di bawahnya Perlu Bimbingan`
+    },
+  },
+  {
+    kode: 'K18',
+    judul: 'Pemetaan materi evaluasi → aspek Tri Sukses Generus',
+    sumber:
+      'Susunan sementara mengikuti GBMTPG Pembina Generus Pusat 2022 (revisi pemilik): Alim — Mankul (bacaan/Iqro\', tajwid/materi pegon, makna Al-Qur\'an, makna Hadits, keilmuan, tadarus) & Hafalan (surat, do\'a, dalil); Faqih — Kefahaman & Praktik Ibadah (praktik ibadah, wudhu & sholat, thoharoh, peramutan jenazah, kualitas bacaan, praktik pegon); Akhlaqul Karimah (akhlaq, adab, nasehat BPI); Mandiri (kemandirian, ASAD Beladiri). Keaktifan = data pendukung, bukan aspek. Kurikulum boleh memindahkan butir antar aspek.',
+    bentuk: 'pemetaan',
+    opsi: BAGIAN_ASPEK.map((b) => [b.kode, b.judul] as const),
+    isian: (db) => {
+      const peta = pemetaanAspek(db)
+      return Object.keys(peta).map((k) => ({ kunci: k, label: namaKodeMateri(db, k), nilai: peta[k]! }))
+    },
+    baca: (db) => pemetaanAspek(db),
+    alasan: (_db, v) => alasanPemetaanTidakSah(v),
+    ringkas: (_db, v) => {
+      const peta = v as Record<string, BagianAspek>
+      return BAGIAN_ASPEK.map((b) => `${b.judul}: ${Object.values(peta).filter((x) => x === b.kode).length} butir`).join(' · ')
+    },
+  },
 ]
+
+/** Nama materi untuk kode (contoh dari jenjang pertama yang memilikinya). */
+function namaKodeMateri(db: Db, kode: string): string {
+  const n = db.nilai<string>(`SELECT nama FROM materi_evaluasi WHERE kode = ? AND dihapus = 0 ORDER BY urutan LIMIT 1`, [kode])
+  return n ? n.replace(/\s*\(\d+ kitab\)$/, '').replace(/ Juz .*$/, '') : kode
+}
 
 export function defButirKurikulum(kode: string): DefButir | undefined {
   return BUTIR_KURIKULUM.find((b) => b.kode === kode)
@@ -555,9 +614,8 @@ export function setujuiPenetapanKurikulum(db: Db, usulanId: string): HasilPeneta
   })
 }
 
-/** Rumus TOTAL yang berlaku (K09) — diekspor ulang untuk UI. */
+/** Rumus Nilai Akhir yang berlaku (K09) — diekspor ulang untuk UI. */
 export function rumusTotalBerlaku(db: Db): RumusTotal {
-  const p = bacaPenetapan(db, 'K09')?.nilai
-  return p === 'tanpa_keaktifan' ? 'tanpa_keaktifan' : 'rata_rata'
+  return rumusNilaiAkhir(db)
 }
 export { ID_RUMUS_TOTAL }

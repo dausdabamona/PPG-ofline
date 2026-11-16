@@ -294,10 +294,10 @@ describe('Perlu Ditetapkan Kurikulum (§18.2)', () => {
     return db
   }
 
-  it('16 butir dengan nilai sementara; daerah tidak menetapkan; EXE Kurikulum menetapkan → KURIKULUM → daerah → MATERI', async () => {
+  it('18 butir dengan nilai sementara; daerah tidak menetapkan; EXE Kurikulum menetapkan → KURIKULUM → daerah → MATERI', async () => {
     const w = await dunia()
     const awal = daftarButirKurikulum(w.admin.db)
-    expect(awal).toHaveLength(16)
+    expect(awal).toHaveLength(18)
     expect(awal.filter((b) => b.status === 'belum').map((b) => b.kode)).toEqual(['K11', 'K12'])
     expect(awal.find((b) => b.kode === 'K01')!.ringkas).toBe('Semester 1: November · Semester 2: Mei')
     expect(() => tetapkanButirKurikulum(w.admin.db, 'K01')).toThrow(/Bidang Kurikulum/)
@@ -335,15 +335,15 @@ describe('Perlu Ditetapkan Kurikulum (§18.2)', () => {
     const w = await dunia()
     const kur = await pengurus(w, 'Kurikulum HP', ['kurikulum'])
     const sarpras = await pengurus(w, 'Sarpras', ['sarpras'])
-    expect(() => tetapkanButirKurikulum(sarpras.db, 'K09', { nilai: 'tanpa_keaktifan' })).toThrow(/Bidang Kurikulum/)
-    expect(tetapkanButirKurikulum(kur.db, 'K09', { nilai: 'tanpa_keaktifan' }).status).toBe('diajukan')
+    expect(() => tetapkanButirKurikulum(sarpras.db, 'K09', { nilai: 'rata_materi' })).toThrow(/Bidang Kurikulum/)
+    expect(tetapkanButirKurikulum(kur.db, 'K09', { nilai: 'rata_materi' }).status).toBe('diajukan')
     expect(daftarButirKurikulum(kur.db).find((b) => b.kode === 'K09')!.diajukan).toBe(true)
     // GBMTPG Generus 2 & 3 diisi dari HP
     const gb = daftarButirKurikulum(kur.db).find((b) => b.kode === 'K11')!
     tetapkanButirKurikulum(kur.db, 'K11', { nilai: Object.fromEntries(gb.isian.map((i) => [i.kunci, 10])) })
     const r = setor(w, kur)
     expect(r.usulanOtomatis).toBe(2)
-    expect(rumusTotal(w.admin.db)).toBe('tanpa_keaktifan')
+    expect(rumusTotal(w.admin.db)).toBe('rata_materi')
     expect(ambilMateriEvaluasi(w.admin.db, idMateriEvaluasi('remaja', 'keilmuan'))!.target).toBe(10)
     expect(daftarButirKurikulum(w.admin.db).find((b) => b.kode === 'K11')).toMatchObject({ status: 'ditetapkan', penetapan: { oleh: 'Kurikulum HP' } })
     segarkan(w, kur)
@@ -357,14 +357,14 @@ describe('Perlu Ditetapkan Kurikulum (§18.2)', () => {
     expect(r2.ditolak.some((d) => /Bidang Kurikulum/.test(d.alasan))).toBe(true)
     const u = daftarUsulan(w.admin.db, { status: 'menunggu' }).find((x) => x.jenis === 'tetapkan_kurikulum')!
     expect(() => setujuiUsulan(w.admin.db, u.id)).toThrow(/Bidang Kurikulum/)
-    expect(rumusTotal(w.admin.db)).toBe('tanpa_keaktifan')
+    expect(rumusTotal(w.admin.db)).toBe('rata_materi')
     // raport: materi belum ditetapkan (hadits) tidak ikut TOTAL; keaktifan tidak ikut (rumus K09)
     const g = tambahGenerus(w.admin.db, { kelompokId: w.kel['SRG-RMU']!.id, nama: 'Santri', jenisKelamin: 'L', kategori: 'caberawit_c', mulai: '2026-07-01' })
     simpanEvaluasi(w.admin.db, { generusId: g.id, materiEvaluasiId: idMateriEvaluasi('caberawit_c', 'surat'), dikuasai: 45, periode: '2026-S1' })
     const rp = raporGenerus(w.admin.db, g.id, { periode: '2026-S1' })!
     expect(rp.belumDitetapkan).toEqual(['Makna Al-Hadits (9 kitab)'])
-    expect(rp.rumusTotal).toBe('tanpa_keaktifan')
-    // 100 ÷ (22 materi − keaktifan − hadits) = 100 ÷ 20 = 5
-    expect(rp.total).toBe(5)
+    expect(rp.rumusTotal).toBe('rata_materi')
+    // §20: rata-rata butir yang dinilai saja (surat 100); belum dinilai & hadits tidak ikut
+    expect(rp.total).toBe(100)
   })
 })

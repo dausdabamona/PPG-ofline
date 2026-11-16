@@ -26,6 +26,7 @@ import {
   lembarLaporanBulanan,
   lembarLaporanWilayah,
   migrasi,
+  VERSI_SKEMA,
   normalIqro,
   rekapKeaktifanBulan,
   ringkasTargetKeaktifan,
@@ -182,7 +183,7 @@ describe("Data generus: sekolah, kelas sekolah, jilid Iqro'", () => {
     admin.db.jalankan(`UPDATE meta SET nilai = '5' WHERE kunci = 'versi_skema'`)
     const db = await bukaDb(simpanDb(admin.db))
     migrasi(db)
-    expect(db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'versi_skema'`)).toBe('6')
+    expect(db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'versi_skema'`)).toBe(String(VERSI_SKEMA))
     expect(ambilGenerus(db, g.id)).toMatchObject({ nama: 'Lama', sekolah: null, iqro: null })
   })
 
@@ -360,7 +361,9 @@ describe('Cetak raport resmi (PDF offline, satu anak per halaman)', () => {
     const surat = d.baris.find((b) => /surat/i.test(b.materi))!
     expect(surat.dikuasai).toBe('45')
     expect(surat.target).toMatch(/^\d+ /)
-    expect(d.baris.find((b) => b.materi === 'Keaktifan')!.target).toBe('20 kali/bulan')
+    // §20: keaktifan tidak lagi baris materi (data pendukung); butir belum dinilai ditulis "belum dinilai"
+    expect(d.baris.some((b) => b.materi === 'Keaktifan')).toBe(false)
+    expect(d.baris.find((b) => /Kefahaman/.test(b.materi))).toMatchObject({ persen: 'belum dinilai', belumDinilai: true })
     expect(d.catatanBelumDitetapkan).toMatch(/belum ditetapkan Kurikulum/)
     expect(d.baris.find((b) => b.belumDitetapkan)!.persen).toBe('—')
     expect(d.keaktifan).toMatch(/%/)
@@ -368,14 +371,15 @@ describe('Cetak raport resmi (PDF offline, satu anak per halaman)', () => {
     expect(d.tempatTanggal).toBe('Sorong, 30 November 2026')
   })
 
-  it('PDF sah: satu halaman per anak, teks terbaca, huruf WinAnsi', async () => {
+  it('PDF sah: halaman ringkas + lampiran per anak, teks terbaca, huruf WinAnsi', async () => {
     const w = await buatDunia()
     const db = w.admin.db
     for (const g of w.g) ubahGenerus(db, g.id, { kategori: 'caberawit_a' })
     const pdf = raporPdf(db, { generusIds: w.g.map((g) => g.id), periode: '2026-S1' })
     const teks = new TextDecoder('latin1').decode(pdf)
     expect(teks.startsWith('%PDF-1.4')).toBe(true)
-    expect(teks).toContain('/Count 3')
+    // §20.4: per anak halaman ringkas + lampiran
+    expect(teks).toContain('/Count 6')
     expect(teks.trimEnd().endsWith('%%EOF')).toBe(true)
     // xref menunjuk tepat ke objek
     const xref = Number(/startxref\n(\d+)/.exec(teks)![1])

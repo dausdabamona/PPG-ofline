@@ -1,9 +1,10 @@
-// §19 (Fase 13) — cetak Raport (Laporan Hasil Belajar) resmi: data baris (dipakai tampilan cetak EXE) dan PDF A4 satu anak
-// per halaman (dibuat offline di HP & EXE dengan `pdf-sederhana`). Kop PPG Daerah + logo aplikasi, identitas anak, tabel
-// materi · target · dikuasai · %, TOTAL, keaktifan semester, catatan materi belum ditetapkan, kolom tanda tangan.
+// §19 (Fase 13) / §20 (Fase 14) — cetak Raport (Laporan Hasil Belajar) resmi: data (dipakai tampilan cetak EXE) dan PDF A4
+// (dibuat offline di HP & EXE dengan `pdf-sederhana`). Halaman 1 ringkas: kop, identitas, Tri Sukses Generus + Nilai Akhir,
+// Karakter Luhur, keaktifan, catatan mubaligh, tanda tangan. Lampiran: Rincian Penguasaan Materi per aspek/subbagian.
 import type { Db } from './db'
 import { GalatPpg } from './galat'
-import { HALAMAN_PER_JUZ, LABEL_JENJANG, raporGenerus, type ItemRapor, type Rapor } from './juknis'
+import { HALAMAN_PER_JUZ, LABEL_JENJANG, raporGenerus, type ItemRapor } from './juknis'
+import { ambangPredikat, predikatAngka, type AmbangPredikat } from './tri-sukses'
 import { namaMubalighKelompok } from './lembar-laporan'
 import { DokumenPdf, bungkusTeks, lebarTeks, type HalamanPdf, type Warna } from './pdf-sederhana'
 import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, kategoriCocok, type Generus } from './repo/generus'
@@ -32,10 +33,34 @@ export interface BarisRaportCetak {
   materi: string
   target: string
   dikuasai: string
-  /** Persen tertulis ("85,7"), "—" bila belum ditetapkan Kurikulum. */
+  /** Persen tertulis ("85,7"), "belum dinilai", atau "—" bila belum ditetapkan Kurikulum. */
   persen: string
   belumDitetapkan: boolean
+  belumDinilai: boolean
   catatan: string | null
+}
+
+/** Satu baris tabel ringkas Tri Sukses Generus (§20.4). */
+export interface BarisTriSuksesCetak {
+  label: string
+  /** 'aspek' = baris utama; 'sub' = Alim / Faqih di bawah Alim-Faqih; 'akhir' = Nilai Akhir. */
+  jenis: 'aspek' | 'sub' | 'akhir'
+  nilai: string
+  predikat: string
+}
+
+export interface BarisKarakterCetak {
+  nama: string
+  predikat: string
+  catatan: string
+}
+
+/** Kelompok lampiran "Rincian Penguasaan Materi" per subbagian. */
+export interface LampiranRaportCetak {
+  judul: string
+  nilai: string
+  predikat: string
+  baris: BarisRaportCetak[]
 }
 
 export interface RaportCetak {
@@ -48,9 +73,19 @@ export interface RaportCetak {
   desa: string
   semester: string
   periode: string
+  /** §20.4: ringkas Tri Sukses Generus (Alim-Faqih [Alim, Faqih], Akhlaqul Karimah, Mandiri, Nilai Akhir). */
+  triSukses: BarisTriSuksesCetak[]
+  /** §20.3: Karakter Luhur. */
+  karakter: { targetJenjang: string | null; tali: BarisKarakterCetak[]; thobiat: BarisKarakterCetak[]; pendukung: string[] }
+  catatanMubaligh: string | null
+  /** Lampiran per subbagian (urut §20.1). */
+  lampiran: LampiranRaportCetak[]
+  /** Semua baris lampiran (nomor berurutan). */
   baris: BarisRaportCetak[]
+  /** Nilai Akhir tertulis. */
   total: string
   keaktifan: string
+  keteranganRumus: string
   catatanBelumDitetapkan: string | null
   sisaSebelumnya: { jenjang: string; materi: string[] } | null
   tandaTangan: { mubaligh: string; ki: string; wali: string }
@@ -66,40 +101,58 @@ function teksTarget(i: ItemRapor): string {
   return m.target === null ? '' : `${m.target} ${m.satuan ?? ''}`.trim()
 }
 
-function teksDikuasai(i: ItemRapor, r: Rapor): string {
+function teksDikuasai(i: ItemRapor): string {
   const m = i.materi
-  if (m.cara === 'keaktifan') {
-    const b = r.keaktifan?.bulan.filter((x) => x.dihitungDalamRata) ?? []
-    return b.length ? `rata-rata ${b.length} bulan` : '—'
-  }
-  if (!i.input) return '—'
-  if (m.cara === 'subjektif') return angka(i.input.nilai ?? null) || '—'
+  if (!i.input || !i.dinilai) return ''
+  if (m.cara === 'subjektif') return angka(i.input.nilai ?? null)
   if (m.cara === 'juz' || m.cara === 'kitab') {
     const isi = Object.values(i.input.rincian ?? {}).filter((x): x is number => typeof x === 'number')
     const hlm = isi.reduce((s, x) => s + x, 0)
     return m.cara === 'juz' ? `${hlm} dari ${(m.rincian.juz ?? []).length * HALAMAN_PER_JUZ} hlm` : `${hlm} hlm`
   }
-  return angka(i.input.dikuasai ?? null) || '—'
+  return angka(i.input.dikuasai ?? null)
 }
 
-/** Data raport siap cetak (satu anak, satu periode). */
+const teksNilai = (n: number | null) => (n === null ? 'belum dinilai' : angka(n))
+
+/** Data raport siap cetak (satu anak, satu periode) — §20.4: halaman ringkas + lampiran rincian. */
 export function dataRaportCetak(db: Db, generusId: string, o: { periode: string; tanggalCetak?: string }): RaportCetak {
   const g = ambilGenerus(db, generusId)
-  const r = raporGenerus(db, generusId, { periode: o.periode })
+  const r = raporGenerus(db, generusId, { periode: o.periode, tanggal: o.tanggalCetak })
   if (!g || !r) throw new GalatPpg('TIDAK_DITEMUKAN', 'Generus tidak ditemukan.')
   const daerahId = [g.kelompok_id, ...leluhurWilayah(db, g.kelompok_id)].find((id) => ambilWilayah(db, id)?.tingkat === 'daerah')
   const daerah = daerahId ? ambilWilayah(db, daerahId)!.nama : 'Sorong'
-  const baris = r.items.map((i, n) => ({
-    no: n + 1,
-    materi: i.materi.nama,
-    target: teksTarget(i),
-    dikuasai: i.belumDitetapkan ? '' : teksDikuasai(i, r),
-    persen: i.belumDitetapkan || i.persen === null ? '—' : angka(i.persen),
-    belumDitetapkan: i.belumDitetapkan,
-    catatan: i.dariPeriode ? `nilai dari ${teksSemester(i.dariPeriode)}` : null,
-  }))
+  const pred = (n: number | null) => predikatAngka(n, r.ambang) ?? '—'
+  const t = r.triSukses
+  let no = 0
+  const lampiran: LampiranRaportCetak[] = t.bagian
+    .filter((b) => b.items.length)
+    .map((b) => ({
+      judul: b.judul,
+      nilai: teksNilai(b.nilai),
+      predikat: pred(b.nilai),
+      baris: b.items.map((i) => ({
+        no: ++no,
+        materi: i.materi.nama,
+        target: teksTarget(i),
+        dikuasai: i.belumDitetapkan ? '' : teksDikuasai(i),
+        persen: i.belumDitetapkan ? '—' : i.persen === null ? 'belum dinilai' : angka(i.persen),
+        belumDitetapkan: i.belumDitetapkan,
+        belumDinilai: !i.belumDitetapkan && i.persen === null,
+        catatan: i.dariPeriode ? `nilai dari ${teksSemester(i.dariPeriode)}` : null,
+      })),
+    }))
   const kp = r.keaktifan?.persen ?? null
+  const nBulan = r.keaktifan?.bulan.filter((b) => b.dihitungDalamRata).length ?? 0
   const tgl = o.tanggalCetak ?? tanggalHariIni()
+  const k = r.karakter
+  const kar = (l: { nama: string; label: string | null; catatan: string | null }[]): BarisKarakterCetak[] =>
+    l.map((x) => ({ nama: x.nama, predikat: x.label ?? 'belum dinilai', catatan: x.catatan ?? '' }))
+  const pendukung: string[] = []
+  if (kp !== null) pendukung.push(`Keaktifan pengajian semester ${angka(kp)} % (rata-rata ${nBulan} bulan) — data pendukung "Mempersungguh hidayah".`)
+  if (r.pendukung.mandiriHari > 0) pendukung.push(`Kegiatan mandiri tercatat & disahkan (kode B/TH/QR/HD): ${r.pendukung.mandiriHari} hari.`)
+  if (r.pendukung.sholat)
+    pendukung.push(`Catatan sholat 5 waktu diisi orang tua di HP: ${r.pendukung.sholat.hari} hari tercatat, rata-rata ${angka(r.pendukung.sholat.rataWaktu)} waktu/hari — keterangan, tidak dinilai.`)
   return {
     generus_id: g.id,
     kop: { organisasi: 'PENGGERAK PEMBINA GENERUS (PPG)', daerah: `DAERAH ${daerah.toUpperCase()}` },
@@ -110,10 +163,25 @@ export function dataRaportCetak(db: Db, generusId: string, o: { periode: string;
     desa: r.generus.desa ?? '',
     semester: teksSemester(o.periode),
     periode: o.periode,
-    baris,
+    triSukses: [
+      { label: '1. Alim-Faqih', jenis: 'aspek', nilai: teksNilai(t.alimFaqih), predikat: pred(t.alimFaqih) },
+      { label: 'Alim (mankul & hafalan)', jenis: 'sub', nilai: teksNilai(t.alim), predikat: pred(t.alim) },
+      { label: 'Faqih (kefahaman & praktik ibadah)', jenis: 'sub', nilai: teksNilai(t.faqih), predikat: pred(t.faqih) },
+      { label: '2. Akhlaqul Karimah', jenis: 'aspek', nilai: teksNilai(t.akhlak), predikat: pred(t.akhlak) },
+      { label: '3. Mandiri', jenis: 'aspek', nilai: teksNilai(t.mandiri), predikat: pred(t.mandiri) },
+      { label: 'NILAI AKHIR', jenis: 'akhir', nilai: teksNilai(t.nilaiAkhir), predikat: pred(t.nilaiAkhir) },
+    ],
+    karakter: { targetJenjang: k?.targetJenjang ?? null, tali: kar(k?.tali ?? []), thobiat: kar(k?.thobiat ?? []), pendukung },
+    catatanMubaligh: k?.catatanMubaligh ?? null,
+    lampiran,
+    baris: lampiran.flatMap((l) => l.baris),
     total: r.total === null ? '—' : angka(r.total),
-    keaktifan: kp === null ? 'Belum ada data keaktifan semester ini.' : `${angka(kp)} % (rata-rata ${r.keaktifan!.bulan.filter((b) => b.dihitungDalamRata).length} bulan)`,
-    catatanBelumDitetapkan: r.belumDitetapkan.length ? `Materi ${r.belumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung di TOTAL.` : null,
+    keaktifan: kp === null ? 'Belum ada data keaktifan semester ini.' : `${angka(kp)} % (rata-rata ${nBulan} bulan)`,
+    keteranganRumus:
+      t.rumus === 'rata_materi'
+        ? 'Nilai Akhir = rata-rata semua butir materi yang dinilai (ditetapkan Kurikulum, K09). Butir "belum dinilai" tidak ikut dihitung.'
+        : 'Nilai subbagian = rata-rata butir yang dinilai; Alim, Faqih = rata-rata subbagiannya; Alim-Faqih = rata-rata Alim & Faqih; Nilai Akhir = rata-rata 3 aspek Tri Sukses Generus (bobot sama). Butir "belum dinilai" tidak ikut dihitung; keaktifan tidak masuk nilai.',
+    catatanBelumDitetapkan: r.belumDitetapkan.length ? `Materi ${r.belumDitetapkan.join(', ')} belum ditetapkan Kurikulum — tidak ikut dihitung.` : null,
     sisaSebelumnya: r.sisaSebelumnya
       ? { jenjang: LABEL_JENJANG[r.sisaSebelumnya.jenjang] ?? r.sisaSebelumnya.jenjang, materi: r.sisaSebelumnya.items.map((i) => `${i.materi.nama} (${angka(i.persen)} %)`) }
       : null,
@@ -122,12 +190,18 @@ export function dataRaportCetak(db: Db, generusId: string, o: { periode: string;
   }
 }
 
+/** Teks predikat angka untuk ambang K17 (keterangan di cetakan). */
+export function teksAmbang(a: AmbangPredikat): string {
+  return `Predikat: ≥ ${a.sangat_baik} Sangat Baik · ${a.baik}–${a.sangat_baik - 1} Baik · ${a.cukup}–${a.baik - 1} Cukup · < ${a.cukup} Perlu Bimbingan.`
+}
+
 // ---------------- PDF ----------------
 
 const TEAL: Warna = [15, 118, 110]
 const TEAL_MUDA: Warna = [204, 236, 232]
 const IVORY: Warna = [255, 248, 231]
 const ABU: Warna = [110, 110, 110]
+const GARIS: Warna = [150, 150, 150]
 
 /** Logo aplikasi (tunas di atas kitab, versi warna datar dari logo.svg 1024 × 1024). */
 export function gambarLogoPdf(h: HalamanPdf, x: number, y: number, ukuran: number): void {
@@ -152,104 +226,219 @@ function kop(h: HalamanPdf, d: RaportCetak): number {
   h.teks(tengah, 88, 'Pembinaan & Evaluasi Hasil Belajar Generus', { ukuran: 9, rata: 'tengah', warna: ABU })
   h.garis(kiri, 102, kanan, 102, { tebal: 2, warna: TEAL })
   h.garis(kiri, 105, kanan, 105, { tebal: 0.6, warna: TEAL })
-  return 128
+  return 124
 }
 
-function halamanRaport(dok: DokumenPdf, d: RaportCetak): void {
-  let h = dok.tambahHalaman()
-  const kiri = 48
-  const lebar = h.lebar - 96
-  let y = kop(h, d)
-  h.teks(h.lebar / 2, y, 'LAPORAN HASIL BELAJAR GENERUS', { ukuran: 13, huruf: 'tebal', rata: 'tengah' })
-  y += 15
-  h.teks(h.lebar / 2, y, d.semester, { ukuran: 10, rata: 'tengah' })
-  y += 20
+/** Penulis halaman berurutan: halaman baru (dengan kop) bila ruang tidak cukup. */
+class Alur {
+  h: HalamanPdf
+  y: number
+  readonly kiri = 48
+  readonly lebar: number
+  constructor(
+    private readonly dok: DokumenPdf,
+    private readonly d: RaportCetak,
+  ) {
+    this.h = dok.tambahHalaman()
+    this.lebar = this.h.lebar - 96
+    this.y = kop(this.h, d)
+  }
+  baru(): void {
+    this.h.teks(this.h.lebar / 2, this.h.tinggi - 30, 'bersambung ke halaman berikutnya', { ukuran: 8, rata: 'tengah', warna: ABU })
+    this.kaki()
+    this.h = this.dok.tambahHalaman()
+    this.y = kop(this.h, this.d)
+  }
+  ruang(t: number, bawah = 40): void {
+    if (this.y + t > this.h.tinggi - bawah) this.baru()
+  }
+  kaki(): void {
+    this.h.teks(this.h.lebar / 2, this.h.tinggi - 18, 'Dicetak dari aplikasi PPG Sorong', { ukuran: 7, rata: 'tengah', warna: ABU })
+  }
+  /** Paragraf kecil dibungkus. */
+  paragraf(t: string, o: { ukuran?: number; warna?: Warna; huruf?: 'biasa' | 'tebal' } = {}): void {
+    const u = o.ukuran ?? 8.5
+    for (const s of bungkusTeks(t, u, this.lebar, o.huruf)) {
+      this.ruang(12)
+      this.h.teks(this.kiri, this.y, s, { ukuran: u, warna: o.warna ?? ABU, huruf: o.huruf })
+      this.y += u + 2.5
+    }
+  }
+}
+
+/** Tabel sederhana: kolom lebar tetap; baris membungkus teks di kolom `bungkus`. */
+function tabel(
+  a: Alur,
+  kolom: { judul: string; lebar: number; rata?: 'kiri' | 'tengah' }[],
+  baris: { sel: string[]; tebal?: boolean; latar?: Warna; abu?: boolean; masuk?: number }[],
+  bungkus: number,
+): void {
+  const xs = kolom.reduce<number[]>((acc, k, i) => [...acc, (acc[i] ?? a.kiri) + k.lebar], [a.kiri])
+  const kepala = () => {
+    a.h.kotak(a.kiri, a.y, a.lebar, 17, { isi: TEAL, garis: TEAL })
+    kolom.forEach((k, i) => a.h.teks(xs[i]! + (k.rata === 'kiri' ? 4 : k.lebar / 2), a.y + 11.5, k.judul, { ukuran: 8.5, huruf: 'tebal', rata: k.rata === 'kiri' ? 'kiri' : 'tengah', warna: [255, 255, 255] }))
+    a.y += 17
+  }
+  a.ruang(17 + 15)
+  kepala()
+  baris.forEach((b, n) => {
+    const huruf = b.tebal ? 'tebal' : 'biasa'
+    const isi = b.sel.map((s, i) => (i === bungkus ? bungkusTeks(s, 8.5, kolom[i]!.lebar - 8 - (b.masuk ?? 0), huruf) : [s]))
+    const lain = b.sel.map((s, i) => (i !== bungkus && kolom[i]!.rata === 'kiri' ? bungkusTeks(s, 8, kolom[i]!.lebar - 8) : null))
+    const nBaris = Math.max(isi[bungkus]!.length, ...lain.map((l) => l?.length ?? 1))
+    const t = Math.max(15, nBaris * 10.5 + 4.5)
+    if (a.y + t > a.h.tinggi - 40) {
+      a.baru()
+      kepala()
+    }
+    if (b.latar) a.h.kotak(a.kiri, a.y, a.lebar, t, { isi: b.latar })
+    else if (n % 2 === 1) a.h.kotak(a.kiri, a.y, a.lebar, t, { isi: [246, 251, 250] })
+    const warna: Warna = b.abu ? ABU : [0, 0, 0]
+    kolom.forEach((k, i) => {
+      const daftar = i === bungkus ? isi[i]! : (lain[i] ?? [b.sel[i] ?? ''])
+      daftar.forEach((s, j) => {
+        const x = k.rata === 'kiri' ? xs[i]! + 4 + (i === bungkus ? (b.masuk ?? 0) : 0) : xs[i]! + k.lebar / 2
+        a.h.teks(x, a.y + 11 + j * 10.5, s, { ukuran: i === bungkus ? 8.5 : 8, rata: k.rata === 'kiri' ? 'kiri' : 'tengah', huruf, warna })
+      })
+    })
+    for (const x of xs) a.h.garis(x, a.y, x, a.y + t, { tebal: 0.4, warna: GARIS })
+    a.h.garis(a.kiri, a.y + t, a.kiri + a.lebar, a.y + t, { tebal: 0.4, warna: GARIS })
+    a.y += t
+  })
+}
+
+function judulBagian(a: Alur, t: string, kanan?: string): void {
+  a.ruang(40)
+  a.y += 6
+  a.h.teks(a.kiri, a.y + 8, t, { ukuran: 10, huruf: 'tebal', warna: TEAL })
+  if (kanan) a.h.teks(a.kiri + a.lebar, a.y + 8, kanan, { ukuran: 8.5, rata: 'kanan', warna: ABU })
+  a.y += 14
+}
+
+function identitas(a: Alur, d: RaportCetak, judul: string): void {
+  a.h.teks(a.h.lebar / 2, a.y, judul, { ukuran: 13, huruf: 'tebal', rata: 'tengah' })
+  a.y += 14
+  a.h.teks(a.h.lebar / 2, a.y, d.semester, { ukuran: 10, rata: 'tengah' })
+  a.y += 18
   const id: [string, string][] = [
     ['Nama', d.nama],
     ['Jenis kelamin', d.jenisKelamin],
     ['Jenjang', d.jenjang],
     ['Kelompok', d.kelompok],
     ['Desa', d.desa],
-    ['Semester', d.semester],
+    ['Semester', d.periode.endsWith('S1') ? 'Semester 1' : 'Semester 2'],
   ]
   for (let i = 0; i < id.length; i += 2) {
     for (let k = 0; k < 2; k++) {
       const p = id[i + k]
       if (!p) continue
-      const x = kiri + k * (lebar / 2)
-      h.teks(x, y, p[0], { ukuran: 9.5, warna: ABU })
-      h.teks(x + 70, y, ':', { ukuran: 9.5 })
-      h.teks(x + 78, y, p[1], { ukuran: 9.5, huruf: k === 0 && i === 0 ? 'tebal' : 'biasa' })
+      const x = a.kiri + k * (a.lebar / 2)
+      a.h.teks(x, a.y, p[0], { ukuran: 9.5, warna: ABU })
+      a.h.teks(x + 70, a.y, ':', { ukuran: 9.5 })
+      a.h.teks(x + 78, a.y, p[1], { ukuran: 9.5, huruf: k === 0 && i === 0 ? 'tebal' : 'biasa' })
     }
-    y += 15
+    a.y += 14
   }
-  y += 6
-  // tabel: No · Materi · Target · Dikuasai · %
-  const kol = [24, lebar - 24 - 92 - 92 - 48, 92, 92, 48]
-  const xs = kol.reduce<number[]>((a, w, i) => [...a, (a[i] ?? kiri) + w], [kiri])
-  const kepala = (hh: HalamanPdf, yy: number) => {
-    hh.kotak(kiri, yy, lebar, 18, { isi: TEAL, garis: TEAL })
-    ;['No', 'Materi', 'Target', 'Dikuasai', '%'].forEach((t, i) => hh.teks(xs[i]! + kol[i]! / 2, yy + 12.5, t, { ukuran: 9, huruf: 'tebal', rata: 'tengah', warna: [255, 255, 255] }))
-    return yy + 18
+}
+
+function halamanRaport(dok: DokumenPdf, d: RaportCetak, ambang: string): void {
+  const a = new Alur(dok, d)
+  identitas(a, d, 'LAPORAN HASIL BELAJAR GENERUS')
+  // --- Tri Sukses Generus ---
+  judulBagian(a, 'A. TRI SUKSES GENERUS', 'Alim-Faqih · Akhlaqul Karimah · Mandiri')
+  tabel(
+    a,
+    [
+      { judul: 'Aspek', lebar: a.lebar - 90 - 120, rata: 'kiri' },
+      { judul: 'Nilai', lebar: 90 },
+      { judul: 'Predikat', lebar: 120 },
+    ],
+    d.triSukses.map((b) => ({
+      sel: [b.label, b.nilai, b.predikat],
+      tebal: b.jenis !== 'sub',
+      masuk: b.jenis === 'sub' ? 14 : 0,
+      latar: b.jenis === 'akhir' ? TEAL_MUDA : undefined,
+      abu: b.nilai === 'belum dinilai',
+    })),
+    0,
+  )
+  a.y += 3
+  a.paragraf(`${ambang} Rincian tiap materi pada Lampiran.`, { ukuran: 7.5 })
+  // --- Karakter Luhur ---
+  judulBagian(a, 'B. KARAKTER LUHUR', d.karakter.targetJenjang ? `Target jenjang: ${d.karakter.targetJenjang}` : undefined)
+  const kolom = [
+    { judul: '4 Tali Keimanan', lebar: 150, rata: 'kiri' as const },
+    { judul: 'Predikat', lebar: 80 },
+    { judul: 'Catatan', lebar: a.lebar - 230, rata: 'kiri' as const },
+  ]
+  tabel(a, kolom, d.karakter.tali.map((b) => ({ sel: [b.nama, b.predikat, b.catatan], abu: b.predikat === 'belum dinilai' })), 0)
+  if (d.karakter.pendukung.length) {
+    a.y += 3
+    a.paragraf(`Data pendukung: ${d.karakter.pendukung.join(' ')}`, { ukuran: 7.5 })
   }
-  y = kepala(h, y)
-  const batasBawah = h.tinggi - 200
-  d.baris.forEach((b, n) => {
-    const baris = bungkusTeks(b.materi + (b.catatan ? ` (${b.catatan})` : ''), 8.5, kol[1]! - 8)
-    const t = Math.max(15, baris.length * 10.5 + 4.5)
-    if (y + t > batasBawah && n < d.baris.length) {
-      h.teks(h.lebar / 2, h.tinggi - 30, 'bersambung ke halaman berikutnya', { ukuran: 8, rata: 'tengah', warna: ABU })
-      h = dok.tambahHalaman()
-      y = kepala(h, kop(h, d))
-    }
-    if (n % 2 === 1) h.kotak(kiri, y, lebar, t, { isi: [246, 251, 250] })
-    baris.forEach((s, i) => h.teks(xs[1]! + 4, y + 11 + i * 10.5, s, { ukuran: 8.5, warna: b.belumDitetapkan ? ABU : [0, 0, 0] }))
-    h.teks(xs[0]! + kol[0]! / 2, y + 11, String(b.no), { ukuran: 8.5, rata: 'tengah' })
-    h.teks(xs[2]! + kol[2]! / 2, y + 11, b.target, { ukuran: 8, rata: 'tengah' })
-    h.teks(xs[3]! + kol[3]! / 2, y + 11, b.dikuasai, { ukuran: 8, rata: 'tengah' })
-    h.teks(xs[4]! + kol[4]! / 2, y + 11, b.persen, { ukuran: 8.5, rata: 'tengah', huruf: 'tebal' })
-    for (const x of xs) h.garis(x, y, x, y + t, { tebal: 0.4, warna: [150, 150, 150] })
-    h.garis(kiri, y + t, kiri + lebar, y + t, { tebal: 0.4, warna: [150, 150, 150] })
-    y += t
-  })
-  h.kotak(kiri, y, lebar, 20, { isi: TEAL_MUDA, garis: TEAL })
-  h.teks(xs[1]! + 4, y + 13.5, 'TOTAL PENGUASAAN MATERI', { ukuran: 9.5, huruf: 'tebal' })
-  h.teks(xs[4]! + kol[4]! / 2, y + 13.5, d.total, { ukuran: 10, huruf: 'tebal', rata: 'tengah' })
-  y += 32
-  h.teks(kiri, y, 'Keaktifan semester:', { ukuran: 9.5, huruf: 'tebal' })
-  h.teks(kiri + lebarTeks('Keaktifan semester: ', 9.5, 'tebal'), y, d.keaktifan, { ukuran: 9.5 })
-  y += 14
-  for (const c of [d.catatanBelumDitetapkan, d.sisaSebelumnya ? `Belum tuntas dari ${d.sisaSebelumnya.jenjang}: ${d.sisaSebelumnya.materi.join(', ')}.` : null]) {
-    if (!c) continue
-    for (const s of bungkusTeks(`Catatan: ${c}`, 8.5, lebar)) {
-      h.teks(kiri, y, s, { ukuran: 8.5, warna: ABU })
-      y += 11
-    }
-  }
-  // tanda tangan
-  y = Math.max(y + 18, h.tinggi - 175)
-  h.teks(kiri + lebar, y, d.tempatTanggal, { ukuran: 9.5, rata: 'kanan' })
-  y += 18
+  a.y += 4
+  tabel(a, [{ ...kolom[0]!, judul: '6 Thobiat Luhur (praktik sehari-hari)' }, kolom[1]!, kolom[2]!], d.karakter.thobiat.map((b) => ({ sel: [b.nama, b.predikat, b.catatan], abu: b.predikat === 'belum dinilai' })), 0)
+  a.y += 3
+  a.paragraf('Predikat sikap dinilai mubaligh: Baik · Cukup · Perlu Bimbingan. Tidak dihitung ke Nilai Akhir.', { ukuran: 7.5 })
+  // --- keaktifan & catatan ---
+  a.ruang(30)
+  a.y += 8
+  a.h.teks(a.kiri, a.y, 'C. Keaktifan semester:', { ukuran: 9.5, huruf: 'tebal', warna: TEAL })
+  a.h.teks(a.kiri + lebarTeks('C. Keaktifan semester: ', 9.5, 'tebal'), a.y, d.keaktifan, { ukuran: 9.5 })
+  a.y += 16
+  a.h.teks(a.kiri, a.y, 'D. Catatan mubaligh:', { ukuran: 9.5, huruf: 'tebal', warna: TEAL })
+  a.y += 12
+  a.paragraf(d.catatanMubaligh ?? '—', { ukuran: 9, warna: [0, 0, 0] })
+  // --- tanda tangan ---
+  a.ruang(120, 30)
+  a.y = Math.max(a.y + 10, Math.min(a.h.tinggi - 140, a.y + 30))
+  a.h.teks(a.kiri + a.lebar, a.y, d.tempatTanggal, { ukuran: 9.5, rata: 'kanan' })
+  a.y += 16
   const ttd: [string, string][] = [
     ['MT / Mubaligh Kelompok', d.tandaTangan.mubaligh],
     ['KI Kelompok', d.tandaTangan.ki],
     ['Orang Tua / Wali', d.tandaTangan.wali],
   ]
-  const lk = lebar / 3
+  const lk = a.lebar / 3
   ttd.forEach(([j, n], i) => {
-    const cx = kiri + lk * i + lk / 2
-    h.teks(cx, y, j, { ukuran: 9.5, rata: 'tengah' })
-    h.garis(cx - lk / 2 + 14, y + 66, cx + lk / 2 - 14, y + 66, { tebal: 0.6, putus: !n })
-    if (n) h.teks(cx, y + 62, n, { ukuran: 9.5, huruf: 'tebal', rata: 'tengah' })
+    const cx = a.kiri + lk * i + lk / 2
+    a.h.teks(cx, a.y, j, { ukuran: 9.5, rata: 'tengah' })
+    a.h.garis(cx - lk / 2 + 14, a.y + 62, cx + lk / 2 - 14, a.y + 62, { tebal: 0.6, putus: !n })
+    if (n) a.h.teks(cx, a.y + 58, n, { ukuran: 9.5, huruf: 'tebal', rata: 'tengah' })
   })
-  h.teks(h.lebar / 2, h.tinggi - 24, 'Dicetak dari aplikasi PPG Sorong', { ukuran: 7, rata: 'tengah', warna: ABU })
+  a.kaki()
+  // --- Lampiran ---
+  const l = new Alur(dok, d)
+  identitas(l, d, 'LAMPIRAN — RINCIAN PENGUASAAN MATERI')
+  const kol = [
+    { judul: 'No', lebar: 24 },
+    { judul: 'Materi', lebar: l.lebar - 24 - 96 - 88 - 62, rata: 'kiri' as const },
+    { judul: 'Target', lebar: 96 },
+    { judul: 'Dikuasai', lebar: 88 },
+    { judul: '%', lebar: 62 },
+  ]
+  if (!d.lampiran.length) l.paragraf('Jenjang belum ditetapkan atau daftar materi evaluasi belum ada.')
+  for (const g of d.lampiran) {
+    judulBagian(l, g.judul, `nilai ${g.nilai}${g.predikat !== '—' ? ` · ${g.predikat}` : ''}`)
+    tabel(l, kol, g.baris.map((b) => ({ sel: [String(b.no), b.materi + (b.catatan ? ` (${b.catatan})` : ''), b.target, b.dikuasai, b.persen], abu: b.belumDitetapkan || b.belumDinilai })), 1)
+  }
+  l.y += 6
+  for (const c of [
+    d.catatanBelumDitetapkan,
+    d.sisaSebelumnya ? `Belum tuntas dari ${d.sisaSebelumnya.jenjang}: ${d.sisaSebelumnya.materi.join(', ')}.` : null,
+    d.keteranganRumus,
+    'Nilai praktik penguji dibatasi 75% (juknis). "belum dinilai" = belum diuji; "—" = belum ditetapkan Kurikulum.',
+  ])
+    if (c) l.paragraf(`Catatan: ${c}`)
+  l.kaki()
 }
 
-/** PDF raport A4 tegak, satu anak per halaman (bersambung bila materi sangat panjang). */
+/** PDF raport A4 tegak (§20.4): per anak halaman 1 ringkas + lampiran rincian (bersambung bila materi panjang). */
 export function raporPdf(db: Db, o: { generusIds: string[]; periode: string; tanggalCetak?: string }): Uint8Array {
   if (!o.generusIds.length) throw new GalatPpg('DATA_KOSONG', 'Pilih minimal satu generus.')
   const dok = new DokumenPdf('Laporan Hasil Belajar Generus')
-  for (const id of o.generusIds) halamanRaport(dok, dataRaportCetak(db, id, o))
+  const ambang = teksAmbang(ambangPredikat(db)).replace(/≥/g, '>=') // ≥ tidak ada di WinAnsi
+  for (const id of o.generusIds) halamanRaport(dok, dataRaportCetak(db, id, o), ambang)
   return dok.bytes()
 }
 

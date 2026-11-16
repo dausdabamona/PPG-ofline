@@ -24,6 +24,18 @@ import {
 import { ambilWilayah } from './repo/wilayah'
 import { idMateriEvaluasi } from './skema'
 import { sekarangIso, tanggalHariIni, tanggalSah } from './waktu'
+import {
+  ambangPredikat,
+  hitungTriSukses,
+  karakterRapor,
+  pemetaanAspek,
+  ringkasCatatanSholat,
+  rumusNilaiAkhir,
+  type AmbangPredikat,
+  type HasilTriSukses,
+  type KarakterRapor,
+  type RumusNilaiAkhir,
+} from './tri-sukses'
 
 export type { CaraEvaluasi, RincianMateriEvaluasi } from './data/juknis-2025'
 export { idMateriEvaluasi } from './skema'
@@ -743,15 +755,13 @@ export function hitungPersenMateri(m: Pick<MateriEvaluasi, 'cara' | 'target' | '
   }
 }
 
-/** §18 (K09): rumus TOTAL — rata-rata semua materi (bawaan) atau tanpa keaktifan. */
-export type RumusTotal = 'rata_rata' | 'tanpa_keaktifan'
-/** Id pengaturan penetapan rumus TOTAL (butir Kurikulum K09). */
+/** §18 (K09) → §20 (J-R5): rumus Nilai Akhir — rata-rata 3 aspek Tri Sukses (bawaan) atau rata-rata semua butir materi. */
+export type RumusTotal = RumusNilaiAkhir
+/** Id pengaturan penetapan rumus Nilai Akhir (butir Kurikulum K09). */
 export const ID_RUMUS_TOTAL = 'kur:K09'
 
 export function rumusTotal(db: Db): RumusTotal {
-  const r = ambilRekaman<{ isi: string | null; dihapus: number }>(db, 'pengaturan', ID_RUMUS_TOTAL)
-  const n = r && !r.dihapus ? uraiJson<{ nilai?: unknown }>(r.isi, {}).nilai : undefined
-  return n === 'tanpa_keaktifan' ? 'tanpa_keaktifan' : 'rata_rata'
+  return rumusNilaiAkhir(db)
 }
 
 /** Materi yang isiannya belum ditetapkan Kurikulum (target kosong / kitab tanpa halaman / tanpa juz). */
@@ -759,7 +769,7 @@ export function materiBelumDitetapkan(m: Pick<MateriEvaluasi, 'cara' | 'target' 
   return m.cara !== 'keaktifan' && m.cara !== 'subjektif' && hitungPersenMateri(m, undefined) === null
 }
 
-/** J-T11: TOTAL = rata-rata persen materi yang targetnya ditetapkan (tanpa bobot), satu desimal. */
+/** Rata-rata persen yang ada (null = belum dinilai / belum ditetapkan, tidak dihitung), satu desimal. */
 export function hitungTotal(persen: (number | null)[]): number | null {
   const ada = persen.filter((p): p is number => p !== null)
   return ada.length ? satuDesimal(ada.reduce((s, p) => s + p, 0) / ada.length) : null
@@ -873,7 +883,7 @@ function evaluasiTerbaru(db: Db, generusId: string, sampaiPeriode: string): Map<
 
 export interface ItemRapor {
   materi: MateriEvaluasi
-  /** null = materi belum ditetapkan Kurikulum (tidak ikut TOTAL). */
+  /** null = belum dinilai (§20, J-R4) atau materi belum ditetapkan Kurikulum — tidak ikut rata-rata. */
   persen: number | null
   /** §18 (J-KR4): isian materi belum ditetapkan Kurikulum. */
   belumDitetapkan: boolean
@@ -891,7 +901,16 @@ export interface Rapor {
   jenjang: KategoriGenerus | null
   bulanEvaluasi: number
   items: ItemRapor[]
+  /** §20 (J-R16): Nilai Akhir = rata-rata 3 aspek Tri Sukses Generus (K09). */
   total: number | null
+  /** §20: nilai per subbagian/aspek Tri Sukses (pemetaan K18). */
+  triSukses: HasilTriSukses<ItemRapor>
+  /** §20: ambang predikat angka (K17). */
+  ambang: AmbangPredikat
+  /** §20.3: Karakter Luhur (predikat sikap, tidak masuk persen). */
+  karakter: KarakterRapor | null
+  /** §20.3: data pendukung Tali Keimanan (fakta dari data, tanpa kesimpulan). */
+  pendukung: { keaktifan: number | null; sholat: { hari: number; rataWaktu: number } | null; mandiriHari: number }
   keaktifan: KeaktifanPeriode | null
   /** J-T15: sisa target jenjang sebelumnya yang belum 100 %. */
   sisaSebelumnya: { jenjang: KategoriGenerus; items: ItemRapor[] } | null
@@ -903,13 +922,15 @@ export interface Rapor {
 
 function itemRapor(db: Db, m: MateriEvaluasi, terbaru: Map<string, EvaluasiSemester>, periode: string, kp: KeaktifanPeriode | null): ItemRapor {
   if (m.cara === 'keaktifan') {
-    return { materi: m, persen: kp?.persen ?? 0, belumDitetapkan: false, dinilai: (kp?.bulan.length ?? 0) > 0, dariPeriode: null, input: null, penguji: null }
+    return { materi: m, persen: kp?.persen ?? null, belumDitetapkan: false, dinilai: kp?.persen !== null && kp?.persen !== undefined, dariPeriode: null, input: null, penguji: null }
   }
-  const r = terbaru.get(m.id)
-  const input = r ? inputDariRekaman(r) : null
+  const rek = terbaru.get(m.id)
+  const input = rek ? inputDariRekaman(rek) : null
+  // J-R4: subjektif yang tersimpan tanpa nilai = belum dinilai
+  const r = rek && (m.cara !== 'subjektif' || (input?.nilai !== null && input?.nilai !== undefined)) ? rek : undefined
   return {
     materi: m,
-    persen: hitungPersenMateri(m, input ?? undefined),
+    persen: r ? hitungPersenMateri(m, input ?? undefined) : null,
     belumDitetapkan: materiBelumDitetapkan(m),
     dinilai: !!r,
     dariPeriode: r && r.periode !== periode ? r.periode : null,
@@ -934,6 +955,10 @@ export function raporGenerus(db: Db, generusId: string, o: { periode?: string; t
     bulanEvaluasi: periode.endsWith('S1') ? be.S1 : be.S2,
     items: [],
     total: null,
+    triSukses: hitungTriSukses<ItemRapor>([], {}, rumusTotal(db)),
+    ambang: ambangPredikat(db),
+    karakter: null,
+    pendukung: { keaktifan: null, sholat: null, mandiriHari: 0 },
     keaktifan: null,
     sisaSebelumnya: null,
     belumDitetapkan: [],
@@ -945,7 +970,16 @@ export function raporGenerus(db: Db, generusId: string, o: { periode?: string; t
   const terbaru = evaluasiTerbaru(db, g.id, periode)
   base.keaktifan = kp
   base.items = daftarMateriEvaluasi(db, jenjang).map((m) => itemRapor(db, m, terbaru, periode, kp))
-  base.total = hitungTotal(base.items.filter((i) => base.rumusTotal === 'rata_rata' || i.materi.cara !== 'keaktifan').map((i) => i.persen))
+  base.triSukses = hitungTriSukses(base.items, pemetaanAspek(db), base.rumusTotal)
+  base.total = base.triSukses.nilaiAkhir
+  base.karakter = karakterRapor(db, g.id, periode, jenjang)
+  const bulanSem = kp.bulan.map((b) => b.bulan)
+  const mulai = `${bulanPeriode(periode)[0]}-01`
+  base.pendukung = {
+    keaktifan: kp.persen,
+    sholat: bulanSem.length ? ringkasCatatanSholat(db, g.id, mulai, tanggal) : null,
+    mandiriHari: kp.bulan.reduce((s, b) => s + b.hari.filter((h) => h.kode.some((k) => KODE_KEAKTIFAN[k as KodeKeaktifan]?.mandiri)).length, 0),
+  }
   base.belumDitetapkan = base.items.filter((i) => i.belumDitetapkan).map((i) => i.materi.nama)
   const sebelum = jenjangSebelumnya(jenjang)
   if (sebelum) {

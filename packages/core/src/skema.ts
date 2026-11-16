@@ -98,6 +98,12 @@ export const TABEL_SINKRON = {
     kolom: ['kelompok_id', 'bulan', 'isi_json'],
     kolomKelompok: 'kelompok_id',
   },
+  // v7 (§20) — penilaian sikap Karakter Luhur (4 Tali Keimanan, 6 Thobiat Luhur, catatan mubaligh) per semester
+  penilaian_karakter: {
+    jenis: 'kegiatan',
+    kolom: ['generus_id', 'kelompok_id', 'periode', 'butir', 'predikat', 'catatan', 'tanggal', 'penilai'],
+    kolomKelompok: 'kelompok_id',
+  },
   // v5 (§17) — catatan bidang kepengurusan PPG (notulen, kas, inventaris, agenda, konseling, …); isi rahasia terenkripsi
   catatan_bidang: {
     jenis: 'kegiatan',
@@ -239,7 +245,7 @@ CREATE TABLE IF NOT EXISTS kunci_bidang (
 `
 
 /** Versi skema saat ini. */
-export const VERSI_SKEMA = 6
+export const VERSI_SKEMA = 7
 
 function adaKolom(db: Db, tabel: string, kolom: string): boolean {
   return db.kueri<{ name: string }>(`PRAGMA table_info(${tabel})`).some((k) => k.name === kolom)
@@ -300,6 +306,11 @@ const MIGRASI: ((db: Db) => void)[] = [
   // v6 (§19): data generus sekolah, kelas sekolah, jilid Iqro' (kolom di akhir tabel)
   (db) => {
     tambahTabelDanKolom(db)
+  },
+  // v7 (§20): tabel kegiatan penilaian_karakter (CREATE IF NOT EXISTS — DB lama aman)
+  (db) => {
+    tambahTabelDanKolom(db)
+    db.jalankanSkrip(`CREATE INDEX IF NOT EXISTS idx_karakter_generus ON penilaian_karakter(generus_id, periode);`)
   },
 ]
 

@@ -73,6 +73,8 @@ export function buatBalasan(dbPengirim: Db, perangkatPenerimaId: string): Berkas
     // §16 (J-T18): lembar kontrol keaktifan, hasil evaluasi semester, daftar materi evaluasi (raport di HP)
     keaktifan: pilih(dbPengirim, 'keaktifan', 'generus_id', generusIds),
     evaluasi_semester: pilih(dbPengirim, 'evaluasi_semester', 'generus_id', generusIds),
+    // §20: Karakter Luhur (raport anak di HP murid/orang tua)
+    penilaian_karakter: pilih(dbPengirim, 'penilaian_karakter', 'generus_id', generusIds),
     materi_evaluasi: dbPengirim.kueri<Rekaman>('SELECT * FROM materi_evaluasi'),
   }
   const rekaman: RekamanPerTabel = {}
@@ -190,6 +192,7 @@ function periksaBalasan(saya: string, kelompokId: string, generusIds: Set<string
         case 'kemajuan_belajar':
         case 'keaktifan':
         case 'evaluasi_semester':
+        case 'penilaian_karakter':
         case 'presensi':
         case 'penilaian_akhlaq':
           return generusIds.has(String(rek.generus_id)) ? null : diluar

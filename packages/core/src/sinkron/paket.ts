@@ -122,6 +122,7 @@ export function dataWilayah(db: Db, wilayahId: string): RekamanPerTabel {
     materi_evaluasi: db.kueri<Rekaman>('SELECT * FROM materi_evaluasi'),
     keaktifan: unik([...pilih(db, 'keaktifan', 'kelompok_id', kel), ...pilih(db, 'keaktifan', 'generus_id', generusIds)]),
     evaluasi_semester: unik([...pilih(db, 'evaluasi_semester', 'kelompok_id', kel), ...pilih(db, 'evaluasi_semester', 'generus_id', generusIds)]),
+    penilaian_karakter: unik([...pilih(db, 'penilaian_karakter', 'kelompok_id', kel), ...pilih(db, 'penilaian_karakter', 'generus_id', generusIds)]),
     laporan_bulanan: pilih(db, 'laporan_bulanan', 'kelompok_id', kel),
     // §17: catatan bidang kepengurusan di wilayah paket (isi rahasia tetap terenkripsi kunci bidang)
     catatan_bidang: pilih(db, 'catatan_bidang', 'wilayah_id', turunan),
@@ -304,7 +305,7 @@ export function profilBerubah(db: Db, sebelum: Map<string, string>): RingkasanTe
 const TABEL_HANYA_DAERAH: readonly NamaTabelSinkron[] = ['bidang_materi', 'kategori_materi', 'materi', 'materi_evaluasi']
 
 /** Kegiatan yang ikut generus pindah kelompok (boleh ber-kelompok lama di luar wilayah pengirim). */
-const TABEL_IKUT_GENERUS: readonly NamaTabelSinkron[] = ['kemajuan_belajar', 'penilaian_akhlaq', 'keaktifan', 'evaluasi_semester']
+const TABEL_IKUT_GENERUS: readonly NamaTabelSinkron[] = ['kemajuan_belajar', 'penilaian_akhlaq', 'keaktifan', 'evaluasi_semester', 'penilaian_karakter']
 
 /**
  * HP/EXE menerapkan PAKET: tolak berkas lama (versi & cap waktu ≤ terpasang, per penerbit), buka dengan kunci

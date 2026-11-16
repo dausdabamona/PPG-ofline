@@ -11,6 +11,7 @@ import {
   type MateriEvaluasi,
 } from './juknis'
 import { daftarGenerus, KATEGORI_GENERUS, type KategoriGenerus } from './repo/generus'
+import { ambangPredikat, rataAda, rumusNilaiAkhir, type AmbangPredikat, type RumusNilaiAkhir } from './tri-sukses'
 import { cariProfilPencatat } from './repo/profil'
 import { periodeAktif } from './repo/target'
 import { adalahAdmin, ambilRekaman, sisipkanRekaman, ubahRekaman, uraiJson, type RekamanDasar } from './repo/umum'
@@ -28,8 +29,15 @@ export interface BarisRekapPenguasaan {
   kelompok_id: string
   kelompok: string
   desa: string | null
-  /** Persen per kolom materi (urut `kolom`); null = target belum ditetapkan. */
+  /** Persen per kolom materi (urut `kolom`); null = belum dinilai atau belum ditetapkan. */
   nilai: (number | null)[]
+  /** §20 (J-R13): kolom yang belum dinilai (sel "bd"). */
+  belumDinilai: boolean[]
+  /** §20.5: ringkas per aspek Tri Sukses Generus. */
+  alimFaqih: number | null
+  akhlak: number | null
+  mandiri: number | null
+  /** Nilai Akhir (§20.2). */
   total: number | null
 }
 
@@ -40,6 +48,8 @@ export interface RingkasanRekapWilayah {
   jumlah: number
   /** Rata-rata tiap kolom. */
   rata: (number | null)[]
+  /** §20.5: rata-rata aspek. */
+  rataAspek: { alimFaqih: number | null; akhlak: number | null; mandiri: number | null }
   rataTotal: number | null
 }
 
@@ -51,20 +61,32 @@ export interface RekapPenguasaan {
   perKelompok: RingkasanRekapWilayah[]
   perDesa: RingkasanRekapWilayah[]
   rata: (number | null)[]
+  rataAspek: { alimFaqih: number | null; akhlak: number | null; mandiri: number | null }
   rataTotal: number | null
+  /** §20.2 (K09): rumus nilai akhir yang dipakai. */
+  rumus: RumusNilaiAkhir
+  /** §20 (K17): ambang predikat. */
+  ambang: AmbangPredikat
   /** Generus wilayah ini yang jenjangnya masih "caberawit" lama (perlu ditetapkan A/B/C). */
   jenjangBelumDitetapkan: number
   /** §18 (J-KR4): nama materi yang belum ditetapkan Kurikulum (kolom "—", tidak ikut TOTAL). */
   materiBelumDitetapkan: string[]
 }
 
-function rataKolom(baris: { nilai: (number | null)[]; total: number | null }[], n: number): { rata: (number | null)[]; rataTotal: number | null } {
+function rataKolom(
+  baris: Pick<BarisRekapPenguasaan, 'nilai' | 'total' | 'alimFaqih' | 'akhlak' | 'mandiri'>[],
+  n: number,
+): { rata: (number | null)[]; rataAspek: RingkasanRekapWilayah['rataAspek']; rataTotal: number | null } {
   const rata: (number | null)[] = []
   for (let i = 0; i < n; i++) {
     const v = baris.map((b) => b.nilai[i]).filter((x): x is number => x !== null && x !== undefined)
     rata.push(v.length ? Math.round((v.reduce((s, x) => s + x, 0) / v.length) * 10) / 10 : null)
   }
-  return { rata, rataTotal: hitungTotal(baris.map((b) => b.total)) }
+  return {
+    rata,
+    rataAspek: { alimFaqih: rataAda(baris.map((b) => b.alimFaqih)), akhlak: rataAda(baris.map((b) => b.akhlak)), mandiri: rataAda(baris.map((b) => b.mandiri)) },
+    rataTotal: hitungTotal(baris.map((b) => b.total)),
+  }
 }
 
 /**
@@ -82,7 +104,7 @@ export function rekapPenguasaan(db: Db, o: { wilayahId: string; jenjang: Kategor
   for (const g of gs) {
     const r = raporGenerus(db, g.id, { periode, tanggal: o.tanggal })
     if (!r) continue
-    const peta = new Map(r.items.map((i) => [i.materi.id, i.persen]))
+    const peta = new Map(r.items.map((i) => [i.materi.id, i]))
     baris.push({
       no: 0,
       generus_id: g.id,
@@ -90,7 +112,14 @@ export function rekapPenguasaan(db: Db, o: { wilayahId: string; jenjang: Kategor
       kelompok_id: g.kelompok_id,
       kelompok: r.generus.kelompok ?? '',
       desa: r.generus.desa,
-      nilai: kolom.map((m) => peta.get(m.id) ?? null),
+      nilai: kolom.map((m) => peta.get(m.id)?.persen ?? null),
+      belumDinilai: kolom.map((m) => {
+        const i = peta.get(m.id)
+        return !!i && !i.belumDitetapkan && !i.dinilai
+      }),
+      alimFaqih: r.triSukses.alimFaqih,
+      akhlak: r.triSukses.akhlak,
+      mandiri: r.triSukses.mandiri,
       total: r.total,
     })
   }
@@ -119,6 +148,8 @@ export function rekapPenguasaan(db: Db, o: { wilayahId: string; jenjang: Kategor
     perKelompok: kelompokan((b) => b.kelompok_id, 'kelompok'),
     perDesa: kelompokan(desaId, 'desa'),
     ...rataKolom(baris, kolom.length),
+    rumus: rumusNilaiAkhir(db),
+    ambang: ambangPredikat(db),
     jenjangBelumDitetapkan: semua.filter((g) => g.kategori === 'caberawit').length,
     materiBelumDitetapkan: kolom.filter((m) => materiBelumDitetapkan(m)).map((m) => m.nama),
   }
