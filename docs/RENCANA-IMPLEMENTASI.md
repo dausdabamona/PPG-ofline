@@ -591,25 +591,15 @@ hitungan bercentang → `{"butir": [0, 3, …]}` (dikuasai = jumlah centang).
 | J-T19 | (review keamanan) Rekaman `evaluasi_semester` dan `keaktifan` berstatus sah di `imporSetor` wajib **ditulis** (`perangkat_id`) oleh perangkat bertoken ber-hak `sahkan` untuk kelompok itu (kecuali kode MS/DS/MR/DR oleh admin/pengurus tingkat desa-daerah); `materi_evaluasi` dari berkas KURIKULUM divalidasi (id, cara, target, rincian) | Setor gabungan EXE desa tidak bisa memalsukan nilai atas namanya hanya karena ada mubaligh di kelompok itu |
 | J-T20 | Id hasil evaluasi = `EVS-` + 40 heksa SHA-256(generus, periode, materi) | Id rekaman dibatasi 64 karakter; id tetap tanpa bentrok |
 
-### 16.4 Perlu dikonfirmasi PPG Daerah (keputusan sementara sudah dipakai)
+### 16.4 Perlu dikonfirmasi PPG Daerah → dipindah ke daftar "Perlu Ditetapkan Kurikulum" (Fase 12)
 
-1. **Periode evaluasi** tertulis berbeda-beda (Mei & November 2026 / November–Desember 2025 / November 2024) → dipakai
-   semester **Mei & November**, bisa diubah Kurikulum.
-2. **Caberawit A**: "SD kelas 1–3" vs "PAUD s.d. SD kelas 3" → dipakai **SD 1–3**.
-3. **Contoh hitungan yang tidak konsisten**: keilmuan PAUD ("6 materi" tetapi dihitung 3 ÷ 4); contoh adab "SD kelas 2"
-   dibagi target jenjang PAUD (35); Doa Generus Sorong PAUD tertulis 24 tetapi dicontohkan ÷ 12 (lembar: 12 butir);
-   hafalan surat PAUD tertulis 6 tetapi lembar memuat 7 surat (nomor 5 kosong) → dipakai **jumlah butir di Lembar Evaluasi**
-   (PAUD surat 7, doa Sorong 12). Caberawit B surat tertulis 24, contoh ÷ 16 → dipakai 24 (lembar).
-4. **ASAD**: PAUD jurus 1 (lembar) vs jurus 1 & 2 (rekap); Caberawit B "jurus 1 & 3" vs "1–3"; Caberawit C "1 & 7" vs
-   "1–4" (rekap) → ikut **Lembar Evaluasi**, Kurikulum bisa mengubah nama.
-5. **Rumus TOTAL** tidak ditetapkan juknis → rata-rata tanpa bobot.
-6. **Generus 2 & 3**: lembar memuat **51 surat** (juknis teks: 45) → dipakai 51 (lembar). Jumlah target GBMTPG (doa/dalil,
-   keilmuan, kefahaman, praktik ibadah, akhlak, adab, kemandirian) untuk Generus 2 & 3 tidak tertulis → kosong, diisi Kurikulum.
-7. **Caberawit C**: lembar tanpa "Hafalan Do'a sesuai GBMTPG", rekap tanpa "Nasehat Bernomor BPI" → keduanya dipakai (22 butir).
-8. **Dalil Generus Sorong** nomor 26 dan 28 tertulis sama ("yg Kuat membantu yg Lemah") → dicatat apa adanya, mohon koreksi.
-9. Jumlah halaman kitab hadits selain K. Sholah (151), K. Nawafil (98), Materi Pegon (19), Materi Bacaan (37) tidak tertulis
-   → diisi Kurikulum.
-10. **Wudhu & Sholat**: PAUD–Caberawit B dihitung per butir (8 butir), Caberawit C–Generus 3 nilai subjektif (≤ 75) — sesuai teks.
+Arahan pemilik (16 Nov 2026): butir yang menyangkut materi/penilaian **diserahkan ke role Kurikulum**. Kesepuluh butir
+konfirmasi Fase 10 kini menjadi butir K01–K15 di §18.2 (tampil di aplikasi, dengan nilai sementara, sumber/alasan, tombol
+Tetapkan/Ubah). Ringkas: periode evaluasi → K01; definisi Caberawit A → K02; contoh hitungan tidak konsisten → K03–K07;
+ASAD → K08; rumus TOTAL → K09; Generus 2 & 3 (51 vs 45 surat, GBMTPG kosong) → K10–K11; Caberawit C 22 butir → K14;
+dalil Sorong 26 & 28 → K13; halaman kitab hadits → K12; wudhu & sholat → K15. Nilai sementara yang dipakai tetap seperti
+J-T12–J-T14, **kecuali** J-T13 diganti J-KR4 (kitab tanpa halaman tidak lagi bernilai 0 di pembagi; materinya "belum
+ditetapkan" dan tidak ikut TOTAL).
 
 ---
 
@@ -683,10 +673,117 @@ Bantemi — kode lama `KMN-BTM`).
 | J-K13 | HP pengurus berjabatan: navigasi **Beranda · Bidang · (Absen untuk PJ kelompok) · Data · Sinkron**; menu Bidang hanya jabatannya. Pengurus tanpa jabatan tetap navigasi lama | "Menu HP pengurus tetap sederhana" |
 | J-K14 | Data kontrol MT & catatan terbuka (inventaris, agenda, data mubaligh) ikut paket seluruh daerah ke semua pengurus tingkat daerah; HP pengurus bidang lain bisa menerimanya tetapi UI hanya menampilkan menu bidangnya | Sinkron per wilayah tetap sederhana; data rahasia tetap terenkripsi |
 
-### 17.3 Perlu dikonfirmasi PPG Daerah (Fase 11)
+### 17.3 Perlu dikonfirmasi PPG Daerah (Fase 11) → dipindah ke §18 (Fase 12)
 
-1. **Modan** di data lama tercatat di desa berkode **AMS** — di struktur 2025 termasuk Desa Aimas; mohon dipastikan kode desanya sama.
-2. Musyawarah rutin: proker menyebut "dua bulan sekali (bulan ganjil)" lalu ralat "sebulan sekali: ganjil bersama, genap muda/i" → dipakai ralat.
-3. Kunci baca keuangan untuk **penggalang dana** (J-K4) dan **wakil ketua**.
-4. Rumus skor reward (J-K7) dan jumlah juara (3 per jenjang) — proker juga menyebut reward Caberawit A/B & Caberowot.
-5. Nominal tabungan desa Fakfak & Kaimana (kosong di proker) — diisi bendahara.
+Arahan pemilik: kebijakan non-kurikulum **diatur lewat mekanisme musyawaroh**. Butir 2–5 daftar Fase 11 (lihat LAPORAN-TAHAP) menjadi kebijakan
+register (§18.3): jadwal musyawarah rutin → M05 (`jadwal_musyawarah`, ralat sebulan sekali: ganjil bersama / genap
+muda/i — J-K8); hak baca keuangan penggalang dana & wakil ketua → M04 (`hak_baca_keuangan`, menggantikan daftar tetap
+J-K4); rumus skor & jumlah juara reward → M02/M03 (menggantikan angka tetap J-K7); nominal tabungan desa (termasuk Fakfak
+& Kaimana yang kosong) → M01 (`tabungan_desa`, menggantikan J-K10 sebagai sumber target). Butir 1 (kode desa Modan) adalah
+**data wilayah**, bukan kebijakan: tetap diperiksa Admin Daerah di menu Wilayah.
+
+---
+
+## 18. Penetapan Kurikulum & Kebijakan lewat Musyawaroh (Fase 12, 16 Nov 2026)
+
+Arahan pemilik atas daftar "perlu dikonfirmasi" Fase 10–11: *"yang berkaitan dengan kurikulum agar diserahkan ke role
+kurikulum, yang berkaitan dengan kebijakan lainnya agar diatur dalam mekanisme musyawaroh"*. Pemilik tidak ditanya:
+pemetaan & keputusan di bawah diambil agen dan dicatat.
+
+### 18.1 Pemetaan butir
+
+| Asal | Butir | Ke |
+|---|---|---|
+| §16.4 no. 1 | Periode/bulan evaluasi | Kurikulum K01 |
+| §16.4 no. 2 | Definisi Caberawit A | Kurikulum K02 |
+| §16.4 no. 3 | Pembagi keilmuan PAUD, adab, doa Sorong PAUD 24 vs 12, surat PAUD 6 vs 7, surat Caberawit B 24 vs 16 | Kurikulum K03–K07 |
+| §16.4 no. 4 | Jurus ASAD | Kurikulum K08 |
+| §16.4 no. 5 | Rumus TOTAL | Kurikulum K09 |
+| §16.4 no. 6 | Generus 2 & 3: 51 vs 45 surat; target GBMTPG kosong | Kurikulum K10, K11 |
+| §16.4 no. 9 | Halaman kitab hadits kosong | Kurikulum K12 |
+| §16.4 no. 8 | Dalil Sorong no. 26 & 28 tertulis sama | Kurikulum K13 |
+| §16.4 no. 7 | Caberawit C 22 butir | Kurikulum K14 |
+| §16.4 no. 10 | Cara nilai wudhu & sholat per jenjang | Kurikulum K15 |
+| §17.3 no. 5, J-K10 | Nominal tabungan bulanan tiap desa (Fakfak & Kaimana kosong) | Musyawarah M01 |
+| §17.3 no. 4, J-K7 | Rumus skor reward | Musyawarah M02 |
+| §17.3 no. 4, J-K7 | Jumlah juara (santri / kelompok / desa) | Musyawarah M03 |
+| §17.3 no. 3, J-K4 | Hak baca keuangan (penggalang dana, wakil ketua) | Musyawarah M04 |
+| §17.3 no. 2, J-K8 | Jadwal musyawarah rutin (ralat: sebulan sekali, ganjil bersama / genap muda/i) | Musyawarah M05 |
+| proker bendahara | Nominal kebutuhan dana kegiatan | Musyawarah M06 |
+| J-K9 | Tanggal pengingat laporan (sekretaris ≤ 7, PJ desa ≥ 25) | Musyawarah M07 |
+| §17.3 no. 1 | Kode desa Modan | **Data wilayah** (Admin Daerah, menu Wilayah) — bukan kebijakan |
+
+Ragu yang diputuskan: reward = kebijakan (menyangkut hadiah & dana, bukan isi materi) → Musyawarah; poin tahfidz (J-K11)
+tetap angka lembar penilaian (tidak termasuk daftar karena tidak pernah diminta konfirmasi); target keaktifan 20/16 tetap
+materi evaluasi `keaktifan` (sudah bisa diubah Kurikulum).
+
+### 18.2 Daftar "Perlu Ditetapkan Kurikulum"
+
+Katalog tetap di core (`BUTIR_KURIKULUM`, `penetapan-kurikulum.ts`). Tiap butir: kode, judul, sumber/alasan, **nilai
+sementara = data yang sedang dipakai hitungan** (dibaca langsung dari materi evaluasi / pengaturan, jadi tidak pernah
+berbeda dari yang dipakai), bentuk isian, dan tombol **Tetapkan** (nilai sekarang) / **Ubah lalu tetapkan**.
+
+| Kode | Butir | Bentuk | Diterapkan ke |
+|---|---|---|---|
+| K01 | Bulan evaluasi semester | bulan S1 (Jul–Des) & S2 (Jan–Jun) | `pengaturan.bulan_evaluasi` |
+| K02 | Definisi Caberawit A | pilihan: SD 1–3 / PAUD s.d. SD 3 | keterangan jenjang (tanpa mengubah data) |
+| K03 | Pembagi Keilmuan PAUD | angka | target `EVL-paud-keilmuan` |
+| K04 | Pembagi Adab PAUD & Caberawit A | angka per jenjang | target `EVL-paud-adab`, `EVL-caberawit_a-adab` |
+| K05 | Do'a Generus Sorong PAUD (12 butir lembar) | konfirmasi daftar butir | `EVL-paud-doa_sorong` |
+| K06 | Hafalan surat PAUD (7 surat lembar) | konfirmasi daftar butir | `EVL-paud-surat` |
+| K07 | Hafalan surat Caberawit B (24) | konfirmasi daftar butir | `EVL-caberawit_b-surat` |
+| K08 | Nama jurus ASAD per jenjang | teks per jenjang | nama `EVL-*-asad` |
+| K09 | Rumus TOTAL | pilihan: rata-rata semua materi / tanpa keaktifan | `hitungTotal` raport & rekap |
+| K10 | Surat Generus 2 & 3 | pilihan: 51 (lembar) / 45 (teks) | butir `EVL-remaja-surat`, `EVL-pranikah-surat` |
+| K11 | Target GBMTPG Generus 2 & 3 | angka per materi (14 isian) | target materi GBMTPG remaja & pranikah |
+| K12 | Halaman terakhir kitab hadits | angka per kitab (nama unik) | halaman kitab di semua materi `hadits` |
+| K13 | Dalil Generus Sorong no. 26 & 28 | teks 2 isian | butir 26 & 28 `EVL-*-dalil_sorong` |
+| K14 | Butir Caberawit C | pilihan: 22 (gabungan) / 21 tanpa Do'a GBMTPG / 21 tanpa Nasehat BPI | hapus lunak/pulihkan materi |
+| K15 | Cara nilai wudhu & sholat | pilihan: sesuai teks / semua per butir / semua subjektif | cara `EVL-*-wudhu_sholat` |
+
+Status butir (dihitung, J-KR2): **Belum ditetapkan** (ada isian kosong) · **Sementara** (belum pernah ditetapkan, atau
+nilai berubah sesudah ditetapkan — ditandai) · **Ditetapkan Kurikulum** (tanggal + nama penetap).
+
+### 18.3 Register Kebijakan & mekanisme musyawaroh
+
+Katalog tetap di core (`KATALOG_KEBIJAKAN`, `kebijakan.ts`): kunci, judul, lingkup (`daerah` / `desa`), nilai bawaan
+(nilai sementara), sumber/alasan, pemeriksa nilai.
+
+| Kode | Kunci | Lingkup | Nilai sementara | Dipakai oleh |
+|---|---|---|---|---|
+| M01 | `tabungan_desa` | desa | Sorong Rp700.000 & Aimas Rp600.000 (konsumsi Mumi Daerah); Fakfak & Kaimana kosong (dikembalikan ke desa) | target tabungan di Keuangan |
+| M02 | `reward_skor` | daerah | bobot keaktifan 50 : penguasaan 50 | `rewardHasilBelajar` |
+| M03 | `reward_juara` | daerah | santri 3 per tingkat, kelompok 1, desa 1 | `rewardHasilBelajar` |
+| M04 | `hak_baca_keuangan` | daerah | ketua, wakil ketua, bendahara, penggalang dana | kunci bidang keuangan (token & paket) |
+| M05 | `jadwal_musyawarah` | daerah | bulan ganjil bersama, genap PPG muda/i | `musyawarahBulan`, agenda |
+| M06 | `dana_kegiatan` | daerah | kosong | Keuangan (kebutuhan dana) |
+| M07 | `pengingat_laporan` | daerah | sekretaris tanggal 1–7, PJ desa mulai 25 | `pengingatLaporan` |
+
+Alur: **Sekretaris** menulis notulen (jenis: rutin bersama / PPG muda/i / desa / 5 unsur; nomor, tanggal, peserta, agenda,
+uraian, butir **keputusan**; butir boleh ditautkan ke kunci kebijakan + nilai baru) → **Ketua** (atau **Wakil Ketua** yang
+diberi mandat oleh Ketua) mengesahkan → ikut SETOR ke daerah → **EXE Daerah menerapkan otomatis** saat impor → kebijakan
+berstatus *Ditetapkan Musyawarah* (nomor & tanggal musyawarah, pengesah) + riwayat → turun lewat PAKET daerah. Tanpa
+pengesahan keputusan tetap **usulan**. Agenda musyawarah berikutnya otomatis memuat "Kebijakan yang masih sementara";
+undangan, agenda, dan hasil bisa dibagikan sebagai teks WA. Beranda Ketua/Sekretaris (HP) dan EXE Daerah/Desa: jumlah
+kebijakan sementara, notulen menunggu pengesahan, musyawarah terakhir & berikutnya.
+
+### 18.4 Keputusan teknis otonom (Fase 12)
+
+| Kode | Keputusan | Alasan |
+|---|---|---|
+| J-KR1 | Nilai sementara butir kurikulum dibaca dari data yang dipakai (materi evaluasi, `bulan_evaluasi`, pengaturan); katalog di kode, bukan baris seed | Satu sumber kebenaran; DB lama tidak perlu seed/migrasi |
+| J-KR2 | Penetapan disimpan di master `pengaturan` id `kur:<kode>` (isi: nilai, penetap, tanggal, catatan, riwayat ≤ 50). Status dihitung: kosong → Belum ditetapkan; penetapan ada & nilai sekarang = nilai ditetapkan → Ditetapkan Kurikulum; selain itu Sementara (+ tanda "berubah sesudah ditetapkan") | Tanpa tabel baru: `pengaturan` sudah tersinkron ke KURIKULUM/MATERI/PAKET; suntingan Materi Evaluasi sesudahnya tidak bisa diam-diam mengaku "ditetapkan" |
+| J-KR3 | Penetap hanya **EXE Kurikulum** (langsung) dan **HP pengurus berjabatan Bidang Kurikulum** (usulan `tetapkan_kurikulum`, disetujui otomatis di daerah bila penulisnya memegang token jabatan kurikulum yang tidak dicabut). EXE Daerah tidak menetapkan (hanya meneruskan); persetujuan manual usulan itu ditolak | Arahan "diserahkan ke role kurikulum"; master tetap ditulis daerah (K5) |
+| J-KR4 | Materi berisian kosong (target null, atau ada kitab tanpa halaman) = **belum ditetapkan Kurikulum**: persen null, tidak ikut TOTAL; raport & rekap (layar, Excel, cetak) menulis "Materi X belum ditetapkan Kurikulum". Input halaman kitab yang sudah diketahui tetap boleh disimpan. Menggantikan J-T13 | Permintaan pemilik; anak tidak dirugikan oleh isian yang belum ada |
+| J-KR5 | Rumus TOTAL (K09) dibaca `rumusTotal(db)`: `rata_rata` (bawaan) atau `tanpa_keaktifan` | Satu fungsi `hitungTotal` untuk raport, rekap, reward |
+| J-KR6 | Berkas KURIKULUM mengizinkan pengaturan `kur:*`; MATERI membawa `kur:*` & `pengaturan` kurikulum; PAKET membawa semua pengaturan. Baris `kur:*`/`kbj:*` dari PAKET EXE desa/kelompok **ditolak** (hanya dari daerah) | Desa tidak bisa memalsukan status penetapan/kebijakan |
+| J-KR7 | Butir pilihan yang mengubah struktur (K10, K14, K15) diterapkan core ke materi evaluasi terkait; hasil evaluasi lama tetap tersimpan dan dihitung menurut cara/target terbaru | Konsisten dengan J-T9 (persen dihitung dari target terkini) |
+| J-M1 | Register kebijakan = master `pengaturan` id `kbj:<kunci>:<lingkup>`; nilai sementara = katalog (bawaan), status Sementara / Belum ditetapkan (bawaan kosong) / Ditetapkan Musyawarah; isi menyimpan dasar (notulen, nomor, tanggal, jenis), pengesah, tanggal diterapkan, riwayat ≤ 50 | Tanpa skema baru (DB lama aman); turun bersama paket yang sudah ada |
+| J-M2 | Notulen = catatan bidang `notulen` yang **diperluas** (nomor, agenda[], uraian, keputusan[] {teks, kunci?, lingkup_id?, nilai?}); `hasil` tidak lagi wajib bila ada uraian/keputusan. Penulis: **sekretaris** (wilayah mana pun), **PJ desa** (desanya), **PJ kelompok** (kelompoknya, mis. 5 unsur). Ketua/wakil tidak lagi menulis notulen | "Hanya sekretaris menulis notulen"; musyawarah desa/kelompok dicatat penanggung jawabnya |
+| J-M3 | Pengesahan = catatan `pengesahan` (rujukan = notulen) berisi **sidik SHA-256 butir keputusan** notulen; penulis ketua, atau wakil ketua dengan mandat aktif pada tanggal pengesahan. Notulen yang diubah sesudah disahkan tidak diterapkan (sidik beda → "perlu disahkan ulang") | Yang disahkan persis yang diterapkan |
+| J-M4 | Mandat = catatan `mandat` oleh ketua {mulai, sampai ≤ 366 hari, keterangan} untuk jabatan wakil ketua | "Wakil Ketua bila diberi mandat" |
+| J-M5 | Penerapan **hanya di EXE Daerah**, otomatis setelah setiap impor SETOR (`terapkanKeputusanTertunda`), idempoten (meta `kbj_terapkan:<pengesahan>`); pengesahan yang tiba sebelum notulennya menunggu impor berikutnya. Lingkup: notulen di wilayah **desa** hanya boleh mengubah kebijakan lingkup desa itu; notulen **kelompok** tidak mengubah kebijakan; notulen **daerah** boleh semua lingkup. Butir tidak sah dilewati & dicatat alasannya (butir lain tetap diterapkan). Kebijakan lingkup desa juga diterapkan EXE Daerah (pemilik master) | Validasi hak di core; K5 |
+| J-M6 | Wewenang impor: `notulen` (J-M2, wilayah dalam cakupan token penulis), `pengesahan`/`mandat` (jabatan & mandat) diperiksa di `imporSetor`, bukan hanya UI | Pemalsuan dari HP lain ditolak |
+| J-M7 | Hak baca keuangan dinamis (M04, wajib memuat bendahara). Jabatan penulis keuangan yang bukan pembaca menerima **kunci publik saja**. Bila M04 berubah → `gantiKunciBidang('keuangan')` otomatis saat diterapkan; versi baru turun lewat PAKET daerah hanya ke pembaca baru (mekanisme Fase 11) | Pemegang lama tidak membaca catatan baru; penggalang dana tetap bisa mencatat |
+| J-M8 | Agenda berikutnya: bulan berjalan bila belum ada notulen jenis rutin bulan itu, selain itu bulan depan; jenis dari M05. Usulan agenda = kebijakan Sementara/Belum ditetapkan dalam lingkup wilayah (daerah: semua; desa: desanya). Teks WA: undangan (+agenda), hasil (keputusan + status pengesahan) | Proker sekretaris; tanpa jadwal tanggal pasti (tanggal diisi saat membuat undangan) |
+| J-M9 | Konsumen kebijakan: target tabungan = kebijakan ditetapkan > target bendahara (catatan) > nilai sementara; reward memakai bobot & jumlah juara; jadwal musyawarah & pengingat memakai M05/M07 | Satu sumber nilai per kebijakan |
