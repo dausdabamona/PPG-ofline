@@ -1,7 +1,8 @@
 // Layar peran Pengurus: Beranda (pengingat setor) · Absen · Data · Rekap · Sinkron (Setor ke Desa/Kelompok, Buka Berkas).
 import { useState } from 'react'
-import { ambilWilayah, cariGenerus, rekapKemajuan, rekapPresensi, tambahHari, tanggalHariIni, type GenerusRinci } from '@ppg/core'
+import { ambilWilayah, cariGenerus, labelIqro, periodeAktif, rekapKemajuan, rekapPresensi, tambahHari, tanggalHariIni, type GenerusRinci } from '@ppg/core'
 import { LaporanBulananHp } from './juknis'
+import { teksPeriode, TombolPdfRaport } from '../komponen/juknis'
 import { useApp, useData } from '../konteks'
 import type { PropHalaman } from '../kerangka'
 import { Angka, Isian, JudulHalaman, KeadaanData, Kartu, Lencana, Modal, Tombol } from '../komponen/ui'
@@ -76,6 +77,7 @@ export function DataPengurus() {
   const [kelompokUsul, setKelompokUsul] = useState('')
   const [detail, setDetail] = useState<GenerusRinci | null>(null)
   const daftar = useData(() => cariGenerus(db, { wilayahId: profil.wilayah_id, cari }), [profil.id, cari])
+  const periode = useData(() => periodeAktif(db), []).data ?? ''
   return (
     <>
       <JudulHalaman judul="Data Generus" keterangan="Data dari admin. Perubahan diajukan sebagai usulan." />
@@ -94,6 +96,17 @@ export function DataPengurus() {
           </div>
         )}
       </KeadaanData>
+      {profil.tingkat === 'kelompok' && periode && (daftar.data ?? []).some((g) => g.status === 'aktif') ? (
+        <Kartu judul="Raport semua generus kelompok (PDF)">
+          <p className="keterangan">{teksPeriode(periode)} · satu anak per halaman A4, untuk dicetak atau dikirim ke orang tua.</p>
+          <TombolPdfRaport
+            generusIds={(daftar.data ?? []).filter((g) => g.status === 'aktif').map((g) => g.id)}
+            periode={periode}
+            namaBerkas={kel[0]?.nama ?? 'kelompok'}
+            teksCetak="PDF semua raport / Cetak"
+          />
+        </Kartu>
+      ) : null}
       <DaftarUsulan kelompokIds={kel.map((k) => k.id)} />
       {form ? (
         kel.length > 1 && !kelompokUsul ? (
@@ -125,6 +138,10 @@ export function DataPengurus() {
             <dd>
               {detail.wali_nama ?? '—'} {detail.wali_no_hp ? `(${detail.wali_no_hp})` : ''}
             </dd>
+            <dt>Sekolah</dt>
+            <dd>{[detail.sekolah, detail.kelas_sekolah ? `kelas ${detail.kelas_sekolah}` : ''].filter(Boolean).join(' ') || '—'}</dd>
+            <dt>Iqro' / Al-Qur'an</dt>
+            <dd>{labelIqro(detail.iqro) || '—'}</dd>
           </dl>
         </Modal>
       ) : null}

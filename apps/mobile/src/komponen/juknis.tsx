@@ -15,6 +15,8 @@ import {
   daftarKeaktifan,
   periodeAktif,
   raporGenerus,
+  raporPdf,
+  slug,
   simpanEvaluasi,
   tanggalHariIni,
   BATAS_SUBJEKTIF,
@@ -211,6 +213,40 @@ function IsiKeaktifan(p: { generusId: string; jenjang: string; tanggal: string; 
   )
 }
 
+/**
+ * §19 (J-C15): raport resmi PDF dibuat di HP (offline) — "Simpan PDF / Cetak" membuka PDF di aplikasi pembaca PDF (menu
+ * Cetak Android ada di sana), "Bagikan PDF" lewat lembar bagikan (WA).
+ */
+export function TombolPdfRaport(p: { generusIds: string[]; periode: string; namaBerkas: string; teksCetak?: string }) {
+  const { db, platform, aksi } = useApp()
+  const nama = `Raport_${slug(p.namaBerkas)}_${p.periode}.pdf`
+  const buat = () => raporPdf(db, { generusIds: p.generusIds, periode: p.periode })
+  return (
+    <div className="aksi-dua">
+      <Tombol
+        varian="kedua"
+        disabled={!p.generusIds.length || !p.periode}
+        onClick={async () => {
+          const b = await aksi(buat)
+          if (b) await aksi(() => platform.bukaPdf(nama, b))
+        }}
+      >
+        {p.teksCetak ?? 'Simpan PDF / Cetak'}
+      </Tombol>
+      <Tombol
+        varian="kedua"
+        disabled={!p.generusIds.length || !p.periode}
+        onClick={async () => {
+          const b = await aksi(buat)
+          if (b) await aksi(() => platform.bagikanBerkas([{ nama, bytes: b }], 'Kirim raport'))
+        }}
+      >
+        Bagikan PDF (WA)
+      </Tombol>
+    </div>
+  )
+}
+
 /** Laporan Hasil Belajar (raport) per semester — tampil di HP murid & orang tua dan mubaligh. */
 export function RaporHp(p: { generusId: string }) {
   const { db } = useApp()
@@ -228,6 +264,7 @@ export function RaporHp(p: { generusId: string }) {
           pilihan={[aktif, periodeSebelumnya(aktif), periodeSebelumnya(periodeSebelumnya(aktif))].map((x) => ({ nilai: x, teks: teksPeriode(x) }))}
         />
       ) : null}
+      {per ? <TombolPdfRaport generusIds={[p.generusId]} periode={per} namaBerkas={ambilGenerus(db, p.generusId)?.nama ?? 'generus'} /> : null}
       <KeadaanData hasil={r} kosong={(d) => !d} teksKosong="Data belum ada.">
         {(x) =>
           !x!.jenjang ? (

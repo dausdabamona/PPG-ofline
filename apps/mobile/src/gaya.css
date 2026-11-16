@@ -1287,3 +1287,7 @@ button.baris-progres {
 .kotak-centang .centang {
   min-height: 44px;
 }
+
+/* §19 — dua tombol berdampingan (PDF raport: cetak / bagikan) */
+.aksi-dua { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.aksi-dua .tombol { min-height: 44px; }

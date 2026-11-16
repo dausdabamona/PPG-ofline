@@ -18,6 +18,10 @@ import {
   tanggalHariIni,
   UNSUR_NUNGGONI,
   LABEL_JENJANG,
+  JILID_IQRO,
+  labelIqro,
+  ringkasTargetKeaktifan,
+  saranJenjangIqro,
   type GenerusRinci,
   type IsiLaporanBulanan,
   type ItemRapor,
@@ -27,7 +31,7 @@ import {
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import { AreaTeks, BilahPersen, Isian, JudulHalaman, KeadaanData, Kartu, Kosong, Lencana, Modal, Pilihan, Segmen, Spanduk, Tombol } from '../komponen/ui'
-import { EditorEvaluasi, geserBulan, LembarKontrol, periodeSebelumnya, RaporHp, teksBulan, teksPeriode } from '../komponen/juknis'
+import { EditorEvaluasi, geserBulan, LembarKontrol, periodeSebelumnya, RaporHp, teksBulan, teksPeriode, TombolPdfRaport } from '../komponen/juknis'
 import { label, LABEL_KATEGORI, tanggalTeks } from '../utils/label'
 
 const fmt = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `${String(n).replace('.', ',')}%`)
@@ -44,7 +48,7 @@ export function KeaktifanMubaligh(p: { kembali: () => void }) {
   const [lembar, setLembar] = useState<string | null>(null)
   return (
     <>
-      <JudulHalaman judul="Keaktifan" keterangan="Target 20 kali/bulan (Pra Nikah 16). Satu hari dihitung satu kali." kembali={p.kembali} />
+      <JudulHalaman judul="Keaktifan" keterangan={`Target ${ringkasTargetKeaktifan(db)} (Kurikulum K16). Satu hari dihitung satu kali.`} kembali={p.kembali} />
       <Tombol penuh onClick={() => setCatat(true)}>
         + Catat kegiatan (mumi, pengajian desa/daerah, mandiri…)
       </Tombol>
@@ -177,6 +181,12 @@ export function EvaluasiMubaligh(p: { kembali: () => void }) {
         ) : null}
         <Pilihan label="Jenjang" nilai={jenjang} ubah={setJenjang} kosong="Semua jenjang" pilihan={[...KATEGORI_GENERUS, 'caberawit'].map((k) => ({ nilai: k, teks: label(LABEL_KATEGORI, k) }))} />
       </Kartu>
+      {daftar.length ? (
+        <Kartu judul={`Semua raport kelas ini (${daftar.length} anak)`}>
+          <p className="keterangan">PDF A4, satu anak per halaman, siap dicetak atau dikirim ke orang tua.</p>
+          <TombolPdfRaport generusIds={daftar.map((g) => g.id)} periode={per} namaBerkas={jenjang ? label(LABEL_KATEGORI, jenjang) : 'semua'} teksCetak="PDF semua raport / Cetak" />
+        </Kartu>
+      ) : null}
       <KeadaanData hasil={generus} kosong={() => daftar.length === 0} teksKosong="Tidak ada generus aktif.">
         {() => (
           <ul className="daftar-sederhana">
@@ -237,6 +247,7 @@ function EvaluasiGenerus(p: { g: GenerusRinci; periode: string; kembali: () => v
           Ajukan jenjang
         </Tombol>
       </Kartu>
+      <KartuIqro g={p.g} />
       <KeadaanData hasil={r} kosong={(d) => !d || !d.jenjang || d.items.length === 0} teksKosong="Jenjang belum ditetapkan atau daftar materi evaluasi belum ada (buka berkas materi terbaru).">
         {(x) => (
           <Kartu judul={`TOTAL ${fmt(x!.total)}`} aksi={<Tombol kecil varian="kedua" onClick={() => setRapor(true)}>Raport</Tombol>}>
@@ -408,5 +419,31 @@ export function FormLaporan(p: { awal: IsiLaporanBulanan; ada: boolean; simpan: 
         </Tombol>
       </Kartu>
     </>
+  )
+}
+
+/** §19 (J-C14): mubaligh memperbarui jilid Iqro' anak → usulan, disetujui otomatis di daerah. */
+function KartuIqro(p: { g: GenerusRinci }) {
+  const { db, aksi, profil } = useApp()
+  const [iqro, setIqro] = useState(p.g.iqro ?? '')
+  const saran = saranJenjangIqro({ kategori: p.g.kategori, iqro: iqro || null })
+  return (
+    <Kartu judul="Jilid Iqro' / Al-Qur'an">
+      <Pilihan label="Jilid sekarang" nilai={iqro} ubah={setIqro} kosong="— belum diisi —" pilihan={JILID_IQRO.map((j) => ({ nilai: j, teks: labelIqro(j) }))} />
+      {saran ? <Spanduk jenis="info">Saran jenjang: {LABEL_JENJANG[saran]} (B = masih Iqro', C = sudah Al-Qur'an).</Spanduk> : null}
+      <Tombol
+        penuh
+        varian="kedua"
+        disabled={!iqro || iqro === (p.g.iqro ?? '')}
+        onClick={() =>
+          void aksi(
+            () => ajukanUsulan(db, { jenis: 'ubah_generus', kelompokId: profil.wilayah_id, data: { generus_id: p.g.id, perubahan: { iqro } } }),
+            "Jilid Iqro' diajukan; berlaku setelah Setor sampai daerah (disetujui otomatis).",
+          )
+        }
+      >
+        Ajukan jilid Iqro'
+      </Tombol>
+    </Kartu>
   )
 }

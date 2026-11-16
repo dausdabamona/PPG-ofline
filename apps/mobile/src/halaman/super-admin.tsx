@@ -37,6 +37,7 @@ import {
   type Wilayah,
 } from '@ppg/core'
 import { useDataSuper, useSuper } from '../konteks-super'
+import { useIsianSekolah } from './bersama'
 import { PemindaiQr, QrBerseri } from '../komponen/qr'
 import { Angka, AreaTeks, Isian, JudulHalaman, Kartu, KeadaanData, Konfirmasi, Kosong, Lencana, MenuDaftar, Modal, Pilihan, Segmen, Spanduk, Tombol } from '../komponen/ui'
 import { label, LABEL_KATEGORI, LABEL_STATUS_GENERUS, LABEL_STATUS_TOKEN, pesanGalat, pesanHasilBerkas, waktuTeks } from '../utils/label'
@@ -559,6 +560,7 @@ function FormGenerusBaru(p: { tutup: () => void; simpan: (d: Record<string, unkn
   const [kategori, setKategori] = useState('caberawit_a')
   const [wali, setWali] = useState('')
   const [hp, setHp] = useState('')
+  const sek = useIsianSekolah()
   return (
     <Modal
       judul="Tambah generus"
@@ -566,7 +568,7 @@ function FormGenerusBaru(p: { tutup: () => void; simpan: (d: Record<string, unkn
       aksi={
         <Tombol
           disabled={!nama.trim() || !jk}
-          onClick={() => p.simpan({ nama: nama.trim(), jenis_kelamin: jk, kategori, wali_nama: wali.trim() || null, wali_no_hp: hp.trim() || null, mulai: tanggalHariIni() })}
+          onClick={() => p.simpan({ nama: nama.trim(), jenis_kelamin: jk, kategori, wali_nama: wali.trim() || null, wali_no_hp: hp.trim() || null, ...sek.data, mulai: tanggalHariIni() })}
         >
           Simpan generus
         </Tombol>
@@ -585,6 +587,7 @@ function FormGenerusBaru(p: { tutup: () => void; simpan: (d: Record<string, unkn
       <Pilihan label="Kategori" nilai={kategori} ubah={setKategori} pilihan={KATEGORI_GENERUS.map((k) => ({ nilai: k, teks: label(LABEL_KATEGORI, k) }))} />
       <Isian label="Nama orang tua" nilai={wali} ubah={setWali} />
       <Isian label="No. HP orang tua" type="tel" inputMode="tel" nilai={hp} ubah={setHp} placeholder="08…" />
+      {sek.elemen}
     </Modal>
   )
 }

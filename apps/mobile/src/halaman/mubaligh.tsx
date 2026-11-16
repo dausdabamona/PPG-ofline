@@ -4,6 +4,8 @@
 import { useMemo, useState } from 'react'
 import {
   batalkanJadwalTambahan,
+  labelIqro,
+  saranJenjangIqro,
   buatBalasan,
   buatJadwal,
   cariGenerus,
@@ -212,6 +214,13 @@ export function GenerusMubaligh(p: { kembali?: () => void }) {
             <dt>Orang tua/wali</dt>
             <dd>
               {detail.wali_nama ?? '—'} {detail.wali_no_hp ? `(${detail.wali_no_hp})` : ''}
+            </dd>
+            <dt>Sekolah</dt>
+            <dd>{[detail.sekolah, detail.kelas_sekolah ? `kelas ${detail.kelas_sekolah}` : ''].filter(Boolean).join(' ') || '—'}</dd>
+            <dt>Iqro' / Al-Qur'an</dt>
+            <dd>
+              {labelIqro(detail.iqro) || '—'}
+              {saranJenjangIqro(detail) ? <small> · saran jenjang {label(LABEL_KATEGORI, saranJenjangIqro(detail)!)} (ubah di Evaluasi Semester)</small> : null}
             </dd>
             <dt>Materi selesai</dt>
             <dd>{materi.data ? `${materi.data.ringkasan.selesai} dari ${materi.data.ringkasan.total} (${materi.data.ringkasan.persen}%)` : '…'}</dd>

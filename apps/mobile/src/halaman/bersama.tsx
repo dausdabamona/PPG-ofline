@@ -13,6 +13,8 @@ import {
   teksDataSetor,
   tujuanSetor,
   KATEGORI_GENERUS,
+  JILID_IQRO,
+  labelIqro,
   type Generus,
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
@@ -132,6 +134,23 @@ export function KartuSetorData(p: { setorAkhir?: boolean }) {
 }
 
 /** Formulir usulan generus baru. */
+/** §19: isian sekolah, kelas sekolah, jilid Iqro' (form generus baru/ubah di HP). */
+export function useIsianSekolah(awal?: { sekolah?: string | null; kelas_sekolah?: string | null; iqro?: string | null }) {
+  const [sekolah, setSekolah] = useState(awal?.sekolah ?? '')
+  const [kelas, setKelas] = useState(awal?.kelas_sekolah ?? '')
+  const [iqro, setIqro] = useState(awal?.iqro ?? '')
+  return {
+    data: { sekolah: sekolah.trim() || null, kelas_sekolah: kelas.trim() || null, iqro: iqro || null },
+    elemen: (
+      <>
+        <Isian label="Sekolah" nilai={sekolah} ubah={setSekolah} placeholder="mis. SD Negeri 1" />
+        <Isian label="Kelas sekolah" nilai={kelas} ubah={setKelas} placeholder="mis. 4" />
+        <Pilihan label="Jilid Iqro' / Al-Qur'an" nilai={iqro} ubah={setIqro} kosong="— belum diketahui —" pilihan={JILID_IQRO.map((j) => ({ nilai: j, teks: labelIqro(j) }))} />
+      </>
+    ),
+  }
+}
+
 export function FormGenerusBaru(p: { kelompokId: string; tutup: () => void }) {
   const { db, aksi } = useApp()
   const [nama, setNama] = useState('')
@@ -140,6 +159,7 @@ export function FormGenerusBaru(p: { kelompokId: string; tutup: () => void }) {
   const [kategori, setKategori] = useState('')
   const [waliNama, setWaliNama] = useState('')
   const [waliHp, setWaliHp] = useState('')
+  const sek = useIsianSekolah()
   return (
     <Modal
       judul="Usulkan generus baru"
@@ -160,6 +180,7 @@ export function FormGenerusBaru(p: { kelompokId: string; tutup: () => void }) {
                     kategori: kategori || null,
                     wali_nama: waliNama.trim() || null,
                     wali_no_hp: waliHp.trim() || null,
+                    ...sek.data,
                   },
                 }),
               'Usulan tersimpan. Akan dikirim ke admin saat Setor Data.',
@@ -177,6 +198,7 @@ export function FormGenerusBaru(p: { kelompokId: string; tutup: () => void }) {
       <Pilihan label="Kategori" nilai={kategori} ubah={setKategori} kosong="Hitung dari umur" pilihan={KATEGORI_GENERUS.map((k) => ({ nilai: k, teks: LABEL_KATEGORI[k]! }))} />
       <Isian label="Nama orang tua/wali" nilai={waliNama} ubah={setWaliNama} />
       <Isian label="No. HP orang tua/wali" nilai={waliHp} ubah={setWaliHp} type="tel" inputMode="tel" placeholder="08…" />
+      {sek.elemen}
     </Modal>
   )
 }
