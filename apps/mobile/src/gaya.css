@@ -1317,3 +1317,34 @@ button.baris-progres {
 .rincian-bagian { margin-bottom: 8px; }
 .nilai-bd { white-space: nowrap; color: var(--tinta-lembut); font-style: italic; }
 .daftar-aspek .aspek b { white-space: nowrap; }
+
+/* §21.1: menu Bidang dikelompokkan per penugasan */
+.kelompok-menu {
+  margin-bottom: 14px;
+}
+.judul-kelompok-menu {
+  margin: 10px 4px 6px;
+  font-size: 0.95rem;
+  color: var(--teal-tua);
+}
+/* §21.3: kategori rujukan 3 kolom (label tidak terpotong), baris rujukan masuk bertumpuk */
+.pilih-kategori-rujukan .segmen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.pilih-kategori-rujukan .segmen button {
+  min-height: 44px;
+  padding: 6px 4px;
+  white-space: normal;
+}
+.daftar-sederhana li.baris-rujukan {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.daftar-sederhana li.baris-rujukan .aksi-baris {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

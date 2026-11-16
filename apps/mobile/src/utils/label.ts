@@ -120,6 +120,7 @@ const NAMA_JENIS: Record<string, string> = {
   MATERI: 'Daftar materi',
   BELAJAR: 'Setoran belajar',
   SETOR: 'Setoran data',
+  RUJUKAN: 'Rujukan ke BK',
 }
 
 /** Kalimat hasil membuka satu berkas, untuk orang awam. */
@@ -136,7 +137,9 @@ export function pesanHasilBerkas(h: HasilImporBanyak): { sukses: boolean; teks: 
   const jenis = NAMA_JENIS[h.jenis ?? ''] ?? 'Berkas'
   if (r.sudahPernah) return { sukses: true, teks: `${jenis} ini sudah pernah dibuka sebelumnya.` }
   const bagian: string[] = []
-  if (h.jenis === 'BELAJAR') {
+  if (h.jenis === 'RUJUKAN') {
+    bagian.push(r.sudahAda ? 'Rujukan ini sudah ada di HP BK (tiba lewat paket).' : 'Rujukan baru diterima. Buka menu Bidang → Bimbingan Konseling.')
+  } else if (h.jenis === 'BELAJAR') {
     const hasil = r.hasil as { ditambah: number; diperbarui: number; ditolak: unknown[] } | undefined
     const n = (hasil?.ditambah ?? 0) + (hasil?.diperbarui ?? 0)
     bagian.push(`${jenis} diterima: ${n} catatan baru menunggu disahkan.`)

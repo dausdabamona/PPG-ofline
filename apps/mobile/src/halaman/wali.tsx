@@ -1,4 +1,5 @@
 // Layar peran Wali (orang tua): Target (Materi yang perlu dituntaskan) · Laporan Pekanan tiap anak · Kemajuan · Kehadiran · Buka Berkas.
+import { KartuHubungiBk } from './rujukan'
 import { useState, type ReactNode } from 'react'
 import { daftarPresensi, generusProfil, laporanPekanan, tambahHari, tanggalHariIni, type MateriGenerus } from '@ppg/core'
 import { useApp, useData } from '../konteks'
@@ -38,6 +39,8 @@ export function TargetWali() {
           <TombolRapor generusId={gid} nama={anak.find((a) => a.id === gid)?.nama ?? ''} />
         </div>
       ) : null}
+      {/* §21.4: orang tua menghubungi BK lewat WA langsung (tanpa rekaman di aplikasi) */}
+      <KartuHubungiBk />
     </>
   )
 }

@@ -1,6 +1,7 @@
 // Layar peran Mubaligh (v3, disederhanakan): Absen · Jadwal · Materi · Lainnya
 // (Setoran generus, Simak Langsung, Generus, Terbitkan Token, Kirim Balasan, Laporan Pekanan WA, Setor ke Desa/Kelompok,
 // Buka Berkas). Absen ada di halaman/absen.tsx (dipakai juga pengurus).
+import { HalamanRujukBk, KartuSaranRujuk } from './rujukan'
 import { useMemo, useState } from 'react'
 import {
   batalkanJadwalTambahan,
@@ -252,11 +253,12 @@ export function GenerusMubaligh(p: { kembali?: () => void }) {
 
 // ---------------- Lainnya ----------------
 
-type Sub = 'menu' | 'setoran' | 'simak' | 'generus' | 'token' | 'laporan' | 'balasan' | 'setor' | 'berkas' | 'keaktifan' | 'evaluasi' | 'bulanan' | 'kontrolmt' | 'nunggoni'
+type Sub = 'rujuk' | 'menu' | 'setoran' | 'simak' | 'generus' | 'token' | 'laporan' | 'balasan' | 'setor' | 'berkas' | 'keaktifan' | 'evaluasi' | 'bulanan' | 'kontrolmt' | 'nunggoni'
 
 export function LainnyaMubaligh() {
   const { db, profil } = useApp()
   const [sub, setSub] = useState<Sub>('menu')
+  const [rujukAwal, setRujukAwal] = useState<string | undefined>(undefined)
   const tujuan = useTujuanSetor()
   const menunggu = useData(() => daftarDiajukanRinci(db, profil.wilayah_id).length, [profil.id]).data ?? 0
   const ajuanAktif = useData(() => keaktifanMenunggu(db, profil.wilayah_id).length, [profil.id]).data ?? 0
@@ -266,6 +268,7 @@ export function LainnyaMubaligh() {
   if (sub === 'evaluasi') return <EvaluasiMubaligh kembali={kembali} />
   if (sub === 'bulanan') return <LaporanBulananHp kembali={kembali} />
   if (sub === 'kontrolmt') return <KontrolMtHp kembali={kembali} />
+  if (sub === 'rujuk') return <HalamanRujukBk kembali={() => { setRujukAwal(undefined); kembali() }} generusAwal={rujukAwal} />
   if (sub === 'nunggoni')
     return (
       <>
@@ -296,6 +299,8 @@ export function LainnyaMubaligh() {
   return (
     <>
       <JudulHalaman judul="Lainnya" />
+      {/* §21.3: kartu saran "Rujuk ke BK?" — keaktifan < 50 % dua bulan berturut-turut */}
+      <KartuSaranRujuk rujuk={(id) => { setRujukAwal(id); setSub('rujuk') }} />
       <MenuDaftar
         item={[
           { teks: 'Setoran Generus', ket: menunggu ? `${menunggu} menunggu disahkan` : 'Buka setoran belajar, lalu sahkan', ikon: '⇩', buka: () => setSub('setoran') },
@@ -307,6 +312,7 @@ export function LainnyaMubaligh() {
           },
           { teks: 'Evaluasi Semester', ket: 'Nilai penguasaan materi & raport', ikon: '★', buka: () => setSub('evaluasi') },
           { teks: 'Laporan Bulanan', ket: 'Musyawaroh 5 Unsur, Muda/i, NUNGGONI', ikon: '✉', buka: () => setSub('bulanan') },
+          { teks: 'Rujuk ke BK', ket: 'Generus perlu bimbingan — terkirim ke BK, status bisa dipantau', ikon: '✚', buka: () => setSub('rujuk') },
           { teks: 'Kontrol Keaktifan MT', ket: 'Sholat, hafalan, tadarus (dilaporkan bulanan)', ikon: '☼', buka: () => setSub('kontrolmt') },
           { teks: 'Simak Langsung', ket: 'Untuk generus tanpa HP', ikon: '♪', buka: () => setSub('simak') },
           { teks: 'Generus', ket: 'Data & usulan perubahan', ikon: '☺', buka: () => setSub('generus') },

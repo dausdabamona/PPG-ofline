@@ -5,7 +5,8 @@
 //     --external fflate -o apps/mobile/node_modules/.uji/admin-uji.cjs
 //   node apps/mobile/uji-peramban/uji-asap.mjs "$PWD/apps/mobile/dist" "$PWD/apps/mobile/node_modules/.uji/admin-uji.cjs"
 // (atur CHROME=/path/chrome bila bukan /usr/bin/google-chrome; PLAYWRIGHT=/path/playwright-core bila tidak di node_modules)
-// Uji asap HP 360×740 (v3; layar 28–30 = Fase 14 Karakter Luhur & raport Tri Sukses): sambut → Kode Perangkat (QR ≥ 280 px) → kode EXE ditolak dengan pesan → aktivasi mubaligh → paket & materi →
+// Uji asap HP 360×740 (v3; layar 28–30 = Fase 14 Karakter Luhur & raport Tri Sukses; 31–37 = Fase 15 Rujuk ke BK, PIN wajib,
+// Bidang per penugasan, rujukan masuk BK, Hubungi BK orang tua): sambut → Kode Perangkat (QR ≥ 280 px) → kode EXE ditolak dengan pesan → aktivasi mubaligh → paket & materi →
 // Absen (pengingat setor, kelas, saran materi, hadir + tuntas) → Materi kelas → QR berseri + layar penuh → Setor sekarang →
 // cadangan terenkripsi → muat ulang (IndexedDB).
 import { createServer } from 'node:http'
@@ -255,6 +256,24 @@ await page.getByText(/Ikut terkirim saat Setor/).waitFor()
 await foto('17-kontrol-mt')
 kecil.push(...(await ukurTombol()))
 
+// §21 (Fase 15): mubaligh — Rujuk ke BK (formulir 1 layar, Segera → pesan keselamatan), rujukan saya (status saja)
+await navKe('Lainnya')
+await page.getByRole('button', { name: /^.?Rujuk ke BK/ }).click()
+await page.getByRole('heading', { name: 'Rujuk ke BK', exact: true }).waitFor()
+const opsiBilal = await page.getByLabel('Generus', { exact: true }).locator('option', { hasText: 'Bilal' }).getAttribute('value')
+await page.getByLabel('Generus', { exact: true }).selectOption(opsiBilal)
+await page.getByRole('radio', { name: 'Perilaku' }).click()
+await page.getByLabel('Uraian singkat').fill('Contoh: sering terlambat dan tampak murung sejak bulan lalu.')
+await page.getByRole('checkbox', { name: /Segera/ }).check()
+await page.getByText(/Akan diterima: BK Kelompok Klasaman 1/).waitFor()
+await foto('31-rujuk-bk')
+kecil.push(...(await ukurTombol()))
+await page.getByRole('button', { name: 'Kirim rujukan' }).click()
+await page.getByText(/Hubungi BK atau pengurus sekarang lewat telepon/).waitFor()
+await page.getByText('Terkirim — belum diterima BK').waitFor()
+await foto('32-rujukan-terkirim')
+kecil.push(...(await ukurTombol()))
+
 // §17: profil pengurus daerah berjabatan (ketua + bendahara) di HP yang sama → menu hanya bidangnya
 await page.getByRole('button', { name: /^Profil:/ }).click()
 await page.getByRole('button', { name: '+ Tambah Profil' }).click()
@@ -270,6 +289,13 @@ await page.getByText(/Ringkasan PPG/).first().waitFor()
 await foto('18-beranda-bidang')
 kecil.push(...(await ukurTombol()))
 await navKe('Bidang')
+// §21.1: profil bendahara wajib PIN — menu Bidang terkunci sampai PIN dipasang
+await page.getByRole('heading', { name: 'Pasang PIN dulu', exact: true }).waitFor()
+await page.getByLabel('PIN baru (4 angka)').fill('1234')
+await page.getByLabel('Ulangi PIN').fill('1234')
+await foto('33-pin-wajib')
+kecil.push(...(await ukurTombol()))
+await page.getByRole('button', { name: 'Pasang PIN', exact: true }).click()
 await page.getByRole('heading', { name: 'Bidang', exact: true }).waitFor()
 await foto('19-menu-bidang')
 kecil.push(...(await ukurTombol()))
@@ -318,6 +344,59 @@ await page.getByText(/Penetapan diajukan/).waitFor()
 await page.getByText('Diajukan ke Daerah').first().waitFor()
 await foto('25-penetapan-diajukan')
 kecil.push(...(await ukurTombol()))
+
+// §21 (Fase 15): profil BK Kelompok + Sarpras Desa (rangkap) → menu Bidang per penugasan → rujukan masuk → Terima
+await page.getByRole('button', { name: /^Profil:/ }).click()
+await page.getByRole('button', { name: '+ Tambah Profil' }).click()
+await page.getByRole('button', { name: 'Tempel Token' }).click()
+await page.getByLabel('Token').fill(admin.tokenBk(kode))
+await page.getByRole('button', { name: 'Aktifkan', exact: true }).click()
+await page.getByRole('heading', { name: /Assalamu'alaikum, Pengurus BK/ }).waitFor({ timeout: 30000 })
+await navKe('Sinkron')
+await bukaBerkas('Buka Berkas', [admin.paketDesa()])
+await page.getByText(/Data dari admin berhasil dibuka/).waitFor({ timeout: 30000 })
+await navKe('Bidang')
+await page.getByRole('heading', { name: 'Pasang PIN dulu', exact: true }).waitFor()
+await page.getByLabel('PIN baru (4 angka)').fill('2468')
+await page.getByLabel('Ulangi PIN').fill('2468')
+await page.getByRole('button', { name: 'Pasang PIN', exact: true }).click()
+await page.getByText('Bidang Bimbingan Konseling · Kelompok Klasaman 1').waitFor()
+await page.getByText('Bidang Sarana & Prasarana · Desa Klasaman').waitFor()
+await foto('34-bidang-per-penugasan')
+kecil.push(...(await ukurTombol()))
+await page.getByRole('button', { name: /^.?Bimbingan Konseling/ }).click()
+await page.getByText(/sering terlambat dan tampak murung/).waitFor()
+await foto('35-rujukan-masuk-bk')
+kecil.push(...(await ukurTombol()))
+await page.getByRole('button', { name: 'Terima', exact: true }).click()
+await page.getByText(/^Diterima\.$/).waitFor()
+
+// §21.4: HP orang tua (konteks peramban baru) — Hubungi BK → pilih BK Kelompok (wa.me), tanpa rekaman
+const ctx2 = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+const page2 = await ctx2.newPage()
+page2.on('pageerror', (e) => galat.push(String(e)))
+await page2.goto('http://localhost:4318/')
+await page2.getByLabel('Nama HP ini').fill('HP Pak Fauzi')
+await page2.getByRole('button', { name: 'Lanjut' }).click()
+const kode2 = (await page2.getByTestId('kode-perangkat').textContent()) ?? ''
+await page2.getByRole('button', { name: 'Tempel Token' }).click()
+await page2.getByLabel('Token').fill(admin.tokenWali(kode2))
+await page2.getByRole('button', { name: 'Aktifkan', exact: true }).click()
+await page2.getByRole('heading', { name: 'Materi yang perlu dituntaskan', exact: true }).waitFor({ timeout: 30000 })
+const idHp2 = JSON.parse(Buffer.from(kode2.slice(6), 'base64url').toString()).perangkat_id
+await page2.getByRole('navigation').getByRole('button', { name: /Berkas/ }).click()
+const b2 = admin.balasanWali(idHp2)
+const [pemilih2] = await Promise.all([page2.waitForEvent('filechooser'), page2.getByRole('button', { name: 'Buka Berkas', exact: true }).click()])
+await pemilih2.setFiles([{ name: b2.nama, mimeType: 'application/octet-stream', buffer: Buffer.from(b2.bytes) }])
+await page2.getByText(/Balasan dari mubaligh berhasil dibuka/).waitFor({ timeout: 30000 })
+await page2.getByRole('navigation').getByRole('button', { name: /Target/ }).click()
+await page2.getByRole('button', { name: 'Hubungi BK', exact: true }).click()
+await page2.getByRole('button', { name: 'BK Kelompok · Klasaman 1' }).waitFor()
+await page2.getByRole('button', { name: 'BK Kelompok · Klasaman 1' }).scrollIntoViewIfNeeded()
+await page2.screenshot({ path: './uji-asap-hp-36-hubungi-bk.png', fullPage: false })
+kecil.push(
+  ...(await page2.$$eval('button', (bs) => bs.filter((b) => b.offsetParent !== null).map((b) => ({ t: b.textContent?.trim(), h: b.getBoundingClientRect().height })).filter((x) => x.h < 44))),
+)
 
 await browser.close()
 srv.close()

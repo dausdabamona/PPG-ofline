@@ -1,8 +1,13 @@
 // Admin tiruan untuk uji asap peramban (dibundel rolldown → .cjs untuk Node).
 // v3: target kurikulum caberawit (3 materi), kelas caberawit hari ini, jadwal setor kelompok → HP "terlambat".
 import {
+  aktifkanProfil,
   aturJadwalSetor,
+  buatBalasan,
   bukaDb,
+  inisialisasiPerangkat,
+  terapkanPaket,
+  terbitkanTokenGenerus,
   idMateriEvaluasi,
   simpanEvaluasi,
   simpanPenilaianKarakter,
@@ -68,7 +73,24 @@ export async function siapkan() {
   const m = daftarMateri(db, { kategoriGenerus: 'caberawit' }).slice(0, 3)
   tetapkanTarget(db, { periode: periodeAktif(db), kategoriGenerus: 'caberawit', materiIds: m.map((x) => x.id) })
   aturJadwalSetor(db, { tingkatAsal: 'kelompok', pola: 'pekanan', hari: (dow + 3) % 7, jam: '21:00' })
+  // §21 (Fase 15): BK Kelompok Klasaman 1 aktif di HP lain (nomor WA contoh) → info BK & kontak ikut paket
+  const hpBk = await bukaDb()
+  const ib = await inisialisasiPerangkat(hpBk, 'HP BK Contoh')
+  terbitkanToken(db, kunci, { kodePerangkat: ib.kodePerangkat, role: 'pengurus', nama: 'BK Contoh', penugasan: [{ jabatan: 'bk', wilayah_id: k1.id }], kontakBk: '081211112222' })
+  // mubaligh tiruan (HP lain, core) untuk menerbitkan token & balasan orang tua di konteks peramban kedua
+  const hpM = await bukaDb()
+  const im = await inisialisasiPerangkat(hpM, 'HP Mubaligh Contoh')
+  const pm = await aktifkanProfil(hpM, terbitkanToken(db, kunci, { kodePerangkat: im.kodePerangkat, role: 'mubaligh', nama: 'Ust. Contoh', wilayahId: k1.id }))
   return {
+    // §21: pengurus BK Kelompok Klasaman 1 + Sarpras Desa Klasaman (rangkap) → wilayah token desa
+    tokenBk: (kode: string) =>
+      terbitkanToken(db, kunci, { kodePerangkat: kode, role: 'pengurus', nama: 'Pengurus BK', penugasan: [{ jabatan: 'bk', wilayah_id: k1.id }, { jabatan: 'sarpras', wilayah_id: ds.id }] }),
+    paketDesa: () => buatPaket(db, ds.id, kunci),
+    tokenWali: (kode: string) => {
+      terapkanPaket(hpM, buatPaket(db, k1.id, kunci).bytes)
+      return terbitkanTokenGenerus(hpM, pm.id, { kodePerangkat: kode, role: 'wali', generusIds: [ahmad], nama: 'Pak Fauzi' })
+    },
+    balasanWali: (perangkatId: string) => buatBalasan(hpM, perangkatId),
     tokenMubaligh: (kode: string) => terbitkanToken(db, kunci, { kodePerangkat: kode, role: 'mubaligh', nama: 'Ust. Hasan', wilayahId: k1.id }),
     tokenExeDesa: (kode: string) => terbitkanToken(db, kunci, { kodePerangkat: kode, role: 'admin', nama: 'Admin Desa', wilayahId: ds.id }),
     paket: () => buatPaket(db, k1.id, kunci),

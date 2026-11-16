@@ -1,4 +1,5 @@
 // Layar peran Generus: Target (Materi yang perlu dituntaskan) · Materiku · Catat Kemajuan · Jadwal · Setor (Setor Belajar, Buka Berkas).
+import { KartuHubungiBk } from './rujukan'
 import { useState } from 'react'
 import { buatBelajar, catatKemajuan, infoSinkronHp, jadwalPekan, jumlahBelumDisetorBelajar, statusProfil, tambahHari, tanggalHariIni, type MateriGenerus } from '@ppg/core'
 import { useApp, useData } from '../konteks'
@@ -58,6 +59,8 @@ export function TargetGenerus(p: PropHalaman) {
         </Tombol>
         {gid ? <TombolRapor generusId={gid} nama={profil.nama} /> : null}
       </div>
+      {/* §21.4: generus jenjang Remaja & Pra Nikah — Hubungi BK lewat WA (tanpa rekaman) */}
+      <KartuHubungiBk />
     </>
   )
 }

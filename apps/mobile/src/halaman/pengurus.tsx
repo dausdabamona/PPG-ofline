@@ -1,4 +1,5 @@
 // Layar peran Pengurus: Beranda (pengingat setor) · Absen · Data · Rekap · Sinkron (Setor ke Desa/Kelompok, Buka Berkas).
+import { HalamanRujukBk } from './rujukan'
 import { useState } from 'react'
 import { ambilWilayah, cariGenerus, labelIqro, periodeAktif, rekapKemajuan, rekapPresensi, tambahHari, tanggalHariIni, type GenerusRinci } from '@ppg/core'
 import { LaporanBulananHp } from './juknis'
@@ -21,7 +22,9 @@ export function BerandaPengurus(p: PropHalaman) {
     }
   }, [profil.id])
   const [bulanan, setBulanan] = useState(false)
+  const [rujuk, setRujuk] = useState(false)
   if (bulanan) return <LaporanBulananHp kembali={() => setBulanan(false)} />
+  if (rujuk) return <HalamanRujukBk kembali={() => setRujuk(false)} />
   return (
     <>
       <JudulHalaman judul={`Assalamu'alaikum, ${profil.nama}`} keterangan="Pengurus" />
@@ -40,6 +43,10 @@ export function BerandaPengurus(p: PropHalaman) {
       <div className="tumpuk">
         <Tombol penuh onClick={() => p.pergi('absen')}>
           Isi Absen
+        </Tombol>
+        {/* §21.3: semua pengurus boleh merujuk generus ke BK */}
+        <Tombol penuh varian="kedua" onClick={() => setRujuk(true)}>
+          Rujuk ke BK
         </Tombol>
         <Tombol penuh varian="kedua" onClick={() => p.pergi('sinkron')}>
           Setor / Buka Berkas

@@ -11,8 +11,12 @@ import {
   GROUP_PEMBINAAN,
   hapusCatatan,
   isiKontrolMt,
+  daftarRujukanMasuk,
   jabatanProfil,
   JENIS_CATATAN,
+  penugasanProfil,
+  pengingatRujukanSegera,
+  turunanWilayah,
   KATEGORI_GENERUS,
   KODE_KEAKTIFAN,
   KONDISI_SARPRAS,
@@ -39,6 +43,7 @@ import {
   type Jabatan,
   type JenisCatatan,
   type KategoriGenerus,
+  type Penugasan,
 } from '@ppg/core'
 import { useApp, useData } from '../konteks'
 import type { PropHalaman } from '../kerangka'
@@ -47,6 +52,7 @@ import { KartuPengingatSetor } from './absen'
 import { LaporanBulananHp } from './juknis'
 import { KartuMusyawarahHp, MusyawarahHp, PerluDitetapkanHp } from './musyawarah'
 import { label, LABEL_KATEGORI, tanggalTeks } from '../utils/label'
+import { HalamanRujukBk, KunciPinWajib, RujukanMasukBk } from './rujukan'
 
 const rp = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `Rp${n.toLocaleString('id-ID')}`)
 const persen = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `${String(n).replace('.', ',')}%`)
@@ -223,8 +229,8 @@ function useNama() {
   return { namaWilayah: (id: string) => w.get(id) ?? '—', namaGenerus: (id: string) => g.get(id) ?? '—' }
 }
 
-/** Formulir catatan generik. */
-function FormCatatan(p: { jenis: JenisCatatan; awal?: CatatanTerbaca; tutup: () => void }) {
+/** Formulir catatan generik. §21: `wilayahId` = wilayah penugasan (kelompok/desa yang dipilih dibatasi di dalamnya). */
+function FormCatatan(p: { jenis: JenisCatatan; awal?: CatatanTerbaca; tutup: () => void; wilayahId?: string }) {
   const { db, aksi } = useApp()
   const kolom = FORM[p.jenis] ?? []
   const [isi, setIsi] = useState<Record<string, unknown>>(() => {
@@ -234,13 +240,15 @@ function FormCatatan(p: { jenis: JenisCatatan; awal?: CatatanTerbaca; tutup: () 
     return o
   })
   const [tanggal, setTanggal] = useState(p.awal?.tanggal ?? tanggalHariIni())
-  const kelompok = useData(() => daftarWilayah(db, { tingkat: 'kelompok' }), []).data ?? []
-  const desa = useData(() => daftarWilayah(db, { tingkat: 'desa' }), []).data ?? []
-  const generus = useData(() => cariGenerus(db, { status: 'aktif' }), []).data ?? []
+  const dalam = useData(() => (p.wilayahId ? new Set(turunanWilayah(db, p.wilayahId)) : null), [p.wilayahId]).data ?? null
+  const kelompok = (useData(() => daftarWilayah(db, { tingkat: 'kelompok' }), []).data ?? []).filter((w) => !dalam || dalam.has(w.id))
+  const desa = (useData(() => daftarWilayah(db, { tingkat: 'desa' }), []).data ?? []).filter((w) => !dalam || dalam.has(w.id))
+  const generus = (useData(() => cariGenerus(db, { status: 'aktif' }), []).data ?? []).filter((g) => !dalam || dalam.has(g.kelompok_id))
   const ubah = (k: string, v: unknown) => setIsi((x) => ({ ...x, [k]: v === '' ? undefined : v }))
   const simpan = async () => {
     const bersih = Object.fromEntries(Object.entries(isi).filter(([, v]) => v !== undefined && v !== ''))
-    const r = await aksi(() => simpanCatatan(db, { jenis: p.jenis, isi: bersih, tanggal, id: p.awal?.id }), 'Tersimpan. Jangan lupa Setor.')
+    const wilayahId = typeof bersih.kelompok_id === 'string' ? undefined : (p.awal?.wilayah_id ?? p.wilayahId)
+    const r = await aksi(() => simpanCatatan(db, { jenis: p.jenis, isi: bersih, tanggal, id: p.awal?.id, wilayahId }), 'Tersimpan. Jangan lupa Setor.')
     if (r) p.tutup()
   }
   return (
@@ -311,10 +319,16 @@ function FormCatatan(p: { jenis: JenisCatatan; awal?: CatatanTerbaca; tutup: () 
   )
 }
 
-/** Daftar + tambah catatan satu atau beberapa jenis. */
-function DaftarCatatan(p: { judul: string; jenis: JenisCatatan[]; bolehTambah?: boolean; ket?: string; aksiBaris?: (c: CatatanTerbaca) => ReactNode }) {
+/**
+ * Daftar + tambah catatan satu atau beberapa jenis. §21: `wilayahId` = wilayah penugasan — catatan wilayah itu dan di bawahnya
+ * (`hanyaWilayah`: wilayah itu saja, mis. konseling BK).
+ */
+function DaftarCatatan(p: { judul: string; jenis: JenisCatatan[]; bolehTambah?: boolean; ket?: string; aksiBaris?: (c: CatatanTerbaca) => ReactNode; wilayahId?: string; hanyaWilayah?: boolean }) {
   const { db, aksi } = useApp()
-  const data = useData(() => daftarCatatan(db, { jenis: p.jenis }), [p.jenis.join()])
+  const data = useData(
+    () => daftarCatatan(db, { jenis: p.jenis, ...(p.wilayahId ? { wilayahIds: p.hanyaWilayah ? [p.wilayahId] : turunanWilayah(db, p.wilayahId) } : {}) }),
+    [p.jenis.join(), p.wilayahId, p.hanyaWilayah],
+  )
   const { namaGenerus, namaWilayah } = useNama()
   const [form, setForm] = useState<{ jenis: JenisCatatan; awal?: CatatanTerbaca } | null>(null)
   return (
@@ -353,7 +367,7 @@ function DaftarCatatan(p: { judul: string; jenis: JenisCatatan[]; bolehTambah?: 
           </ul>
         )}
       </KeadaanData>
-      {form ? <FormCatatan jenis={form.jenis} awal={form.awal} tutup={() => setForm(null)} /> : null}
+      {form ? <FormCatatan jenis={form.jenis} awal={form.awal} tutup={() => setForm(null)} wilayahId={p.wilayahId} /> : null}
     </Kartu>
   )
 }
@@ -449,6 +463,11 @@ function KartuRingkasanKetua() {
             <Angka nilai={x.nunggoni.laporan + x.nunggoni.mandiri} teks="NUNGGONI bulan ini" />
             <Angka nilai={x.kasusBk.bulanIni} teks="Kasus BK (jumlah saja)" warna="abu" />
           </div>
+          <div className="baris-angka">
+            <Angka nilai={x.kasusBk.rujukanBulanIni} teks="Rujukan BK bulan ini (se-daerah)" warna="abu" />
+            <Angka nilai={x.kasusBk.rujukanBelumDitanggapi} teks="Rujukan belum ditanggapi" warna={x.kasusBk.rujukanBelumDitanggapi ? 'kuning' : 'abu'} />
+          </div>
+          <p className="keterangan">Jumlah rujukan & kasus hanya se-daerah ({x.kasusBk.rujukanTotal} rujukan, {x.kasusBk.total} catatan konseling) — isi hanya dibaca BK.</p>
           <p>
             Saldo kas: <b>{x.kas.saldo === null ? 'terkunci' : rp(x.kas.saldo)}</b>
           </p>
@@ -643,13 +662,21 @@ function DataGenerusJenjang(p: { putri?: boolean; jenjang?: KategoriGenerus[] })
 // Menu per jabatan
 // =====================================================================================================================
 
+/** §21.1: penugasan yang sedang dibuka (wilayah catatan yang diolah). */
+interface KonteksPenugasan {
+  jabatan: Jabatan
+  wilayahId: string
+}
+
 interface ItemBidang {
   kunci: string
   teks: string
   ket: string
   ikon: string
   jabatan: readonly Jabatan[] | 'semua'
-  isi: () => ReactNode
+  /** §21.1: menu bidang perwakilan — satu entri per penugasan (mengolah catatan wilayah penugasan itu). */
+  perWilayah?: boolean
+  isi: (w: KonteksPenugasan | null) => ReactNode
 }
 
 const ITEM: ItemBidang[] = [
@@ -659,48 +686,98 @@ const ITEM: ItemBidang[] = [
   { kunci: 'sekretariat', teks: 'Sekretariat', ket: 'Rekap → WA grup, database', ikon: '✎', jabatan: ['sekretaris'], isi: () => <><KartuPengingatLaporan /><RekapKeaktifanBidang kirimWa /><DataGenerusJenjang /><DaftarCatatan judul="Database mubaligh/mubalighot" jenis={['mubaligh']} /></> },
   { kunci: 'kas', teks: 'Keuangan', ket: 'Buku kas, tabungan desa, dana masuk', ikon: 'Rp', jabatan: ['bendahara'], isi: () => <><KartuKas bolehUbah /><DaftarCatatan judul="Catatan kas" jenis={['kas', 'target_tabungan']} /></> },
   { kunci: 'kas_lihat', teks: 'Keuangan (lihat)', ket: 'Saldo & laporan bendahara', ikon: 'Rp', jabatan: ['ketua', 'wakil_ketua'], isi: () => <><KartuKas bolehUbah={false} /><DaftarCatatan judul="Catatan kas" jenis={['kas']} bolehTambah={false} /></> },
-  { kunci: 'dana', teks: 'Penggalangan Dana', ket: 'Dana masuk → setor ke bendahara', ikon: '♥', jabatan: ['penggalang_dana'], isi: () => <><KartuKas bolehUbah={false} penggalang /><DaftarCatatan judul="Dana masuk" jenis={['dana_masuk']} ket="Tercatat di kas setelah dikonfirmasi bendahara." /></> },
+  { kunci: 'dana', teks: 'Penggalangan Dana', ket: 'Dana masuk → konfirmasi bendahara daerah', ikon: '♥', jabatan: ['penggalang_dana'], perWilayah: true, isi: (w) => <><KartuKas bolehUbah={false} penggalang /><DaftarCatatan judul="Dana masuk" jenis={['dana_masuk']} wilayahId={w?.wilayahId} hanyaWilayah ket="Tercatat di kas setelah dikonfirmasi bendahara daerah." /></> },
   // §18: butir materi/penilaian yang diserahkan ke Bidang Kurikulum
   { kunci: 'penetapan', teks: 'Perlu Ditetapkan Kurikulum', ket: 'Target, halaman kitab, rumus Nilai Akhir, pemetaan aspek, …', ikon: '✔', jabatan: ['kurikulum'], isi: () => <PerluDitetapkanHp /> },
   { kunci: 'reward', teks: 'Reward Hasil Belajar', ket: 'Santri, kelompok & desa terbaik', ikon: '★', jabatan: ['kurikulum', 'ketua', 'wakil_ketua'], isi: () => <RewardBidang /> },
-  { kunci: 'pendidik', teks: 'Tenaga Pendidik', ket: 'Data & kebutuhan MT, SDM, kontrol MT', ikon: '☺', jabatan: ['tenaga_pendidik'], isi: () => <><RekapKontrolMtBidang /><DaftarCatatan judul="Data mubaligh/mubalighot" jenis={['mubaligh']} /><DaftarCatatan judul="Kebutuhan pengajar" jenis={['kebutuhan_pengajar']} /><DaftarCatatan judul="Program peningkatan SDM" jenis={['program_sdm']} /></> },
-  { kunci: 'sarpras', teks: 'Sarana & Prasarana', ket: 'Inventaris & usulan pengadaan', ikon: '▦', jabatan: ['sarpras'], isi: () => <><DaftarCatatan judul="Inventaris per kelompok" jenis={['inventaris']} /><DaftarCatatan judul="Usulan pengadaan ke bendahara" jenis={['usulan_pengadaan']} /></> },
-  { kunci: 'mumi', teks: 'Muda/i & Kepramukaan', ket: '10 group, agenda → keaktifan', ikon: '⚑', jabatan: ['muda_mudi'], isi: () => <><DataGenerusJenjang jenjang={['praremaja', 'remaja', 'pranikah']} /><DaftarCatatan judul="Group pembinaan" jenis={['group_pembinaan']} /><DaftarCatatan judul="Agenda muda/i" jenis={['agenda_muda_mudi']} aksiBaris={(c) => <AksiAgenda c={c} />} /></> },
-  { kunci: 'olahraga', teks: 'Olahraga & Seni', ket: 'Agenda FORSGI / PERSINAS ASAD', ikon: '⚽', jabatan: ['olahraga_seni'], isi: () => <DaftarCatatan judul="Agenda olahraga & seni" jenis={['agenda_olahraga']} aksiBaris={(c) => <AksiAgenda c={c} />} /> },
-  { kunci: 'mandiri', teks: 'Kemandirian', ket: 'Data pendidikan/bakat, pelatihan, info kerja', ikon: '⚒', jabatan: ['kemandirian'], isi: () => <><DaftarCatatan judul="Data generus (lulus/dropout, bakat & minat)" jenis={['data_kemandirian']} /><DaftarCatatan judul="Agenda pelatihan" jenis={['agenda_kemandirian']} /><DaftarCatatan judul="Info peluang kerja" jenis={['info_kerja']} /></> },
-  { kunci: 'putri', teks: 'Keputrian', ket: 'Pelatihan & penyuluhan putri', ikon: '✿', jabatan: ['keputrian'], isi: () => <><DataGenerusJenjang putri /><DaftarCatatan judul="Agenda keputrian" jenis={['agenda_keputrian']} /></> },
-  { kunci: 'bk', teks: 'Bimbingan Konseling', ket: 'Catatan rahasia (hanya BK)', ikon: '☂', jabatan: ['bk'], isi: () => <DaftarCatatan judul="Catatan konseling" jenis={['konseling']} ket="Terenkripsi: hanya pemegang jabatan BK yang bisa membaca. Ketua hanya melihat jumlah kasus." /> },
-  { kunci: 'tahfidz', teks: "Tahfidz Qur'an", ket: 'Peserta, ujian berpoin, peringkat', ikon: '۞', jabatan: ['tahfidz'], isi: () => <><RekapTahfidzBidang /><DaftarCatatan judul="Peserta tahfidz" jenis={['peserta_tahfidz']} /><DaftarCatatan judul="Ujian tahfidz" jenis={['ujian_tahfidz']} /></> },
-  { kunci: 'pjdesa', teks: 'Program Desa', ket: 'Kejar absensi & laporan, temuan', ikon: '⌂', jabatan: ['pj_desa'], isi: () => <><KartuPengingatLaporan /><RekapKeaktifanBidang /></> },
-  { kunci: 'kbm', teks: 'Laporan KBM Kelompok', ket: 'Laporan bulanan ke desa', ikon: '✉', jabatan: ['pj_kelompok'], isi: () => null },
+  { kunci: 'pendidik', teks: 'Tenaga Pendidik', ket: 'Data & kebutuhan MT, SDM, kontrol MT', ikon: '☺', jabatan: ['tenaga_pendidik'], perWilayah: true, isi: (w) => <><RekapKontrolMtBidang /><DaftarCatatan judul="Data mubaligh/mubalighot" jenis={['mubaligh']} wilayahId={w?.wilayahId} /><DaftarCatatan judul="Kebutuhan pengajar" jenis={['kebutuhan_pengajar']} wilayahId={w?.wilayahId} /><DaftarCatatan judul="Program peningkatan SDM" jenis={['program_sdm']} wilayahId={w?.wilayahId} /></> },
+  { kunci: 'sarpras', teks: 'Sarana & Prasarana', ket: 'Inventaris & usulan pengadaan', ikon: '▦', jabatan: ['sarpras'], perWilayah: true, isi: (w) => <><DaftarCatatan judul="Inventaris per kelompok" jenis={['inventaris']} wilayahId={w?.wilayahId} /><DaftarCatatan judul="Usulan pengadaan ke bendahara" jenis={['usulan_pengadaan']} wilayahId={w?.wilayahId} /></> },
+  { kunci: 'mumi', teks: 'Muda/i & Kepramukaan', ket: '10 group, agenda → keaktifan', ikon: '⚑', jabatan: ['muda_mudi'], perWilayah: true, isi: (w) => <><DataGenerusJenjang jenjang={['praremaja', 'remaja', 'pranikah']} /><DaftarCatatan judul="Group pembinaan" jenis={['group_pembinaan']} wilayahId={w?.wilayahId} /><DaftarCatatan judul="Agenda muda/i" jenis={['agenda_muda_mudi']} wilayahId={w?.wilayahId} aksiBaris={(c) => <AksiAgenda c={c} />} /></> },
+  { kunci: 'olahraga', teks: 'Olahraga & Seni', ket: 'Agenda FORSGI / PERSINAS ASAD', ikon: '⚽', jabatan: ['olahraga_seni'], perWilayah: true, isi: (w) => <DaftarCatatan judul="Agenda olahraga & seni" jenis={['agenda_olahraga']} wilayahId={w?.wilayahId} aksiBaris={(c) => <AksiAgenda c={c} />} /> },
+  { kunci: 'mandiri', teks: 'Kemandirian', ket: 'Data pendidikan/bakat, pelatihan, info kerja', ikon: '⚒', jabatan: ['kemandirian'], perWilayah: true, isi: (w) => <><DaftarCatatan judul="Data generus (lulus/dropout, bakat & minat)" jenis={['data_kemandirian']} wilayahId={w?.wilayahId} /><DaftarCatatan judul="Agenda pelatihan" jenis={['agenda_kemandirian']} wilayahId={w?.wilayahId} /><DaftarCatatan judul="Info peluang kerja" jenis={['info_kerja']} wilayahId={w?.wilayahId} /></> },
+  { kunci: 'putri', teks: 'Keputrian', ket: 'Pelatihan & penyuluhan putri', ikon: '✿', jabatan: ['keputrian'], perWilayah: true, isi: (w) => <><DataGenerusJenjang putri /><DaftarCatatan judul="Agenda keputrian" jenis={['agenda_keputrian']} wilayahId={w?.wilayahId} /></> },
+  { kunci: 'bk', teks: 'Bimbingan Konseling', ket: 'Rujukan masuk & catatan rahasia (hanya BK wilayah ini)', ikon: '☂', jabatan: ['bk'], perWilayah: true, isi: (w) => <><RujukanMasukBk /><DaftarCatatan judul="Catatan konseling" jenis={['konseling']} wilayahId={w?.wilayahId} hanyaWilayah ket="Terenkripsi: hanya BK wilayah ini yang bisa membaca. BK tingkat atas tidak membaca kasus di bawahnya." /></> },
+  { kunci: 'tahfidz', teks: "Tahfidz Qur'an", ket: 'Peserta, ujian berpoin, peringkat', ikon: '۞', jabatan: ['tahfidz'], perWilayah: true, isi: (w) => <><RekapTahfidzBidang /><DaftarCatatan judul="Peserta tahfidz" jenis={['peserta_tahfidz']} wilayahId={w?.wilayahId} /><DaftarCatatan judul="Ujian tahfidz" jenis={['ujian_tahfidz']} wilayahId={w?.wilayahId} /></> },
+  { kunci: 'pjdesa', teks: 'Program Desa', ket: 'Kejar absensi & laporan, temuan', ikon: '⌂', jabatan: ['pj_desa'], perWilayah: true, isi: () => <><KartuPengingatLaporan /><RekapKeaktifanBidang /></> },
+  { kunci: 'kbm', teks: 'Laporan KBM Kelompok', ket: 'Laporan bulanan ke desa', ikon: '✉', jabatan: ['pj_kelompok'], perWilayah: true, isi: () => null },
+  // §21.3: semua pengurus (berjabatan atau tidak) boleh merujuk generus ke BK
+  { kunci: 'rujuk', teks: 'Rujuk ke BK', ket: 'Generus perlu bimbingan — isi singkat, terkirim ke BK', ikon: '✚', jabatan: 'semua', isi: () => null },
   { kunci: 'nunggoni', teks: 'NUNGGONI', ket: 'Semua Pengurus & Mubaligh Peduli', ikon: '⚐', jabatan: 'semua', isi: () => <DaftarCatatan judul="NUNGGONI saya" jenis={['nunggoni']} ket="Sebulan sekali menunggui 1 KBM: bantu ketertiban/mengajar, catat temuan." /> },
 ]
 
+/** Daftar menu untuk jabatan (tanpa memperhatikan wilayah) — dipakai uji & beranda. */
 export function itemBidangUntuk(jabatan: readonly Jabatan[]): ItemBidang[] {
   const l = ITEM.filter((i) => i.jabatan === 'semua' || i.jabatan.some((j) => jabatan.includes(j)))
   // bendahara sudah punya menu Keuangan lengkap → "Keuangan (lihat)" disembunyikan
   return l.some((i) => i.kunci === 'kas') ? l.filter((i) => i.kunci !== 'kas_lihat') : l
 }
 
+interface KelompokMenu {
+  judul: string
+  item: (ItemBidang & { w: KonteksPenugasan | null })[]
+}
+
+/** §21.1: menu Bidang dikelompokkan per penugasan ("Sarana & Prasarana · Desa Sorong"), lalu menu umum. */
+function menuPerPenugasan(penugasan: readonly Penugasan[], namaWilayah: (id: string) => string): KelompokMenu[] {
+  const out: KelompokMenu[] = []
+  const sudah = new Set<string>()
+  const adaBendahara = penugasan.some((x) => x.jabatan === 'bendahara')
+  for (const pn of penugasan) {
+    const item = ITEM.filter((i) => i.jabatan !== 'semua' && i.jabatan.includes(pn.jabatan) && !(adaBendahara && i.kunci === 'kas_lihat'))
+      .filter((i) => (i.perWilayah ? true : !sudah.has(i.kunci)))
+      .map((i) => ({ ...i, w: { jabatan: pn.jabatan, wilayahId: pn.wilayah_id } }))
+    for (const i of item) sudah.add(i.kunci)
+    if (item.length) out.push({ judul: `${LABEL_JABATAN[pn.jabatan]} · ${namaWilayah(pn.wilayah_id)}`, item })
+  }
+  out.push({ judul: 'Semua pengurus', item: ITEM.filter((i) => i.jabatan === 'semua').map((i) => ({ ...i, w: null })) })
+  return out
+}
+
 export function HalamanBidang() {
-  const { profil } = useApp()
-  const jabatan = jabatanProfil(profil)
-  const [sub, setSub] = useState<string | null>(null)
-  const item = itemBidangUntuk(jabatan)
-  const aktif = item.find((i) => i.kunci === sub)
-  if (aktif?.kunci === 'kbm') return <LaporanBulananHp kembali={() => setSub(null)} />
+  const { db, profil } = useApp()
+  const penugasan = penugasanProfil(profil)
+  const nama = useData(() => new Map(daftarWilayah(db).map((w) => [w.id, `${label(LABEL_TINGKAT, w.tingkat)} ${w.nama}`])), []).data ?? new Map<string, string>()
+  const [sub, setSub] = useState<{ kunci: string; wilayah: string | null } | null>(null)
+  const kelompok = menuPerPenugasan(penugasan, (id) => nama.get(id) ?? '—')
+  const aktif = sub ? kelompok.flatMap((k) => k.item).find((i) => i.kunci === sub.kunci && (i.w?.wilayahId ?? null) === sub.wilayah) : undefined
+  if (aktif?.kunci === 'kbm') return <KunciPinWajib><LaporanBulananHp kembali={() => setSub(null)} /></KunciPinWajib>
+  if (aktif?.kunci === 'rujuk') return <HalamanRujukBk kembali={() => setSub(null)} />
   if (aktif)
     return (
-      <>
-        <JudulHalaman judul={aktif.teks} kembali={() => setSub(null)} />
-        {aktif.isi()}
-      </>
+      <KunciPinWajib>
+        <JudulHalaman judul={aktif.teks} keterangan={aktif.w ? nama.get(aktif.w.wilayahId) : undefined} kembali={() => setSub(null)} />
+        {aktif.isi(aktif.w)}
+      </KunciPinWajib>
     )
   return (
-    <>
-      <JudulHalaman judul="Bidang" keterangan={jabatan.map((j) => LABEL_JABATAN[j]).join(' · ')} />
-      <MenuDaftar item={item.map((i) => ({ teks: i.teks, ket: i.ket, ikon: i.ikon, buka: () => setSub(i.kunci) }))} />
-    </>
+    <KunciPinWajib>
+      <JudulHalaman judul="Bidang" keterangan={jabatanProfil(profil).map((j) => LABEL_JABATAN[j]).join(' · ')} />
+      {kelompok.map((k) => (
+        <section key={k.judul} className="kelompok-menu">
+          <h3 className="judul-kelompok-menu">{k.judul}</h3>
+          <MenuDaftar item={k.item.map((i) => ({ teks: i.teks, ket: i.ket, ikon: i.ikon, buka: () => setSub({ kunci: i.kunci, wilayah: i.w?.wilayahId ?? null }) }))} />
+        </section>
+      ))}
+    </KunciPinWajib>
+  )
+}
+
+const LABEL_TINGKAT: Record<string, string> = { daerah: 'Daerah', desa: 'Desa', kelompok: 'Kelompok' }
+
+/** Pengingat BK: rujukan Segera yang belum Diterima ≥ 3 hari. */
+function KartuPengingatRujukan(p: { buka: () => void }) {
+  const { db } = useApp()
+  const n = useData(() => pengingatRujukanSegera(db).length, []).data ?? 0
+  const baru = useData(() => daftarRujukanMasuk(db).filter((r) => r.status === 'baru').length, []).data ?? 0
+  if (!n && !baru) return null
+  return (
+    <Kartu judul="Rujukan BK">
+      {n ? <Spanduk jenis="bahaya">{n} rujukan Segera belum diterima ≥ 3 hari.</Spanduk> : null}
+      {baru ? <p>{baru} rujukan baru menunggu diterima.</p> : null}
+      <Tombol penuh onClick={p.buka}>
+        Buka rujukan
+      </Tombol>
+    </Kartu>
   )
 }
 
@@ -713,6 +790,7 @@ export function BerandaBidang(p: PropHalaman) {
       <KartuPengingatSetor />
       {jabatan.some((j) => j === 'sekretaris' || j === 'pj_desa' || j === 'ketua' || j === 'wakil_ketua') ? <KartuPengingatLaporan /> : null}
       {jabatan.some((j) => j === 'ketua' || j === 'wakil_ketua') ? <KartuRingkasanKetua /> : null}
+      {jabatan.includes('bk') ? <KartuPengingatRujukan buka={() => p.pergi('bidang')} /> : null}
       {jabatan.some((j) => j === 'ketua' || j === 'wakil_ketua' || j === 'sekretaris') ? <KartuMusyawarahHp buka={() => p.pergi('bidang')} /> : null}
       <div className="tumpuk">
         <Tombol penuh onClick={() => p.pergi('bidang')}>

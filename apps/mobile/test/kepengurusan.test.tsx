@@ -21,6 +21,13 @@ describe('APK — pengurus per jabatan (§17)', () => {
     pf.kirimIntent({ bytes: buatPaket(w.db, daerah.id, w.kunci).bytes })
     await tungguTeks(/Data dari admin berhasil dibuka/)
     await nav(u, 'Bidang')
+    // §21.1: profil bendahara wajib PIN — menu Bidang terkunci sampai PIN dipasang
+    await screen.findByRole('heading', { name: 'Pasang PIN dulu' })
+    await u.type(screen.getByLabelText('PIN baru (4 angka)'), '1234')
+    await u.type(screen.getByLabelText('Ulangi PIN'), '1234')
+    await u.click(screen.getByRole('button', { name: 'Pasang PIN' }))
+    await screen.findByRole('heading', { name: 'Bidang' })
+    expect(screen.getByText('Bendahara · Daerah Sorong')).toBeTruthy()
     const menu = screen.getAllByRole('button').map((b) => b.textContent ?? '')
     expect(menu.some((t) => /Keuangan/.test(t))).toBe(true)
     expect(menu.some((t) => /Tenaga Pendidik/.test(t))).toBe(true)
