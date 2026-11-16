@@ -1,5 +1,5 @@
 // Kode Perangkat, token bertanda tangan, dan rantai kepercayaan (§4).
-import { alasanJabatanTidakSah, type BidangRahasia, type Jabatan } from './kepengurusan'
+import { alasanJabatanTidakSah, alasanPenugasanTidakSah, type BidangRahasia, type Jabatan, type Penugasan } from './kepengurusan'
 import {
   bukaSegel,
   dariB64url,
@@ -104,14 +104,18 @@ export interface PayloadToken {
   bukti_wilayah?: string
   /** §17 (Fase 11): jabatan/bidang pengurus PPG (hanya token pengurus bertanda tangan langsung admin daerah). */
   jabatan?: Jabatan[]
+  /** §21 (Fase 15, J-BJ1): penugasan jabatan per wilayah — menggantikan `jabatan` untuk token baru. */
+  penugasan?: Penugasan[]
 }
 
-/** §17: satu versi kunci bidang rahasia (keuangan/konseling); `rahasia` = kunci baca. */
+/** §17: satu versi kunci bidang rahasia (keuangan/konseling); `rahasia` = kunci baca (kosong = kunci publik saja). */
 export interface KunciBidang {
   bidang: BidangRahasia
   versi: number
   publik: string
   rahasia: string
+  /** §21.2 (J-BJ3): wilayah kunci; tidak ada = wilayah daerah (kunci lama). */
+  wilayah_id?: string
 }
 
 /** Satu versi kunci kelompok setor (X25519). `rahasia` hanya dipegang mubaligh. */
@@ -336,6 +340,8 @@ export interface OpsiPeriksaToken {
    * Bukti yang ada tetapi tidak sah selalu ditolak.
    */
   wajibBuktiWilayah?: boolean
+  /** §21: tingkat wilayah menurut pohon wilayah tepercaya (untuk memeriksa penugasan); `undefined` = tidak diketahui. */
+  tingkatWilayah?: (id: string) => string | undefined
 }
 
 export type KodeTolakToken =
@@ -386,7 +392,7 @@ export function periksaToken(teks: string, opsi: OpsiPeriksaToken): HasilPeriksa
 const MAKS_RANTAI = 3
 
 /** Aturan bentuk token akar (ditandatangani admin daerah). */
-function periksaAkar(p: PayloadToken): HasilPeriksaToken | null {
+function periksaAkar(p: PayloadToken, opsi?: OpsiPeriksaToken): HasilPeriksaToken | null {
   if (p.role === 'mubaligh' && p.tingkat !== 'kelompok') return tolak('TOKEN_TIDAK_SAH', 'Token mubaligh harus untuk satu kelompok.')
   if (p.role === 'admin' && p.tingkat === 'daerah') {
     // Fase 9: Super Admin HP
@@ -406,6 +412,8 @@ function periksaAkar(p: PayloadToken): HasilPeriksaToken | null {
   }
   const aj = alasanJabatanTidakSah(p.jabatan, p.role, p.tingkat)
   if (aj) return tolak('TOKEN_TIDAK_SAH', aj)
+  const ap = alasanPenugasanTidakSah(p.penugasan, p, { tingkatWilayah: opsi?.tingkatWilayah, mencakup: opsi?.wilayahMencakup })
+  if (ap) return tolak('TOKEN_TIDAK_SAH', ap)
   return null
 }
 
@@ -422,11 +430,11 @@ function periksaRantai(t: TokenTerurai, opsi: OpsiPeriksaToken, kedalaman: numbe
     if (!periksaTandaTangan(keUtf8(t.bagianTertanda), t.sig, dariB64url(opsi.adminSignPub))) {
       return tolak('TANDA_TANGAN_TIDAK_SAH', 'Tanda tangan token tidak sah (token palsu atau telah diubah).')
     }
-    return periksaAkar(p)
+    return periksaAkar(p, opsi)
   }
   if (kedalaman >= MAKS_RANTAI) return tolak('RANTAI_TIDAK_SAH', 'Rantai penerbit token terlalu panjang.')
   // §17 (J-K2): token berjabatan hanya diterbitkan langsung oleh admin daerah
-  if (p.jabatan !== undefined) return tolak('RANTAI_TIDAK_SAH', 'Token berjabatan PPG hanya diterbitkan EXE Daerah.')
+  if (p.jabatan !== undefined || p.penugasan !== undefined) return tolak('RANTAI_TIDAK_SAH', 'Token berjabatan PPG hanya diterbitkan EXE Daerah.')
   let pen: TokenTerurai
   try {
     pen = uraiToken(p.penerbit)

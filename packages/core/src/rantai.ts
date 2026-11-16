@@ -26,6 +26,12 @@ export function wilayahMencakupDb(db: Db): (atasId: string, bawahId: string) => 
   }
 }
 
+/** §21: tingkat wilayah dari pohon wilayah lokal (`undefined` bila tidak dikenal). */
+export function tingkatWilayahDb(db: Db): (id: string) => string | undefined {
+  const peta = new Map(db.kueri<{ id: string; tingkat: string }>('SELECT id, tingkat FROM wilayah WHERE dihapus = 0').map((w) => [w.id, w.tingkat]))
+  return (id) => peta.get(id)
+}
+
 /**
  * Fase 8: apakah perangkat ini wajib menuntut `bukti_wilayah` pada token terbitan EXE desa. Hanya EXE daerah dan EXE desa
  * (dan Super Admin HP, Fase 9) yang pohon wilayahnya berasal langsung dari daerah; HP dan EXE kelompok (pohon dari paket desa, atau belum ada) wajib.
@@ -39,7 +45,14 @@ export function wajibBuktiWilayahDb(db: Db): boolean {
 export function opsiPeriksaDb(db: Db, tambahan: Partial<OpsiPeriksaToken> = {}): OpsiPeriksaToken {
   const adminSignPub = ambilMeta(db, 'admin_sign_pub')
   if (!adminSignPub) throw new GalatPpg('BELUM_AKTIVASI', 'Aplikasi ini belum diaktifkan.')
-  return { adminSignPub, pencabutan: daftarPencabutan(db), wilayahMencakup: wilayahMencakupDb(db), wajibBuktiWilayah: wajibBuktiWilayahDb(db), ...tambahan }
+  return {
+    adminSignPub,
+    pencabutan: daftarPencabutan(db),
+    wilayahMencakup: wilayahMencakupDb(db),
+    wajibBuktiWilayah: wajibBuktiWilayahDb(db),
+    tingkatWilayah: tingkatWilayahDb(db),
+    ...tambahan,
+  }
 }
 
 /** Periksa token memakai data lokal (pencabutan + pohon wilayah). `denganDikenal` → T12 berlaku di semua mata rantai. */

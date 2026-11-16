@@ -5,7 +5,7 @@ import type { Db } from './db'
 import { daftarCatatan } from './bidang'
 import { GalatPpg } from './galat'
 import { hariDalamBulan, hitungTotal, jenjangKecil, keaktifanBulan, raporGenerus, targetKeaktifan } from './juknis'
-import { LABEL_JABATAN, type Jabatan } from './kepengurusan'
+import { jabatanDariPenugasan, LABEL_JABATAN, penugasanDari, type Jabatan, type Penugasan } from './kepengurusan'
 import { ambilLaporanBulanan } from './rekap-juknis'
 import { daftarGenerus, KATEGORI_GENERUS, kategoriCocok, labelIqro, type Generus, type KategoriGenerus } from './repo/generus'
 import { kategoriKelas } from './repo/pengajian'
@@ -115,18 +115,22 @@ export function teksBulanLembar(bulan: string): string {
   return `${NAMA_BULAN[Number(bulan.slice(5, 7)) - 1]} ${bulan.slice(0, 4)}`
 }
 
-function jabatanToken(token: string): Jabatan[] {
+function penugasanTeks(token: string): Penugasan[] {
   try {
-    return uraiToken(token).payload.jabatan ?? []
+    return penugasanDari(uraiToken(token).payload)
   } catch {
     return []
   }
 }
 
-/** Nama token aktif (tidak dicabut) role & wilayah tertentu, dengan jabatan opsional. */
+function jabatanToken(token: string): Jabatan[] {
+  return jabatanDariPenugasan(penugasanTeks(token))
+}
+
+/** Nama token aktif (tidak dicabut) role & wilayah tertentu, dengan jabatan opsional (§21: penugasan pada wilayah itu). */
 function namaPemegang(db: Db, wilayahId: string, role: 'mubaligh' | 'pengurus', jabatan?: Jabatan): string | null {
-  const t = daftarPerangkat(db, { wilayahIds: [wilayahId], role: [role], aktifSaja: true })
-    .filter((x) => !x.dicabut_pada && (!jabatan || jabatanToken(x.token).includes(jabatan)))
+  const t = daftarPerangkat(db, jabatan ? { role: [role], aktifSaja: true } : { wilayahIds: [wilayahId], role: [role], aktifSaja: true })
+    .filter((x) => !x.dicabut_pada && (!jabatan || penugasanTeks(x.token).some((p) => p.jabatan === jabatan && p.wilayah_id === wilayahId)))
     .sort((a, b) => String(b.dibuat_pada).localeCompare(String(a.dibuat_pada)))
   return t[0]?.nama ?? null
 }

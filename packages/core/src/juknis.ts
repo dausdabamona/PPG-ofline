@@ -3,7 +3,7 @@
 import type { Db } from './db'
 import type { CaraEvaluasi, RincianMateriEvaluasi } from './data/juknis-2025'
 import { GalatPpg } from './galat'
-import { JABATAN_PENCATAT_AGENDA } from './kepengurusan'
+import { JABATAN_PENCATAT_AGENDA, jabatanDariPenugasan, penugasanDari } from './kepengurusan'
 import { uraiToken } from './token'
 import { sha256Hex } from './crypto'
 import { PetaRiwayat } from './laporan'
@@ -147,7 +147,7 @@ function pencatatResmi(db: Db, kelompokId: string, kode: KodeKeaktifan): { profi
     // §17: pengurus daerah berjabatan agenda (muda/i, olahraga, tahfidz, …) boleh AA/AS dari agenda kegiatan
     if (kode === 'AA' || kode === 'AS') {
       const pj = daftarProfil(db, 'pengurus').find(
-        (x) => statusProfil(x).bolehMencatat && (uraiToken(x.token).payload.jabatan ?? []).some((j) => JABATAN_PENCATAT_AGENDA.includes(j)),
+        (x) => statusProfil(x).bolehMencatat && jabatanDariPenugasan(penugasanDari(uraiToken(x.token).payload)).some((j) => JABATAN_PENCATAT_AGENDA.includes(j)),
       )
       if (!pj) throw e
       return { profil: pj, nama: pj.nama, sumber: 'admin' }

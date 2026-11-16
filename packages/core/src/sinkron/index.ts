@@ -12,10 +12,11 @@ import { terapkanMateri } from './materi'
 import { terapkanPaket, type RingkasanTerapkan } from './paket'
 import { imporSetor, type RingkasanImporSetor } from './setor'
 import { imporKurikulum, type RingkasanImporKurikulum } from './kurikulum'
+import { imporRujukan, type RingkasanImporRujukan } from '../rujukan'
 import { kunciExeWajib, type KunciPemegang } from '../instalasi'
 import { adalahExe, peranInstalasi } from '../repo/umum'
 
-export type RingkasanBerkas = RingkasanTerapkan | RingkasanImporBelajar | RingkasanImporSetor | RingkasanImporKurikulum
+export type RingkasanBerkas = RingkasanTerapkan | RingkasanImporBelajar | RingkasanImporSetor | RingkasanImporKurikulum | RingkasanImporRujukan
 
 /**
  * Buka berkas .ppg apa saja di HP: baca header lalu arahkan ke fungsi yang cocok.
@@ -45,6 +46,8 @@ export function bukaBerkasApaSaja(db: Db, bytes: Uint8Array, namaBerkas?: string
       throw new GalatPpg('BERKAS_UNTUK_ADMIN', 'Berkas setoran ini untuk admin. Kirim ke admin lewat WA.')
     case 'KURIKULUM':
       throw new GalatPpg('BERKAS_UNTUK_ADMIN', 'Berkas kurikulum ini untuk admin daerah.')
+    case 'RUJUKAN':
+      return { jenis: h.jenis, ringkasan: imporRujukan(db, bytes, namaBerkas) }
   }
 }
 

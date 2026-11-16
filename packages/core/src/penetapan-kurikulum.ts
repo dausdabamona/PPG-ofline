@@ -33,6 +33,7 @@ import { adalahAdmin, ambilMeta, ambilRekaman, pastikanPengelolaKurikulum, sisip
 import { ajukanUsulan, ambilUsulan, daftarUsulan } from './repo/usulan'
 import { idMateriEvaluasi } from './skema'
 import { uraiToken } from './token'
+import { jabatanDariPenugasan, penugasanDari } from './kepengurusan'
 import { sekarangIso } from './waktu'
 
 export const AWALAN_KURIKULUM = 'kur:'
@@ -579,7 +580,7 @@ export function tetapkanButirKurikulum(db: Db, kode: string, o: { nilai?: unknow
 
 function jabatanDari(token: string): string[] {
   try {
-    return uraiToken(token).payload.jabatan ?? []
+    return jabatanDariPenugasan(penugasanDari(uraiToken(token).payload))
   } catch {
     return []
   }

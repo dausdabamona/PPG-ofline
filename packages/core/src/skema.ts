@@ -244,8 +244,17 @@ CREATE TABLE IF NOT EXISTS kunci_bidang (
 );
 `
 
+const DDL_LOKAL_V8 = `
+-- v8 (§21.2, J-BJ3): kunci bidang rahasia per (bidang, wilayah, versi) — daerah, dienkripsi kunci induk.
+-- wilayah_id '' = kunci lama tanpa wilayah (= wilayah daerah), dinormalkan ke id daerah saat dipakai.
+CREATE TABLE IF NOT EXISTS kunci_bidang_wilayah (
+  bidang TEXT NOT NULL, wilayah_id TEXT NOT NULL, versi INTEGER NOT NULL, publik TEXT NOT NULL, rahasia_terenkripsi TEXT NOT NULL, dibuat_pada TEXT NOT NULL,
+  PRIMARY KEY (bidang, wilayah_id, versi)
+);
+`
+
 /** Versi skema saat ini. */
-export const VERSI_SKEMA = 7
+export const VERSI_SKEMA = 8
 
 function adaKolom(db: Db, tabel: string, kolom: string): boolean {
   return db.kueri<{ name: string }>(`PRAGMA table_info(${tabel})`).some((k) => k.name === kolom)
@@ -311,6 +320,13 @@ const MIGRASI: ((db: Db) => void)[] = [
   (db) => {
     tambahTabelDanKolom(db)
     db.jalankanSkrip(`CREATE INDEX IF NOT EXISTS idx_karakter_generus ON penilaian_karakter(generus_id, periode);`)
+  },
+  // v8 (§21): kunci bidang per wilayah; kunci lama (tanpa wilayah) disalin sebagai wilayah daerah
+  (db) => {
+    tambahTabelDanKolom(db)
+    db.jalankanSkrip(DDL_LOKAL_V5 + DDL_LOKAL_V8)
+    db.jalankanSkrip(`INSERT OR IGNORE INTO kunci_bidang_wilayah (bidang, wilayah_id, versi, publik, rahasia_terenkripsi, dibuat_pada)
+      SELECT bidang, '', versi, publik, rahasia_terenkripsi, dibuat_pada FROM kunci_bidang;`)
   },
 ]
 

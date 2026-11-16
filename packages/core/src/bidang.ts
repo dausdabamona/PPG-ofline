@@ -2,6 +2,7 @@
 // enkripsi data rahasia per penerima (kunci bidang), dan kueri tiap jabatan (ketua, sekretaris, bendahara, kurikulum/reward,
 // tenaga pendidik, tahfidz, PJ desa).
 import { daftarKunciBidang, type KunciAdmin } from './admin'
+import { idDaerah } from './kebijakan'
 import { dekompresJson, kompresJson } from './berkas'
 import { bukaSegel, dariB64url, keB64url, segelKe } from './crypto'
 import type { Db } from './db'
@@ -9,11 +10,20 @@ import { GalatPpg } from './galat'
 import { DAFTAR_KODE_KEAKTIFAN, raporGenerus } from './juknis'
 import {
   GROUP_PEMBINAAN,
+  JABATAN_PIN_WAJIB,
   JENIS_CATATAN,
+  KATEGORI_RUJUKAN,
+  STATUS_RUJUKAN,
+  jabatanDariPenugasan,
+  penugasanCocokWilayah,
+  penugasanDari,
   type BidangRahasia,
   type Jabatan,
   type JenisCatatan,
+  type Penugasan,
 } from './kepengurusan'
+import { kunciPublikInfo } from './info-bidang'
+import { wilayahMencakupDb } from './rantai'
 import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, type KategoriGenerus } from './repo/generus'
 import { daftarProfil, statusProfil, type Profil } from './repo/profil'
 import { periodeAktif } from './repo/target'
@@ -30,15 +40,37 @@ import { tanggalHariIni, tanggalSah } from './waktu'
 
 /** Jabatan pada teks token (kosong bila tidak ada / token rusak). */
 export function jabatanToken(teks: string): Jabatan[] {
+  return jabatanDariPenugasan(penugasanToken(teks))
+}
+
+export function jabatanProfil(p: Pick<Profil, 'token'>): Jabatan[] {
+  return jabatanToken(p.token)
+}
+
+/** §21.1 (J-BJ1): penugasan pada teks token (`penugasan[]`, atau `jabatan[]` lama pada wilayah token). */
+export function penugasanToken(teks: string): Penugasan[] {
   try {
-    return uraiToken(teks).payload.jabatan ?? []
+    return penugasanDari(uraiToken(teks).payload)
   } catch {
     return []
   }
 }
 
-export function jabatanProfil(p: Pick<Profil, 'token'>): Jabatan[] {
-  return jabatanToken(p.token)
+export function penugasanProfil(p: Pick<Profil, 'token'>): Penugasan[] {
+  return penugasanToken(p.token)
+}
+
+/** §21.1: profil pengurus yang wajib memasang PIN (memegang BK, bendahara, atau penggalang dana). */
+export function perluPinWajib(p: Pick<Profil, 'token' | 'role'>): boolean {
+  return p.role === 'pengurus' && jabatanProfil(p).some((j) => JABATAN_PIN_WAJIB.includes(j))
+}
+
+/** Penugasan aktif HP ini (semua profil pengurus yang boleh mencatat), opsional disaring jabatan. */
+export function penugasanHp(db: Db, jabatan?: readonly Jabatan[]): (Penugasan & { profil_id: string })[] {
+  return daftarProfil(db, 'pengurus')
+    .filter((p) => statusProfil(p).bolehMencatat)
+    .flatMap((p) => penugasanProfil(p).map((x) => ({ ...x, profil_id: p.id })))
+    .filter((x) => !jabatan || jabatan.includes(x.jabatan))
 }
 
 /** Profil pengurus aktif (boleh mencatat) di HP ini yang memegang salah satu jabatan. */
@@ -128,6 +160,17 @@ export function alasanIsiCatatan(jenis: string, isi: unknown): string | null {
     case 'konseling':
       if (!salahSatu(x.sasaran, ['generus', 'pendidik', 'orang_tua'])) return 'Sasaran konseling tidak dikenal.'
       return teks(x.masalah, true) && teks(x.nama) && teks(x.tindak_lanjut) && teks(x.kategori) ? null : 'Masalah wajib diisi.'
+    case 'rujukan':
+      // §21.3: isi rujukan (disegel ke kunci konseling wilayah tujuan)
+      if (typeof x.generus_id !== 'string' || !x.generus_id) return 'Generus wajib dipilih.'
+      if (!salahSatu(x.kategori, KATEGORI_RUJUKAN)) return 'Kategori rujukan tidak dikenal.'
+      if (!teks(x.uraian, true) || String(x.uraian).length > 2000) return 'Uraian singkat wajib diisi (maks. 2000 huruf).'
+      if (x.segera !== undefined && typeof x.segera !== 'boolean') return 'Tanda Segera tidak sah.'
+      return teks(x.nama) && teks(x.kelompok_id) && teks(x.perujuk) ? null : 'Isian rujukan tidak sah.'
+    case 'status_rujukan':
+      if (typeof x.rujukan_id !== 'string' || !x.rujukan_id) return 'Rujukan wajib dipilih.'
+      if (!salahSatu(x.status, STATUS_RUJUKAN)) return 'Status rujukan tidak dikenal.'
+      return x.asal_id === undefined || x.asal_id === null || (typeof x.asal_id === 'string' && x.asal_id.length <= 64) ? null : 'Rujukan asal tidak sah.'
     case 'mubaligh':
       if (!teks(x.nama, true)) return 'Nama mubaligh wajib diisi.'
       if (!salahSatu(x.jenis, ['tugasan', 'setempat'])) return 'Jenis mubaligh harus tugasan atau setempat.'
@@ -232,24 +275,46 @@ export interface CatatanBidang extends RekamanDasar {
 /** Catatan yang sudah diurai: `isi` null bila rahasia dan HP/EXE ini tidak memegang kunci bacanya. */
 export type CatatanTerbaca = Omit<CatatanBidang, 'isi_json' | 'isi_rahasia'> & { isi: Isi | null; terkunci: boolean }
 
-/** Kunci bidang yang dipegang profil-profil HP ini (semua versi). */
-function kunciBidangHp(db: Db, bidang: BidangRahasia): KunciBidang[] {
+/** Wilayah kunci bidang di HP: tidak ada = wilayah daerah (J-BJ3). */
+function wilayahKunciHp(db: Db, k: KunciBidang): string {
+  return k.wilayah_id ?? idDaerah(db) ?? ''
+}
+
+/** Kunci bidang yang dipegang profil-profil HP ini untuk satu wilayah (semua versi). */
+function kunciBidangHp(db: Db, bidang: BidangRahasia, wilayahId: string): KunciBidang[] {
   const peta = new Map<number, KunciBidang>()
   for (const p of daftarProfil(db, 'pengurus'))
-    for (const k of p.rahasia.kunci_bidang ?? []) if (k.bidang === bidang && (!peta.get(k.versi)?.rahasia || k.rahasia)) peta.set(k.versi, k)
+    for (const k of p.rahasia.kunci_bidang ?? [])
+      if (k.bidang === bidang && wilayahKunciHp(db, k) === wilayahId && (!peta.get(k.versi)?.rahasia || k.rahasia)) peta.set(k.versi, k)
   return [...peta.values()].sort((a, b) => a.versi - b.versi)
 }
 
-/** Kunci publik terbaru bidang rahasia untuk menulis (HP: dari token; daerah: tabel kunci_bidang). */
-function kunciTulis(db: Db, bidang: BidangRahasia): { versi: number; publik: string } {
+/** §21.2: apakah HP ini memegang kunci BACA bidang untuk wilayah itu. */
+export function bisaBacaBidang(db: Db, bidang: BidangRahasia, wilayahId: string): boolean {
+  return kunciBidangHp(db, bidang, wilayahId).some((k) => !!k.rahasia)
+}
+
+/**
+ * Kunci publik terbaru bidang rahasia untuk menulis catatan di wilayah itu. Daerah: tabel kunci per wilayah. HP/EXE bawah:
+ * kunci dari token/paket (profil berjabatan) atau info bidang bertanda tangan daerah (perujuk tanpa kunci baca, §21.2).
+ */
+export function kunciTulis(db: Db, bidang: BidangRahasia, wilayahId: string): { versi: number; publik: string } {
   if (adalahAdmin(db)) {
-    const r = db.satu<{ versi: number; publik: string }>('SELECT versi, publik FROM kunci_bidang WHERE bidang = ? ORDER BY versi DESC LIMIT 1', [bidang])
+    const w = wilayahId === idDaerah(db) ? [wilayahId, ''] : [wilayahId]
+    const r = db.satu<{ versi: number; publik: string }>(
+      `SELECT versi, publik FROM kunci_bidang_wilayah WHERE bidang = ? AND wilayah_id IN (${tandaTanya(w.length)}) ORDER BY versi DESC LIMIT 1`,
+      [bidang, ...w],
+    )
     if (r) return r
   } else {
-    const k = kunciBidangHp(db, bidang).pop()
-    if (k) return { versi: k.versi, publik: k.publik }
+    const calon: { versi: number; publik: string }[] = kunciBidangHp(db, bidang, wilayahId).map((k) => ({ versi: k.versi, publik: k.publik }))
+    const info = kunciPublikInfo(db, bidang, wilayahId)
+    if (info) calon.push(info)
+    calon.sort((a, b) => a.versi - b.versi)
+    const k = calon.pop()
+    if (k) return k
   }
-  throw new GalatPpg('KUNCI_BIDANG_TIDAK_ADA', 'Kunci bidang belum ada. Minta token jabatan terbaru dari EXE Daerah.')
+  throw new GalatPpg('KUNCI_BIDANG_TIDAK_ADA', 'Kunci bidang wilayah ini belum ada. Buka paket terbaru dari daerah.')
 }
 
 export interface DataCatatan {
@@ -284,15 +349,17 @@ function pastikanPenulis(db: Db, jenis: JenisCatatan, wilayahIsi: string | undef
     if (!p) throw new GalatPpg('TIDAK_BERWENANG', 'Profil pengurus/mubaligh tidak ada di HP ini.')
     return wilayahIsi ?? p.wilayah_id
   }
-  const p = profilBerjabatan(db, meta.penulis)
-  if (!p) throw new GalatPpg('TIDAK_BERWENANG', `Catatan "${meta.nama}" hanya untuk jabatan yang berwenang.`)
-  const jab = jabatanProfil(p)
-  // §18 (J-M2): PJ desa/kelompok hanya menulis notulen wilayahnya; sekretaris semua wilayah
-  if (jenis === 'notulen' && !jab.includes('sekretaris') && wilayahIsi && wilayahIsi !== p.wilayah_id) {
-    throw new GalatPpg('TIDAK_BERWENANG', 'Notulen hanya untuk wilayah Anda sendiri.')
+  // §21.1 (J-BJ2): penugasan jabatan berwenang di wilayah catatan atau leluhurnya
+  const calon = penugasanHp(db, meta.penulis)
+  if (!calon.length) throw new GalatPpg('TIDAK_BERWENANG', `Catatan "${meta.nama}" hanya untuk jabatan yang berwenang.`)
+  const target = wilayahIsi ?? calon[0]!.wilayah_id
+  const mencakup = wilayahMencakupDb(db)
+  const cocok = calon.filter((x) => penugasanCocokWilayah(jenis, x, target, mencakup))
+  if (!cocok.length) {
+    throw new GalatPpg('TIDAK_BERWENANG', jenis === 'notulen' ? 'Notulen hanya untuk wilayah Anda sendiri.' : `Catatan "${meta.nama}" di luar wilayah penugasan Anda.`)
   }
   // §18 (J-M3): wakil ketua mengesahkan hanya bila diberi mandat Ketua yang berlaku hari ini
-  if (jenis === 'pengesahan' && !jab.includes('ketua')) {
+  if (jenis === 'pengesahan' && !cocok.some((x) => x.jabatan === 'ketua')) {
     const hari = tanggalHariIni()
     const ada = daftarCatatan(db, { jenis: 'mandat' }).some((c) => {
       const x = c.isi as { mulai?: string; sampai?: string } | null
@@ -300,7 +367,7 @@ function pastikanPenulis(db: Db, jenis: JenisCatatan, wilayahIsi: string | undef
     })
     if (!ada) throw new GalatPpg('TIDAK_BERWENANG', 'Wakil Ketua mengesahkan hanya dengan mandat Ketua yang berlaku.')
   }
-  return wilayahIsi ?? p.wilayah_id
+  return target
 }
 
 /** Simpan catatan bidang; isi rahasia dienkripsi ke kunci bidang (penulis tanpa kunci baca tetap bisa menulis). */
@@ -332,7 +399,7 @@ export function simpanCatatan(db: Db, d: DataCatatan): CatatanBidang {
     rujukan_id: d.rujukanId ?? null,
   }
   if (meta.rahasia) {
-    const k = kunciTulis(db, meta.rahasia)
+    const k = kunciTulis(db, meta.rahasia, wilayah)
     rek.isi_rahasia = keB64url(segelKe(dariB64url(k.publik), kompresJson(d.isi)))
     rek.versi_kunci = k.versi
   } else rek.isi_json = JSON.stringify(d.isi)
@@ -360,8 +427,8 @@ function bukaIsi(db: Db, c: CatatanBidang, kunciAdmin?: KunciAdmin): Isi | null 
   let kunci: { publik: string; rahasia: string } | undefined
   if (adalahAdmin(db)) {
     if (bidang !== 'keuangan' || !kunciAdmin) return null
-    kunci = bacaKunciDaerah(db, kunciAdmin, bidang, Number(c.versi_kunci))
-  } else kunci = kunciBidangHp(db, bidang).find((k) => k.versi === Number(c.versi_kunci))
+    kunci = bacaKunciDaerah(db, kunciAdmin, bidang, Number(c.versi_kunci), c.wilayah_id)
+  } else kunci = kunciBidangHp(db, bidang, c.wilayah_id).find((k) => k.versi === Number(c.versi_kunci))
   if (!kunci?.rahasia) return null
   try {
     const isi = dekompresJson<Isi>(bukaSegel(dariB64url(c.isi_rahasia), { publik: dariB64url(kunci.publik), rahasia: dariB64url(kunci.rahasia) }))
@@ -371,8 +438,9 @@ function bukaIsi(db: Db, c: CatatanBidang, kunciAdmin?: KunciAdmin): Isi | null 
   }
 }
 
-function bacaKunciDaerah(db: Db, k: KunciAdmin, bidang: BidangRahasia, versi: number): { publik: string; rahasia: string } | undefined {
-  return daftarKunciBidang(db, k, bidang).find((x) => x.versi === versi)
+function bacaKunciDaerah(db: Db, k: KunciAdmin, bidang: BidangRahasia, versi: number, wilayahId: string): { publik: string; rahasia: string } | undefined {
+  if (!ambilWilayah(db, wilayahId)) return undefined
+  return daftarKunciBidang(db, k, bidang, wilayahId).find((x) => x.versi === versi)
 }
 
 /** Daftar catatan bidang (urut tanggal terbaru), isi terurai bila bisa dibaca. */
@@ -438,7 +506,8 @@ export function ringkasanKas(db: Db, o: { bulan?: string; kunciAdmin?: KunciAdmi
     r[x.arah] += x.jumlah
   }
   r.saldo = r.masuk - r.keluar
-  const dikonfirmasi = new Set(kas.map((c) => c.rujukan_id).filter(Boolean))
+  // rujukan_id kolom terbuka: konfirmasi terlihat walau isi kas wilayah lain tidak terbaca
+  const dikonfirmasi = new Set(semua.filter((c) => c.jenis === 'kas').map((c) => c.rujukan_id).filter(Boolean))
   r.danaMenunggu = semua.filter((c) => c.jenis === 'dana_masuk' && c.isi && !dikonfirmasi.has(c.id))
   // target per (desa, peruntukan), J-M9: kebijakan Ditetapkan Musyawarah > target bendahara (catatan) > nilai sementara
   const target = new Map<string, { desa_id: string; peruntukan: string; nominal: number; sumber: SumberTarget }>()
@@ -475,7 +544,9 @@ export function konfirmasiDanaMasuk(db: Db, danaId: string): CatatanBidang {
   if (!d.isi) throw new GalatPpg('TERKUNCI', 'Isi dana masuk tidak bisa dibuka di HP ini.')
   if (daftarCatatan(db, { jenis: 'kas' }).some((c) => c.rujukan_id === danaId)) throw new GalatPpg('SUDAH_DIKONFIRMASI', 'Dana ini sudah masuk kas.')
   const x = d.isi as { jumlah: number; sumber: string; dari?: string }
+  // §21.2: kas konfirmasi di wilayah dana masuk → penggalang dana desa/kelompok melihat dananya sudah masuk kas
   return simpanCatatan(db, {
+    wilayahId: d.wilayah_id,
     jenis: 'kas',
     isi: { arah: 'masuk', jumlah: x.jumlah, akun: 'dana_masuk', keterangan: `Dana ${x.sumber}${x.dari ? ` dari ${x.dari}` : ''} (penggalangan)` },
     rujukanId: danaId,
@@ -713,8 +784,11 @@ export interface RingkasanKetua {
   notulenTerakhir: CatatanTerbaca[]
   /** Jumlah catatan per jenis (tanpa membuka isi). */
   jumlahPerJenis: Record<string, number>
-  /** Kasus BK bulan ini & total (hanya jumlah — isi terenkripsi untuk bidang BK). */
-  kasusBk: { bulanIni: number; total: number }
+  /**
+   * Kasus & rujukan BK se-daerah (hanya jumlah agregat — isi terenkripsi untuk BK; J-BJ6: tidak per wilayah agar kasus tidak
+   * tertebak di wilayah kecil).
+   */
+  kasusBk: { bulanIni: number; total: number; rujukanBulanIni: number; rujukanBelumDitanggapi: number; rujukanTotal: number }
   nunggoni: { laporan: number; mandiri: number }
   kelompokBelumLapor: number
   keaktifanRata: number | null
@@ -728,6 +802,14 @@ export function ringkasanKetua(db: Db, o: { wilayahId: string; bulan?: string; k
   for (const r of db.kueri<{ jenis: string; n: number }>('SELECT jenis, COUNT(*) AS n FROM catatan_bidang WHERE dihapus = 0 GROUP BY jenis')) jumlahPerJenis[r.jenis] = r.n
   const bk = (bulanSaja: boolean) =>
     db.nilai<number>(`SELECT COUNT(*) FROM catatan_bidang WHERE dihapus = 0 AND jenis = 'konseling' ${bulanSaja ? 'AND tanggal LIKE ?' : ''}`, bulanSaja ? [`${bulan}-%`] : []) ?? 0
+  // §21.3: rujukan asal (bukan hasil Naikkan) & apakah sudah ada status dari BK
+  const rujukan = db.kueri<{ id: string; tanggal: string }>(`SELECT id, tanggal FROM catatan_bidang WHERE dihapus = 0 AND jenis = 'rujukan' AND rujukan_id IS NULL`)
+  const ditanggapi = new Set<string>()
+  for (const r of db.kueri<{ isi_json: string | null }>(`SELECT isi_json FROM catatan_bidang WHERE dihapus = 0 AND jenis = 'status_rujukan'`)) {
+    const x = uraiJson<{ rujukan_id?: string; asal_id?: string } | null>(r.isi_json, null)
+    if (x?.rujukan_id) ditanggapi.add(x.rujukan_id)
+    if (x?.asal_id) ditanggapi.add(x.asal_id)
+  }
   const lap = rekapLaporanBulanan(db, { wilayahId: o.wilayahId, bulan })
   const kas = ringkasanKas(db, { bulan, kunciAdmin: o.kunciAdmin })
   const rk = rekapKeaktifanBulan(db, { wilayahId: o.wilayahId, bulan })
@@ -737,7 +819,13 @@ export function ringkasanKetua(db: Db, o: { wilayahId: string; bulan?: string; k
     musyawarah: musyawarahBulan(bulan),
     notulenTerakhir: daftarCatatan(db, { jenis: 'notulen' }).slice(0, 5),
     jumlahPerJenis,
-    kasusBk: { bulanIni: bk(true), total: bk(false) },
+    kasusBk: {
+      bulanIni: bk(true),
+      total: bk(false),
+      rujukanBulanIni: rujukan.filter((r) => r.tanggal.startsWith(bulan)).length,
+      rujukanBelumDitanggapi: rujukan.filter((r) => !ditanggapi.has(r.id)).length,
+      rujukanTotal: rujukan.length,
+    },
     nunggoni: {
       laporan: lap.reduce((s, r) => s + r.jumlahNunggoni, 0),
       mandiri: db.nilai<number>(`SELECT COUNT(*) FROM catatan_bidang WHERE dihapus = 0 AND jenis = 'nunggoni' AND tanggal LIKE ?`, [`${bulan}-%`]) ?? 0,

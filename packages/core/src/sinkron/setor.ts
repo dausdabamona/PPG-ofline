@@ -29,8 +29,8 @@ import { ambilWilayah, kelompokDalamWilayah } from '../repo/wilayah'
 import { ambilGenerus, daftarGenerus, KATEGORI_GENERUS, JILID_IQRO, type KategoriGenerus } from '../repo/generus'
 import { alasanKeaktifanTidakSah, alasanRekamanEvaluasiTidakSah, KODE_DESA_DAERAH, type KodeKeaktifan } from '../juknis'
 import { alasanLaporanBulananTidakSah, idLaporanBulanan } from '../rekap-juknis'
-import { alasanIsiCatatan, idKontrolMt, jabatanToken } from '../bidang'
-import { JABATAN_PENCATAT_AGENDA, JENIS_CATATAN, jabatanBolehMenulis, type Jabatan } from '../kepengurusan'
+import { alasanIsiCatatan, idKontrolMt, penugasanToken } from '../bidang'
+import { JABATAN_PENCATAT_AGENDA, JENIS_CATATAN, jabatanBolehMenulis, jabatanDariPenugasan, penugasanCocokWilayah, penugasanDari, type Jabatan, type Penugasan } from '../kepengurusan'
 import { PetaRiwayat } from '../laporan'
 import { terapkanKeputusanTertunda, type HasilPenerapan } from '../musyawarah'
 import { setujuiPenetapanKurikulum } from '../penetapan-kurikulum'
@@ -341,15 +341,19 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     if (tokenSah.some((p) => p.perangkat_id === perangkatId && p.hak.includes('sahkan') && mencakup(p.wilayah_id, kel) === true)) return true
     return daftarPerangkat(db, { perangkatId }).some((t) => hakToken(t.token).includes('sahkan') && kelompokDalamWilayah(db, t.wilayah_id).includes(kel))
   }
-  /** Token penulis rekaman (pengirim + terdaftar), tidak dicabut sebelum rekaman diubah. */
-  const tokenPenulis = (rek: Rekaman): { role: string; wilayah_id: string; jabatan: string[] }[] => {
+  /** Token penulis rekaman (pengirim + terdaftar), tidak dicabut sebelum rekaman diubah. §21: beserta penugasannya. */
+  const tokenPenulis = (rek: Rekaman): { role: string; wilayah_id: string; jabatan: string[]; penugasan: Penugasan[] }[] => {
     const pid = String(rek.perangkat_id)
-    const out: { role: string; wilayah_id: string; jabatan: string[] }[] = tokenSah
+    const out: { role: string; wilayah_id: string; jabatan: string[]; penugasan: Penugasan[] }[] = tokenSah
       .filter((p) => p.perangkat_id === pid)
-      .map((p) => ({ role: p.role, wilayah_id: p.wilayah_id, jabatan: p.jabatan ?? [] }))
+      .map((p) => {
+        const pn = penugasanDari(p)
+        return { role: p.role, wilayah_id: p.wilayah_id, jabatan: jabatanDariPenugasan(pn), penugasan: pn }
+      })
     for (const t of daftarPerangkat(db, { perangkatId: pid })) {
       if (t.dicabut_pada && String(rek.diubah_pada) >= t.dicabut_pada) continue
-      out.push({ role: t.role, wilayah_id: t.wilayah_id, jabatan: jabatanToken(t.token) })
+      const pn = penugasanToken(t.token)
+      out.push({ role: t.role, wilayah_id: t.wilayah_id, jabatan: jabatanDariPenugasan(pn), penugasan: pn })
     }
     return out
   }
@@ -358,17 +362,22 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
     if (!meta) return 'Jenis catatan tidak dikenal.'
     if (rek.bidang !== meta.bidang) return 'Bidang catatan tidak cocok dengan jenisnya.'
     const tok = tokenPenulis(rek)
+    const w = String(rek.wilayah_id ?? '')
     const boleh =
       meta.penulis === 'semua'
-        ? tok.some((t) => t.role === 'pengurus' || t.role === 'mubaligh')
+        ? tok.some(
+            (t) =>
+              (t.role === 'pengurus' || t.role === 'mubaligh') &&
+              // §21.3 (J-BJ2): rujukan ke BK wilayah perujuk atau tingkat di atasnya (atau di bawahnya)
+              (rek.jenis !== 'rujukan' || mencakup(w, t.wilayah_id) === true || mencakup(t.wilayah_id, w) === true),
+          )
         : meta.penulis === 'mubaligh'
           ? tok.some((t) => t.role === 'mubaligh' && t.wilayah_id === rek.wilayah_id) && rek.id === idKontrolMt(String(rek.perangkat_id), String(rek.tanggal).slice(0, 7))
           : tok.some(
               (t) =>
                 t.role === 'pengurus' &&
-                jabatanBolehMenulis(t.jabatan, String(rek.jenis)) &&
-                // §18 (J-M2): PJ desa/kelompok hanya notulen wilayahnya; sekretaris semua wilayah dalam cakupan
-                (rek.jenis !== 'notulen' || t.jabatan.includes('sekretaris') || t.wilayah_id === rek.wilayah_id),
+                // §21.1 (J-BJ2): penugasan jabatan berwenang di wilayah rekaman atau leluhurnya (notulen PJ: wilayahnya saja)
+                t.penugasan.some((pn) => jabatanBolehMenulis([pn.jabatan], String(rek.jenis)) && penugasanCocokWilayah(String(rek.jenis), pn, w, mencakup)),
             )
     if (!boleh) return 'Penulis catatan tidak memegang jabatan yang berwenang.'
     if (rek.dihapus) return null
@@ -453,7 +462,8 @@ export function imporSetor(db: Db, bytes: Uint8Array, kunci: KunciPemegang, nama
           tabel === 'usulan'
             ? !kelompokBoleh.has(kel) && !(gabungan && (dalamCakupan(kel) || superPengirim)) && !(rek.jenis === 'tetapkan_kurikulum' && dalamCakupan(kel))
             : tabel === 'catatan_bidang'
-              ? !dalamCakupan(kel)
+              ? // §21.3: rujukan boleh ditujukan ke BK wilayah di atas pengirim (desa/daerah)
+                !dalamCakupan(kel) && !(rek.jenis === 'rujukan' && tokenSah.some((p) => mencakup(kel, p.wilayah_id) === true))
               : !kelompokBoleh.has(kel)
         if (diLuarWilayah) {
           return 'Data di luar wilayah pengirim.'

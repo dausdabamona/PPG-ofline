@@ -1,9 +1,10 @@
 // PAKET: tingkat atas → tingkat bawah. Isi dienkripsi kunci berkas acak yang disegel untuk tiap perangkat penerima (T10).
 // v3: daerah → EXE desa (+ kunci kelompok titipan), EXE desa/kelompok → EXE kelompok/HP (ditandatangani EXE penerbit).
-import { daftarKunciSetor, kunciBidangUntukJabatan, kunciUmumKelompokVersi, type KunciAdmin } from '../admin'
-import { jabatanToken } from '../bidang'
+import { daftarKunciSetor, kunciBidangUntukPenugasan, kunciUmumKelompokVersi, type KunciAdmin } from '../admin'
+import { penugasanToken } from '../bidang'
+import { ambilBlob, buatInfoBidang, buatKontakBk, simpanBlob, type BlobBertanda } from '../info-bidang'
 import { adalahIdRegister } from '../penetapan-kurikulum'
-import { bidangRahasiaDitulis, bidangRahasiaUntuk, CALON_PEMBACA_RAHASIA } from '../kepengurusan'
+import { bidangRahasiaDitulis, bidangRahasiaUntuk, CALON_PEMBACA_RAHASIA, type Penugasan } from '../kepengurusan'
 import { dekompresJson, kemasBerkas, kompresJson, periksaBerkas, slug, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { bukaSegel, dariB64url, dariUtf8, dekripsiRahasia, enkripsiRahasia, keB64url, keUtf8, kunciAcak32, segelKe } from '../crypto'
 import type { Db } from '../db'
@@ -33,7 +34,7 @@ import {
 } from '../repo/perangkat'
 import { daftarProfil, pastikanProfilBolehMencatat, simpanRahasiaProfil, type Profil } from '../repo/profil'
 import { adalahAdmin, adalahExe, ambilMeta, ambilMetaAngka, aturMeta, tandaTanya, type Rekaman } from '../repo/umum'
-import { ambilWilayah, kelompokDalamWilayah, leluhurWilayah, turunanWilayah } from '../repo/wilayah'
+import { ambilWilayah, daftarWilayah, kelompokDalamWilayah, leluhurWilayah, turunanWilayah } from '../repo/wilayah'
 import { TABEL_SINKRON, type NamaTabelSinkron } from '../skema'
 import { buktiWilayahSah, periksaToken, tandaTanganiBuktiWilayah, uraiToken, type KunciBidang, type KunciSetor } from '../token'
 import { sekarangIso } from '../waktu'
@@ -71,6 +72,37 @@ export interface IsiPaket {
   materi_daerah?: string
   /** §17 (paket daerah): perangkat_id → b64url(segelKe(box_pub, JSON KunciBidang[])) — kunci bidang untuk jabatan pembaca. */
   kunci_bidang?: Record<string, string>
+  /**
+   * §21.2: info bidang bertanda tangan daerah (kunci publik konseling & keuangan tiap wilayah, perangkat BK aktif, kerabat BK).
+   * Paket EXE desa/kelompok meneruskannya apa adanya.
+   */
+  info_bidang?: BlobBertanda
+  /** §21.4: kontak WA BK per wilayah, bertanda tangan daerah (diteruskan apa adanya, juga lewat BALASAN). */
+  kontak_bk?: BlobBertanda
+  /** §21.1 (paket daerah): pengurus berpenugasan di wilayah paket — untuk Struktur & Kursi Kosong di EXE desa. */
+  pengurus_bidang?: PengurusBidang[]
+}
+
+/** §21.1: ringkasan satu token pengurus berpenugasan (tanpa kunci). */
+export interface PengurusBidang {
+  token_id: string
+  nama: string
+  wilayah_id: string
+  penugasan: Penugasan[]
+}
+
+/** Pengurus aktif berpenugasan yang menyentuh wilayah-wilayah ini (Struktur & Kursi Kosong). */
+export function pengurusBidangAktif(db: Db, wilayahIds?: readonly string[]): PengurusBidang[] {
+  const ada = wilayahIds ? new Set(wilayahIds) : null
+  const kini = sekarangIso()
+  const out: PengurusBidang[] = []
+  for (const t of daftarPerangkat(db, { role: 'pengurus', aktifSaja: true })) {
+    if (t.dibekukan || (t.berlaku_sampai && t.berlaku_sampai < kini)) continue
+    const pn = penugasanToken(t.token)
+    if (!pn.length || (ada && !pn.some((x) => ada.has(x.wilayah_id)))) continue
+    out.push({ token_id: t.id, nama: t.nama, wilayah_id: t.wilayah_id, penugasan: pn })
+  }
+  return out
 }
 
 function pilih(db: Db, tabel: NamaTabelSinkron, kolom: string, nilai: string[], tambahan = ''): Rekaman[] {
@@ -140,6 +172,18 @@ function rekamanPaket(db: Db, wilayahId: string, daerah: boolean): RekamanPerTab
     if (r.pengaturan) r.pengaturan = r.pengaturan.filter((x) => !adalahIdRegister((x as { id?: unknown }).id))
   }
   return r
+}
+
+/**
+ * §21.2: kunci bidang yang boleh disimpan profil menurut penugasannya (pertahanan berlapis atas isi paket daerah):
+ * konseling hanya wilayah BK-nya; keuangan semua wilayah untuk calon pembaca daerah, wilayahnya untuk penggalang dana desa/kelompok.
+ */
+function kunciBidangBoleh(pn: readonly Penugasan[], daerahId: string): (bidang: string, wilayahId: string) => boolean {
+  const jabDaerah = pn.filter((x) => x.wilayah_id === daerahId).map((x) => x.jabatan)
+  const keuanganSemua = bidangRahasiaUntuk(jabDaerah, CALON_PEMBACA_RAHASIA).includes('keuangan') || bidangRahasiaDitulis(jabDaerah).includes('keuangan')
+  const bk = new Set(pn.filter((x) => x.jabatan === 'bk').map((x) => x.wilayah_id))
+  const dana = new Set(pn.filter((x) => x.jabatan === 'penggalang_dana').map((x) => x.wilayah_id))
+  return (bidang, w) => (bidang === 'konseling' ? bk.has(w) : bidang === 'keuangan' ? keuanganSemua || dana.has(w) : false)
 }
 
 const ROLE_PENERIMA_PAKET: PerangkatTerdaftar['role'][] = ['pengurus', 'mubaligh', 'admin']
@@ -235,10 +279,21 @@ export function buatPaket(db: Db, wilayahId: string, kunci: KunciPemegang): Berk
     const kb: Record<string, string> = {}
     for (const p of penerima.filter((x) => x.role === 'pengurus')) {
       // §18 (J-M7): pembaca menurut kebijakan hak baca; penulis bukan pembaca hanya kunci publik
-      const daftar = kunciBidangUntukJabatan(db, kunci as KunciAdmin, jabatanToken(p.token))
+      // §21.2: per penugasan (BK wilayah W → konseling W; pembaca keuangan daerah → semua wilayah; penggalang desa → wilayahnya)
+      const daftar = kunciBidangUntukPenugasan(db, kunci as KunciAdmin, penugasanToken(p.token))
       if (daftar.length) kb[p.perangkat_id] = segel(p, daftar)
     }
     if (Object.keys(kb).length) isi.kunci_bidang = kb
+    isi.info_bidang = buatInfoBidang(db, kunci as KunciAdmin)
+    isi.kontak_bk = buatKontakBk(db, kunci as KunciAdmin)
+    const pb = pengurusBidangAktif(db, turunan)
+    if (pb.length) isi.pengurus_bidang = pb
+  } else {
+    // §21.2: EXE meneruskan info bidang & kontak BK dari daerah apa adanya (tanda tangan daerah diperiksa penerima)
+    const info = ambilBlob(db, 'info')
+    if (info) isi.info_bidang = info.blob
+    const kontak = ambilBlob(db, 'kontak')
+    if (kontak) isi.kontak_bk = kontak.blob
   }
   if (saya) {
     isi.token_pengirim = saya.token
@@ -411,17 +466,22 @@ export function terapkanPaket(db: Db, bytes: Uint8Array, namaBerkas?: string): R
     const segelBidang = dariDaerah ? isi.kunci_bidang?.[identitas.id] : undefined
     if (segelBidang) {
       const daftar = JSON.parse(dariUtf8(bukaSegel(dariB64url(segelBidang), identitas.kotak))) as KunciBidang[]
+      const daerahId = daftarWilayah(db, { tingkat: 'daerah' })[0]?.id ?? ''
       for (const p of daftarProfil(db, 'pengurus')) {
-        const jab = jabatanToken(p.token)
-        const boleh = new Set([...bidangRahasiaUntuk(jab, CALON_PEMBACA_RAHASIA), ...bidangRahasiaDitulis(jab)])
-        const baru = daftar.filter((k) => boleh.has(k.bidang))
+        const boleh = kunciBidangBoleh(penugasanToken(p.token), daerahId)
+        const baru = daftar.filter((k) => boleh(k.bidang, k.wilayah_id ?? daerahId))
         if (!baru.length) continue
-        const peta = new Map((p.rahasia.kunci_bidang ?? []).map((k) => [`${k.bidang}:${k.versi}`, k]))
+        const id = (k: KunciBidang) => `${k.bidang}:${k.wilayah_id ?? daerahId}:${k.versi}`
+        const peta = new Map((p.rahasia.kunci_bidang ?? []).map((k) => [id(k), k]))
         // kunci lengkap yang sudah dipegang tidak ditimpa kunci publik saja (mekanisme Fase 11: catatan lama tetap terbaca)
-        for (const k of baru) if (k.rahasia || !peta.get(`${k.bidang}:${k.versi}`)?.rahasia) peta.set(`${k.bidang}:${k.versi}`, k)
+        for (const k of baru) if (k.rahasia || !peta.get(id(k))?.rahasia) peta.set(id(k), k)
         simpanRahasiaProfil(db, p.id, { ...p.rahasia, kunci_bidang: [...peta.values()] })
       }
     }
+    // §21.2/§21.4: info bidang & kontak BK (bertanda tangan daerah; yang lebih lama/tidak sah diabaikan)
+    if (isi.info_bidang) simpanBlob(db, 'info', isi.info_bidang)
+    if (isi.kontak_bk) simpanBlob(db, 'kontak', isi.kontak_bk)
+    if (dariDaerah && kunciExe && Array.isArray(isi.pengurus_bidang)) aturMeta(db, `pengurus_bidang:${wilayahId}`, JSON.stringify(isi.pengurus_bidang))
     const segelTitipan = isi.kunci_titipan?.[identitas.id]
     if (segelTitipan && kunciExe) {
       const peta = JSON.parse(dariUtf8(bukaSegel(dariB64url(segelTitipan), identitas.kotak))) as Record<string, KunciTitipan>

@@ -103,6 +103,10 @@ export * from './bidang'
 // §18 — penetapan kurikulum & kebijakan lewat musyawaroh
 export * from './kebijakan'
 export * from './musyawarah'
+// §21 — bidang berjenjang, info BK bertanda tangan, rujukan BK, struktur & kursi kosong
+export * from './info-bidang'
+export * from './rujukan'
+export * from './struktur'
 export * from './penetapan-kurikulum'
 // §19 — cetakan laporan bulanan format lembar
 export * from './lembar-laporan'

@@ -40,6 +40,12 @@ export interface NilaiPengingatLaporan {
   akhir_mulai: number
 }
 export type NilaiDanaKegiatan = { nama: string; nominal: number }[]
+/** §21.5 M08: masa simpan catatan konseling & rujukan Selesai (bulan). */
+export interface NilaiSimpanKonseling {
+  bulan: number
+}
+/** §21.5 M09: nomor WA khusus BK per wilayah (wilayah_id → nomor 62…). Kosong = belum ditetapkan. */
+export type NilaiKontakBk = Record<string, string>
 
 export interface PetaNilaiKebijakan {
   tabungan_desa: NilaiTabunganDesa
@@ -49,6 +55,8 @@ export interface PetaNilaiKebijakan {
   jadwal_musyawarah: NilaiJadwalMusyawarah
   dana_kegiatan: NilaiDanaKegiatan
   pengingat_laporan: NilaiPengingatLaporan
+  simpan_konseling: NilaiSimpanKonseling
+  kontak_bk: NilaiKontakBk
 }
 export type KunciKebijakan = keyof PetaNilaiKebijakan
 
@@ -195,6 +203,36 @@ const pengingatLaporan: DefKebijakan<'pengingat_laporan'> = {
   ringkas: (v) => `Sekretaris tgl 1–${v.awal_sampai} · PJ desa mulai tgl ${v.akhir_mulai}`,
 }
 
+const simpanKonseling: DefKebijakan<'simpan_konseling'> = {
+  kode: 'M08',
+  kunci: 'simpan_konseling',
+  judul: 'Masa simpan catatan konseling & rujukan',
+  lingkup: 'daerah',
+  sumber: 'Kajian Rujukan BK (§21.5): catatan konseling & rujukan Selesai disimpan 24 bulan, lalu dihapus otomatis di HP BK.',
+  bawaan: () => ({ bulan: 24 }),
+  alasan: (v) => (objek(v) && bulat(v.bulan, 1, 120) ? null : 'Masa simpan 1–120 bulan.'),
+  ringkas: (v) => `${v.bulan} bulan, lalu dihapus otomatis`,
+}
+
+const kontakBk: DefKebijakan<'kontak_bk'> = {
+  kode: 'M09',
+  kunci: 'kontak_bk',
+  judul: 'Nomor WA khusus BK',
+  lingkup: 'daerah',
+  sumber: 'Kajian Rujukan BK (§21.4): disarankan nomor WA khusus BK per tingkat; sementara memakai nomor yang diisi saat token BK diterbitkan.',
+  bawaan: () => ({}),
+  alasan: (v) => {
+    if (!objek(v) || Object.keys(v).length > 500) return 'Daftar nomor BK tidak sah.'
+    for (const [w, n] of Object.entries(v)) {
+      if (!w || w.length > 64) return 'Wilayah nomor BK tidak sah.'
+      if (typeof n !== 'string' || !/^62\d{7,13}$/.test(n)) return 'Nomor WA BK harus berawalan 62 (contoh 62812xxxxxxx).'
+    }
+    return null
+  },
+  kosong: (v) => Object.keys(v).length === 0,
+  ringkas: (v) => (Object.keys(v).length ? `${Object.keys(v).length} nomor BK` : 'Belum ditetapkan'),
+}
+
 /** Katalog kebijakan (§18.3). Urutan = urutan tampil. */
 export const KATALOG_KEBIJAKAN: readonly DefKebijakan[] = [
   tabunganDesa,
@@ -204,6 +242,8 @@ export const KATALOG_KEBIJAKAN: readonly DefKebijakan[] = [
   jadwalMusyawarah,
   danaKegiatan,
   pengingatLaporan,
+  simpanKonseling,
+  kontakBk,
 ] as unknown as readonly DefKebijakan[]
 
 export function defKebijakan(kunci: string): DefKebijakan | undefined {

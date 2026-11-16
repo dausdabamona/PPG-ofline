@@ -1,4 +1,5 @@
 // BALASAN: HP mubaligh → HP generus/wali (disegel ke kunci kotak perangkat penerima).
+import { ambilBlob, simpanBlob, type BlobBertanda } from '../info-bidang'
 import { dekompresJson, kemasBerkas, kompresJson, slug, type BerkasKeluar, type HeaderBerkas } from '../berkas'
 import { bukaSegel, dariB64url, segelKe } from '../crypto'
 import type { Db } from '../db'
@@ -28,6 +29,8 @@ export interface IsiBalasan {
   kunci_setor?: KunciSetor
   /** Kunci umum kelompok terbaru (JADWAL); berganti setelah serah terima (Fase 1b). */
   kunci_umum?: { versi: number; kunci: string }
+  /** §21.4: kontak WA BK per wilayah bertanda tangan daerah (tombol Hubungi BK di HP orang tua & generus SMA ke atas). */
+  kontak_bk?: BlobBertanda
 }
 
 function pilih(db: Db, tabel: NamaTabelSinkron, kolom: string, nilai: string[]): Rekaman[] {
@@ -103,6 +106,8 @@ export function buatBalasan(dbPengirim: Db, perangkatPenerimaId: string): Berkas
   }
   if (terbaru) isi.kunci_setor = { versi: terbaru.versi, publik: terbaru.publik, tt: terbaru.tt }
   if (kunciUmum) isi.kunci_umum = kunciUmum
+  const kontak = ambilBlob(dbPengirim, 'kontak')
+  if (kontak) isi.kontak_bk = kontak.blob
   const header: HeaderBerkas = {
     jenis: 'BALASAN',
     versi_format: 1,
@@ -154,6 +159,7 @@ export function terapkanBalasan(db: Db, bytes: Uint8Array, namaBerkas?: string):
       }
     }
     for (const p of daftarProfil(db, ['generus', 'wali']).filter((x) => x.wilayah_id === kelompokId)) perbaruiKunciUmum(db, p, isi.kunci_umum)
+    if (isi.kontak_bk) simpanBlob(db, 'kontak', isi.kontak_bk)
     aturMeta(db, 'terakhir_balasan', sekarangIso())
     const ringkasan: RingkasanTerapkan = { jenis: 'BALASAN', perTabel: g.perTabel, total: g.total, pencabutanBaru, profilTerdampak: profilBerubah(db, sebelum) }
     catatImpor(db, b.header, ringkasan, sidikBerkas(bytes), namaBerkas)

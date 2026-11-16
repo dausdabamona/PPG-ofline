@@ -1,8 +1,8 @@
 // §18 (Fase 12) — Mekanisme musyawaroh: notulen Sekretaris (catatan bidang `notulen` yang diperluas) berisi butir keputusan
 // yang bisa ditautkan ke kunci kebijakan, pengesahan Ketua (atau Wakil Ketua bermandat), penerapan oleh EXE Daerah saja,
 // agenda musyawarah berikutnya, teks WA undangan/hasil, dan ringkasan beranda. Hak ditegakkan di core (J-M2–J-M6).
-import { gantiKunciBidang, type KunciAdmin } from './admin'
-import { daftarCatatan, jabatanToken, LABEL_MUSYAWARAH, musyawarahBulan, simpanCatatan, type CatatanBidang, type CatatanTerbaca } from './bidang'
+import { gantiKunciBidangSemua, type KunciAdmin } from './admin'
+import { daftarCatatan, jabatanToken, penugasanHp, LABEL_MUSYAWARAH, musyawarahBulan, simpanCatatan, type CatatanBidang, type CatatanTerbaca } from './bidang'
 import { sha256Hex } from './crypto'
 import type { Db } from './db'
 import { GalatPpg } from './galat'
@@ -109,11 +109,12 @@ export interface DataNotulen extends IsiNotulen {
  */
 export function simpanNotulen(db: Db, d: DataNotulen): CatatanBidang {
   if (adalahAdmin(db) || ambilMeta(db, 'peran_db') === 'exe') throw new GalatPpg('TIDAK_BERWENANG', 'Notulen ditulis Sekretaris di HP jabatannya.')
-  const p = profilJabatan(db, ['sekretaris']) ?? profilJabatan(db, PENULIS_NOTULEN)
-  if (!p) throw new GalatPpg('TIDAK_BERWENANG', 'Hanya Sekretaris (atau PJ desa/kelompok untuk wilayahnya) yang menulis notulen.')
-  const sekretaris = jabatan(p).includes('sekretaris')
-  const wilayah = d.wilayahId ?? p.wilayah_id
-  if (!sekretaris && wilayah !== p.wilayah_id) throw new GalatPpg('TIDAK_BERWENANG', 'Notulen hanya untuk wilayah Anda sendiri.')
+  // §21.1: penugasan PJ desa/kelompok menentukan wilayah notulennya; sekretaris (daerah) semua wilayah
+  const pen = penugasanHp(db, ['sekretaris', ...PENULIS_NOTULEN])
+  if (!pen.length) throw new GalatPpg('TIDAK_BERWENANG', 'Hanya Sekretaris (atau PJ desa/kelompok untuk wilayahnya) yang menulis notulen.')
+  const sek = pen.find((x) => x.jabatan === 'sekretaris')
+  const wilayah = d.wilayahId ?? (sek ?? pen[0]!).wilayah_id
+  if (!sek && !pen.some((x) => x.wilayah_id === wilayah)) throw new GalatPpg('TIDAK_BERWENANG', 'Notulen hanya untuk wilayah Anda sendiri.')
   if (!ambilWilayah(db, wilayah)) throw new GalatPpg('WILAYAH_TIDAK_SAH', 'Wilayah musyawarah tidak ditemukan.')
   const tanggal = d.tanggal ?? tanggalHariIni()
   if (!tanggalSah(tanggal)) throw new GalatPpg('TANGGAL_TIDAK_SAH', 'Tanggal musyawarah tidak sah.')
@@ -330,7 +331,8 @@ export function terapkanKeputusanTertunda(db: Db, kunci: KunciAdmin): HasilPener
     })
   }
   if (rotasi) {
-    gantiKunciBidang(db, kunci, 'keuangan')
+    // §21.2: pembaca keuangan daerah memegang kunci semua wilayah → semuanya diganti
+    gantiKunciBidangSemua(db, kunci, 'keuangan')
     hasil.kunciKeuanganDiganti = true
   }
   return hasil

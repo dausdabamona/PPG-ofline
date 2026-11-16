@@ -320,7 +320,7 @@ describe('Cetak raport §20.4 & migrasi v7', () => {
     const db = await bukaDb(simpanDb(a))
     migrasi(db)
     expect(db.nilai<string>(`SELECT nilai FROM meta WHERE kunci = 'versi_skema'`)).toBe(String(VERSI_SKEMA))
-    expect(VERSI_SKEMA).toBe(7)
+    expect(VERSI_SKEMA).toBeGreaterThanOrEqual(7)
     simpanPenilaianKarakter(db, { generusId: ali.id, butir: 'kompak', predikat: 'cukup', periode: P })
     expect(raporGenerus(db, ali.id, { periode: P })!.karakter!.thobiat[4]!.label).toBe('Cukup')
   })
