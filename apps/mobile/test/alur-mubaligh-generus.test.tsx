@@ -1,7 +1,7 @@
 // Alur utama APK lewat UI (jsdom) dengan platform palsu; admin disimulasikan dengan @ppg/core.
 // Aktivasi mubaligh → paket & materi → terbitkan token 2 generus di satu HP (multi-profil, PIN) + wali →
 // setor data → balasan → generus catat & setor belajar → mubaligh impor, sahkan/tolak → laporan WA → balasan →
-// wali melihat laporan pekanan → generus dibekukan (mondok) → spanduk.
+// wali melihat laporan mingguan → generus dibekukan (mondok) → spanduk.
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -181,7 +181,7 @@ describe('alur mubaligh – generus – wali', () => {
     await screen.findByText('Tidak ada setoran yang menunggu disahkan.')
 
     await nav(u, 'Lainnya') // ketuk ulang menu aktif → kembali ke daftar Lainnya
-    await u.click(screen.getByRole('button', { name: /^Laporan Pekanan/ }))
+    await u.click(screen.getByRole('button', { name: /^Laporan Mingguan/ }))
     await u.click(await screen.findByRole('button', { name: 'Kirim WA ke wali Ali' }))
     expect(pfM.tautan.at(-1)).toMatch(/^https:\/\/wa\.me\/6281234567890\?text=Assalamu/)
     expect(decodeURIComponent(pfM.tautan.at(-1)!)).toContain('Lancar sekali')
@@ -195,7 +195,7 @@ describe('alur mubaligh – generus – wali', () => {
     const balasanW1 = balasanUntuk(pfM.dibagikan.slice(sebelum), idW)
     await tutup(pfM)
 
-    // --- 6. Wali: aktivasi, buka balasan, lihat laporan pekanan & kemajuan
+    // --- 6. Wali: aktivasi, buka balasan, lihat laporan mingguan & kemajuan
     mulai(pfW)
     await aktifkan(u, tokenWali)
     await screen.findByRole('heading', { level: 1, name: 'Materi yang perlu dituntaskan' })
@@ -210,7 +210,7 @@ describe('alur mubaligh – generus – wali', () => {
     const targetAli = targetMateriBerikutnya(admin.db, ali.id, 3)
     // materi yang disahkan untuk Ali kini tampil; catatan mubaligh ikut
     await tungguTeks(/Lancar sekali/)
-    expect(screen.getByRole('heading', { name: 'Materi disahkan pekan ini' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Materi disahkan minggu ini' })).toBeTruthy()
     expect(targetAli.length).toBeGreaterThan(0)
     await nav(u, 'Kemajuan')
     await u.click(await screen.findByRole('radio', { name: 'Ali' }))

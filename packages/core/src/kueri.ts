@@ -439,7 +439,7 @@ export interface LaporanWaGenerus {
   tautan: string | null
 }
 
-/** Laporan pekanan + teks WA + tautan wa.me untuk setiap generus aktif/mondok di kelompok (mubaligh, "kirim WA per wali"). */
+/** Laporan mingguan + teks WA + tautan wa.me untuk setiap generus aktif/mondok di kelompok (mubaligh, "kirim WA per wali"). */
 export function laporanWaKelompok(db: Db, kelompokId: string, tanggalAcuan: string = tanggalHariIni()): LaporanWaGenerus[] {
   const hasil: LaporanWaGenerus[] = []
   for (const g of daftarGenerus(db, { kelompokId })) {

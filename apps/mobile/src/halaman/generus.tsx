@@ -147,17 +147,17 @@ export function JadwalGenerus() {
   const hariIni = tanggalHariIni()
   return (
     <>
-      <JudulHalaman judul="Jadwal" keterangan="Jadwal pengajian pekan ini." />
+      <JudulHalaman judul="Jadwal" keterangan="Jadwal pengajian minggu ini." />
       <div className="nav-pekan">
-        <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, -7))} label="Pekan sebelumnya">
+        <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, -7))} label="Minggu sebelumnya">
           ‹
         </Tombol>
         <span>{j.data ? `${tanggalTeks(j.data.mulai)} – ${tanggalTeks(j.data.selesai)}` : ''}</span>
-        <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, 7))} label="Pekan berikutnya">
+        <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, 7))} label="Minggu berikutnya">
           ›
         </Tombol>
       </div>
-      <KeadaanData hasil={j} kosong={(d) => d.acara.length === 0} teksKosong="Belum ada jadwal pekan ini.">
+      <KeadaanData hasil={j} kosong={(d) => d.acara.length === 0} teksKosong="Belum ada jadwal minggu ini.">
         {(d) => (
           <ul className="daftar-jadwal">
             {d.acara.map((a, i) => (

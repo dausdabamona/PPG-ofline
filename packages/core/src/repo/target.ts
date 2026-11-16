@@ -129,7 +129,7 @@ export function aturJadwalSetor(
     if (!(Number.isInteger(o.hari) && o.hari! >= 0 && o.hari! <= 6)) throw new GalatPpg('HARI_TIDAK_SAH', 'Hari harus 0 (Ahad) sampai 6 (Sabtu).')
   } else if (o.pola === 'bulanan') {
     if (!(Number.isInteger(o.tanggal) && o.tanggal! >= 1 && o.tanggal! <= 28)) throw new GalatPpg('TANGGAL_TIDAK_SAH', 'Tanggal setor bulanan 1–28.')
-  } else throw new GalatPpg('POLA_TIDAK_SAH', 'Pola jadwal setor: pekanan atau bulanan.')
+  } else throw new GalatPpg('POLA_TIDAK_SAH', 'Pola jadwal setor: mingguan atau bulanan.')
   if (o.jam && !/^([01]\d|2[0-3]):[0-5]\d$/.test(o.jam)) throw new GalatPpg('JAM_TIDAK_SAH', 'Jam harus berformat HH:MM.')
   const id = `JS-${o.tingkatAsal}`
   const isi = {

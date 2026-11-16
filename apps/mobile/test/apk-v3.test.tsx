@@ -146,7 +146,7 @@ describe('APK v3 — mubaligh', () => {
 
     // Lainnya berisi menu sesuai §14; Terbitkan Token memindai Kode Perangkat dengan pemindai native
     await nav(u, 'Lainnya')
-    for (const t of ['Setoran Generus', 'Simak Langsung', 'Generus', 'Terbitkan Token', 'Kirim Balasan', 'Laporan Pekanan', 'Setor ke Daerah', 'Buka Berkas'])
+    for (const t of ['Setoran Generus', 'Simak Langsung', 'Generus', 'Terbitkan Token', 'Kirim Balasan', 'Laporan Mingguan', 'Setor ke Daerah', 'Buka Berkas'])
       expect(screen.getByRole('button', { name: new RegExp(`^${t}`) })).toBeTruthy()
     await u.click(screen.getByRole('button', { name: /^Terbitkan Token/ }))
     await u.click(await screen.findByRole('button', { name: 'Pindai QR Kode Perangkat' }))
@@ -233,7 +233,7 @@ describe('APK v3 — murid & orang tua', () => {
     const navW = within(screen.getByRole('navigation', { name: 'Menu utama' })).getAllByRole('button').map((b) => b.textContent?.replace(/^\W+/, ''))
     expect(navW.slice(0, 2)).toEqual(['Target', 'Laporan'])
     await nav(u, 'Laporan')
-    await screen.findByRole('heading', { level: 1, name: 'Laporan Pekanan' })
+    await screen.findByRole('heading', { level: 1, name: 'Laporan Mingguan' })
     await jeda()
   })
 })

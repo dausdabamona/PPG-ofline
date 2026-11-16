@@ -147,7 +147,7 @@ Tanpa berkas `.ppgkey`, bila laptop rusak atau kata sandi lupa, semua laptop des
 ### 2.6 Jadwal setor
 
 1. Menu **Jadwal Setor**.
-2. Bagian **Kelompok → Desa**: pilih pola **Pekanan (tiap hari tertentu)**, pilih hari (mis. Ahad), isi batas jam → **Simpan jadwal Kelompok → Desa**.
+2. Bagian **Kelompok → Desa**: pilih pola **Mingguan (tiap hari tertentu)**, pilih hari (mis. Ahad), isi batas jam → **Simpan jadwal Kelompok → Desa**.
 3. Bagian **Desa → Daerah**: pilih **Bulanan (tiap tanggal tertentu)**, pilih tanggal (1–28, mis. 5), isi batas jam → **Simpan jadwal Desa → Daerah**.
 4. Jadwal ikut turun lewat paket. HP dan laptop desa/kelompok akan mengingatkan dan menandai **Terlambat** (merah) bila lewat tenggat. Jam yang dipakai adalah jam di perangkat masing-masing (WIT untuk Sorong).
 
@@ -472,7 +472,7 @@ Menu bawah: **Absen · Jadwal · Materi · Lainnya**.
 
 ### 6.3 Jadwal
 
-1. Menu **Jadwal**: jadwal rutin dan tambahan pekan ini.
+1. Menu **Jadwal**: jadwal rutin dan tambahan minggu ini.
 2. Tambah jadwal tambahan → **Simpan jadwal** → **Bagikan ke grup WA**.
 
 ### 6.4 Materi
@@ -486,7 +486,7 @@ Menu **Materi**: target semester per kelas, capaian tiap generus, dan materi yan
 3. **Generus** → data dan usulan (**+ Usulkan generus baru**, **Ajukan pindah kelompok**, **Ajukan ubah status (mondok/aktif/…)**).
 4. **Terbitkan Token** → pilih **Generus** atau **Orang tua (wali)** → pilih anak → isi **Nama pemegang token** → **Pindai QR Kode Perangkat** HP mereka (atau tempel) → **Terbitkan Token**.
 5. **Kirim Balasan** → **Kirim Balasan ke semua (… HP)** atau **Kirim** per HP.
-6. **Laporan Pekanan** → kirim WA ke orang tua.
+6. **Laporan Mingguan** → kirim WA ke orang tua.
 7. **Setor ke …** → tombol **Setor ke …**; **Setor Akhir** (di **Pilihan lain**) hanya saat serah terima tugas.
 8. **Buka Berkas** → paket dari desa, setoran generus, dan berkas lain.
 9. **Rujuk ke BK** (Fase 15) — untuk generus yang perlu bimbingan: pilih **Generus** → **Kategori** (Belajar · Keaktifan · Perilaku ·
@@ -674,7 +674,7 @@ Kode Perangkat ada juga di **Profil & HP** → kartu **Kode Perangkat** (**Kirim
 1. Setelah mubaligh mengirim Balasan: buka berkasnya (**Berkas** → **Buka Berkas**, dari profil mana saja).
 2. **Ganti profil** → pilih profil wali.
 3. Menu **Target**: "Materi yang perlu dituntaskan"; pilih **Ali** atau **Ani** di bagian **Pilih anak**.
-4. Menu **Laporan**: laporan pekanan tiap anak; **Kemajuan** dan **Kehadiran** per anak.
+4. Menu **Laporan**: laporan mingguan tiap anak; **Kemajuan** dan **Kehadiran** per anak.
 
 ### 8.5 Tugas pengurus tetap jalan
 
@@ -712,9 +712,9 @@ Menu bawah: **Target · Materiku · Catat · Jadwal · Setor**.
 Menu bawah: **Target · Laporan · Kemajuan · Kehadiran · Berkas**.
 
 1. Kirim **Kode Perangkat** ke mubaligh → terima token → **Aktifkan**.
-2. Setiap pekan buka berkas Balasan dari mubaligh: **Berkas** → **Buka Berkas**.
+2. Setiap minggu buka berkas Balasan dari mubaligh: **Berkas** → **Buka Berkas**.
 3. **Target**: materi yang perlu dituntaskan anak. Punya beberapa anak: pilih nama di **Pilih anak**.
-4. **Laporan**: laporan pekanan (geser pekan dengan **‹** / **›**).
+4. **Laporan**: laporan mingguan (geser minggu dengan **‹** / **›**).
 5. **Kemajuan** dan **Kehadiran** (60 hari terakhir) per anak.
 6. Di **Target**: kartu **Kejar target** (mulai tanggal 20), **Keaktifan bulan ini** → **Lihat Lembar Kontrol** (orang tua boleh
    mencentang sholat 5 waktu sebagai catatan di HP ini — muncul sebagai *data pendukung* di raport, tidak dinilai), dan **Laporan Hasil
@@ -733,8 +733,8 @@ Menu bawah: **Target · Laporan · Kemajuan · Kehadiran · Berkas**.
 | Kapan | Siapa | Kegiatan |
 |---|---|---|
 | Setiap pertemuan | Mubaligh / pengurus / EXE kelompok | **Absen** dengan materi hari ini dan centang tuntas |
-| Setiap pekan (mis. Sabtu) | Murid | **Setor Belajar** ke mubaligh |
-| Setiap pekan (mis. Ahad) | Mubaligh | **Setoran Generus** → sahkan → **Kirim Balasan ke semua** → **Laporan Pekanan** |
+| Setiap minggu (mis. Sabtu) | Murid | **Setor Belajar** ke mubaligh |
+| Setiap minggu (mis. Ahad) | Mubaligh | **Setoran Generus** → sahkan → **Kirim Balasan ke semua** → **Laporan Mingguan** |
 | Sesuai jadwal setor (mis. tiap Ahad) | HP pengurus & mubaligh, EXE kelompok | **Setor ke Kelompok/Desa** |
 | Sesudah menerima setoran | Admin Desa | **Impor Setoran** → periksa **Beranda** |
 | Bulanan (mis. sebelum tanggal 5) | Admin Desa | **Setor ke Daerah** |

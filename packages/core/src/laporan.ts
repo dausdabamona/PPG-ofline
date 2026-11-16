@@ -1,4 +1,4 @@
-// Laporan: pekanan untuk wali (K17), teks WA, rekap presensi & kemajuan.
+// Laporan: mingguan untuk wali (K17), teks WA, rekap presensi & kemajuan.
 import type { Db } from './db'
 import { materiSelesaiDisahkan, targetMateriBerikutnya } from './kurikulum'
 import { ambilGenerus, daftarGenerus, type Generus, type StatusGenerus } from './repo/generus'
@@ -131,7 +131,7 @@ function petaMateri(db: Db): Map<string, MateriLengkap> {
 }
 
 /**
- * Laporan pekanan (Ahad–Sabtu yang memuat tanggal acuan) untuk satu generus. Bila generus berstatus mondok
+ * Laporan mingguan (Ahad–Sabtu yang memuat tanggal acuan) untuk satu generus. Bila generus berstatus mondok
  * pada tanggal acuan → `{ mondok: true }` tanpa rincian.
  */
 export function laporanPekanan(db: Db, generusId: string, tanggalAcuan: string): LaporanPekanan | null {
@@ -205,24 +205,24 @@ function rincianItem(i: ItemKemajuanLaporan): string {
   return `• ${i.materi} (${i.kategori}) — ${bagian.join(', ')}`
 }
 
-/** Teks WA ringkas laporan pekanan, diawali salam, hanya berisi data generus itu sendiri. */
+/** Teks WA ringkas laporan mingguan, diawali salam, hanya berisi data generus itu sendiri. */
 export function teksWaLaporanPekanan(l: LaporanPekanan): string {
   const baris: string[] = ["Assalamu'alaikum warahmatullahi wabarakatuh."]
   const kel = l.kelompok ? ` (Kelompok ${l.kelompok.nama})` : ''
-  baris.push(`Laporan pekanan ananda *${l.generus.nama}*${kel}`)
-  baris.push(`Pekan ${formatTanggal(l.pekan.mulai)} – ${formatTanggal(l.pekan.selesai)}`)
+  baris.push(`Laporan mingguan ananda *${l.generus.nama}*${kel}`)
+  baris.push(`Minggu ${formatTanggal(l.pekan.mulai)} – ${formatTanggal(l.pekan.selesai)}`)
   baris.push('')
   if (l.mondok) {
-    baris.push('Ananda sedang mondok. Laporan pekanan dilanjutkan setelah ananda kembali aktif di kelompok.')
+    baris.push('Ananda sedang mondok. Laporan mingguan dilanjutkan setelah ananda kembali aktif di kelompok.')
   } else {
     const p = l.presensi
     baris.push(
       p.total
         ? `Kehadiran: hadir ${p.hadir}, izin ${p.izin}, sakit ${p.sakit}, alpa ${p.alpa} (dari ${p.total} pertemuan)`
-        : 'Kehadiran: belum ada catatan pekan ini.',
+        : 'Kehadiran: belum ada catatan minggu ini.',
     )
     if (l.materiDisahkan.length) {
-      baris.push('', 'Materi yang disahkan pekan ini:')
+      baris.push('', 'Materi yang disahkan minggu ini:')
       baris.push(...l.materiDisahkan.map(rincianItem))
     }
     if (l.materiDiajukan.length) {

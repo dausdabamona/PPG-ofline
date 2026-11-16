@@ -1,4 +1,4 @@
-// Layar peran Wali (orang tua): Target (Materi yang perlu dituntaskan) · Laporan Pekanan tiap anak · Kemajuan · Kehadiran · Buka Berkas.
+// Layar peran Wali (orang tua): Target (Materi yang perlu dituntaskan) · Laporan Mingguan tiap anak · Kemajuan · Kehadiran · Buka Berkas.
 import { KartuHubungiBk } from './rujukan'
 import { useState, type ReactNode } from 'react'
 import { daftarPresensi, generusProfil, laporanPekanan, tambahHari, tanggalHariIni, type MateriGenerus } from '@ppg/core'
@@ -52,17 +52,17 @@ export function LaporanWali() {
   const lap = useData(() => (gid ? laporanPekanan(db, gid, acuan) : null), [gid, acuan])
   return (
     <>
-      <JudulHalaman judul="Laporan Pekanan" />
+      <JudulHalaman judul="Laporan Mingguan" />
       {!anak.length ? <Kosong teks={BELUM_ADA} /> : null}
       {pemilih}
       {gid ? (
         <>
           <div className="nav-pekan">
-            <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, -7))} label="Pekan sebelumnya">
+            <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, -7))} label="Minggu sebelumnya">
               ‹
             </Tombol>
             <span>{lap.data ? `${tanggalTeks(lap.data.pekan.mulai)} – ${tanggalTeks(lap.data.pekan.selesai)}` : ''}</span>
-            <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, 7))} label="Pekan berikutnya">
+            <Tombol kecil varian="kedua" onClick={() => setAcuan(tambahHari(acuan, 7))} label="Minggu berikutnya">
               ›
             </Tombol>
           </div>
@@ -83,9 +83,9 @@ export function LaporanWali() {
                       <Angka nilai={l!.presensi.alpa} teks="Alpa" warna="merah" />
                       <Angka nilai={l!.materiDisahkan.length} teks="Materi disahkan" />
                     </div>
-                    {l!.presensi.total === 0 ? <p className="keterangan">Belum ada catatan kehadiran pekan ini.</p> : null}
+                    {l!.presensi.total === 0 ? <p className="keterangan">Belum ada catatan kehadiran minggu ini.</p> : null}
                   </Kartu>
-                  <Kartu judul="Materi disahkan pekan ini">
+                  <Kartu judul="Materi disahkan minggu ini">
                     {l!.materiDisahkan.length ? (
                       <ul className="daftar-sederhana">
                         {l!.materiDisahkan.map((m) => (
@@ -102,7 +102,7 @@ export function LaporanWali() {
                         ))}
                       </ul>
                     ) : (
-                      <p className="keterangan">Belum ada pekan ini.</p>
+                      <p className="keterangan">Belum ada minggu ini.</p>
                     )}
                   </Kartu>
                   {l!.materiDiajukan.length ? (

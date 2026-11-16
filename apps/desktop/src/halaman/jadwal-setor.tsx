@@ -1,4 +1,4 @@
-// v3 (V2): Jadwal Setor — admin daerah menetapkan tenggat kelompok → desa (mis. pekanan) dan desa → daerah (mis. bulanan).
+// v3 (V2): Jadwal Setor — admin daerah menetapkan tenggat kelompok → desa (mis. mingguan) dan desa → daerah (mis. bulanan).
 // Jadwal ikut turun lewat Kirim Paket; EXE desa/kelompok dan HP menampilkan pengingat dan menandai yang terlambat.
 import { useEffect, useState } from 'react'
 import { aturJadwalSetor, hapusJadwalSetor, jadwalSetorUntuk, type TingkatAsalSetor } from '@ppg/core'
@@ -54,7 +54,7 @@ function FormJadwal(p: { tingkat: TingkatAsalSetor; judul: string; bawaan: { pol
           nilai={pola}
           ubah={setPola}
           pilihan={[
-            { nilai: 'pekanan', teks: 'Pekanan (tiap hari tertentu)' },
+            { nilai: 'pekanan', teks: 'Mingguan (tiap hari tertentu)' },
             { nilai: 'bulanan', teks: 'Bulanan (tiap tanggal tertentu)' },
           ]}
         />

@@ -1,5 +1,5 @@
 // Layar peran Mubaligh (v3, disederhanakan): Absen · Jadwal · Materi · Lainnya
-// (Setoran generus, Simak Langsung, Generus, Terbitkan Token, Kirim Balasan, Laporan Pekanan WA, Setor ke Desa/Kelompok,
+// (Setoran generus, Simak Langsung, Generus, Terbitkan Token, Kirim Balasan, Laporan Mingguan WA, Setor ke Desa/Kelompok,
 // Buka Berkas). Absen ada di halaman/absen.tsx (dipakai juga pengurus).
 import { HalamanRujukBk, KartuSaranRujuk } from './rujukan'
 import { useMemo, useState } from 'react'
@@ -318,7 +318,7 @@ export function LainnyaMubaligh() {
           { teks: 'Generus', ket: 'Data & usulan perubahan', ikon: '☺', buka: () => setSub('generus') },
           { teks: 'Terbitkan Token', ket: 'Untuk HP generus / orang tua', ikon: '⚿', buka: () => setSub('token') },
           { teks: 'Kirim Balasan', ket: 'Hasil pengesahan ke HP generus/wali', ikon: '↩', buka: () => setSub('balasan') },
-          { teks: 'Laporan Pekanan', ket: 'Kirim WA ke orang tua', ikon: '▤', buka: () => setSub('laporan') },
+          { teks: 'Laporan Mingguan', ket: 'Kirim WA ke orang tua', ikon: '▤', buka: () => setSub('laporan') },
           { teks: `Setor ke ${tujuan}`, ket: 'Kirim catatan; Setor Akhir', ikon: '⇧', buka: () => setSub('setor') },
           { teks: 'Buka Berkas', ket: 'Berkas dari desa/daerah atau generus', ikon: '⇩', buka: () => setSub('berkas') },
           { teks: 'NUNGGONI', ket: 'Semua Pengurus & Mubaligh Peduli', ikon: '⚐', buka: () => setSub('nunggoni') },
@@ -676,9 +676,9 @@ function LaporanPekananMubaligh(p: { kembali: () => void }) {
   const daftar = useData(() => laporanWaKelompok(db, profil.wilayah_id, tanggal), [profil.id, tanggal])
   return (
     <>
-      <JudulHalaman judul="Laporan Pekanan" keterangan="Kirim ringkasan pekan ini ke orang tua satu per satu lewat WA." kembali={p.kembali} />
+      <JudulHalaman judul="Laporan Mingguan" keterangan="Kirim ringkasan minggu ini ke orang tua satu per satu lewat WA." kembali={p.kembali} />
       <Kartu>
-        <Isian label="Pekan yang memuat tanggal" type="date" nilai={tanggal} ubah={(v) => v && setTanggal(v)} />
+        <Isian label="Minggu yang memuat tanggal" type="date" nilai={tanggal} ubah={(v) => v && setTanggal(v)} />
       </Kartu>
       <KeadaanData hasil={daftar} kosong={(d) => d.length === 0} teksKosong="Belum ada generus aktif di kelompok ini.">
         {(d) => (
