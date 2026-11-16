@@ -36,7 +36,7 @@
 /* tabel lembar */
 .lb-tabel { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7pt; border: 1.2px solid var(--lb-garis-tebal); }
 .lb-tabel th, .lb-tabel td { border: 0.6px solid var(--lb-garis); padding: 0 1px; height: 4.6mm; overflow: hidden; white-space: nowrap; }
-.lb-tabel .lb-kepala th { background: #eef3f6; font-weight: bold; font-size: 7pt; text-align: center; color: #333; white-space: normal; line-height: 1.05; border-color: var(--lb-garis-tebal); }
+.lb-tabel .lb-kepala th { background: #eef3f6; font-weight: bold; font-size: 6.6pt; text-align: center; color: #333; white-space: normal; line-height: 1.05; border-color: var(--lb-garis-tebal); }
 .lb-tabel .lb-nomor th { font-size: 6.5pt; height: 3.8mm; }
 .lb-tabel .lb-target { color: #8b1d1d; }
 .lb-tabel .lb-target span { font-weight: normal; color: #b33; font-size: 6.3pt; }
@@ -50,6 +50,7 @@
 .lb-tengah { text-align: center; }
 .lb-kecil { font-size: 6.3pt; text-overflow: ellipsis; }
 .lb-kode { text-align: center; font-size: 6.5pt; font-weight: bold; color: #1d3f8f; letter-spacing: -0.3px; }
+.lb-kode.lb-panjang { font-size: 5pt; letter-spacing: -0.4px; }
 .lb-izin { color: #888; font-weight: normal; }
 .lb-angka { text-align: center; font-size: 7.5pt; color: #1d3f8f; }
 .lb-tebal { font-weight: bold; }
@@ -65,14 +66,14 @@
 /* lebar kolom */
 .c-no { width: 5mm; }
 .c-nama { width: 40mm; }
-.c-nama-t { width: 33mm; }
-.c-umur { width: 6.5mm; }
+.c-nama-t { width: 30mm; }
+.c-umur { width: 7.5mm; }
 .c-iqro { width: 7mm; }
 .c-iqro-t { width: 11mm; }
 .c-jk { width: 4.5mm; }
 .c-sekolah { width: 21mm; }
 .c-ortu { width: 20mm; }
-.c-persen { width: 11mm; }
+.c-persen { width: 12.5mm; }
 .c-slot { width: auto; }
 .c-tgl { width: auto; }
 

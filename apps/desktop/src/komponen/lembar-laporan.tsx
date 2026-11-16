@@ -143,7 +143,7 @@ function BlokUrutan(p: { l: LembarLaporanKelompok; b: BlokLembar }) {
             <td className="lb-tengah">{x.umur ?? ''}</td>
             {b.kecil ? <td className="lb-tengah lb-kecil">{x.iqroKode === 'alquran' ? 'AQ' : (x.iqroKode ?? '')}</td> : null}
             {Array.from({ length: n }, (_, i) => (
-              <td key={i} className="lb-kode">
+              <td key={i} className={`lb-kode ${(x.urutan[i]?.length ?? 0) > 3 ? 'lb-panjang' : ''}`}>
                 {x.urutan[i] ?? ''}
               </td>
             ))}
@@ -236,7 +236,7 @@ function BlokTanggal(p: { l: LembarLaporanKelompok; b: BlokLembar }) {
             <td className="lb-kecil">{x.orangTua ?? ''}</td>
             <td className="lb-tengah lb-kecil">{x.iqro}</td>
             {hari.map((i) => (
-              <td key={i} className={`lb-kode ${kelasLibur(i)} ${x.perTanggal[i] === 'IZ' ? 'lb-izin' : ''}`}>
+              <td key={i} className={`lb-kode ${kelasLibur(i)} ${x.perTanggal[i] === 'IZ' ? 'lb-izin' : ''} ${(x.perTanggal[i]?.length ?? 0) > 2 ? 'lb-panjang' : ''}`}>
                 {x.perTanggal[i]}
               </td>
             ))}
