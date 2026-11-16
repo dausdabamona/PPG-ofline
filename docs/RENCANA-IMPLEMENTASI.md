@@ -838,6 +838,18 @@ ditambahkan di akhir tabel (migrasi ALTER aman; aplikasi lama mengabaikan kolom 
 impor CSV (kolom opsional `sekolah`, `kelas_sekolah`, `iqro`), form tambah/ubah generus EXE, Super Admin HP, usulan mubaligh.
 Mubaligh memperbarui jilid Iqro' anak lewat usulan `ubah_generus` → **disetujui otomatis** di daerah (perluasan J-T4).
 
+### 19.3a Raport resmi dicetak kelompok sendiri (permintaan tambahan pemilik)
+
+- **EXE Kelompok/Desa/Daerah** — Evaluasi & Keaktifan → Laporan Hasil Belajar: **Cetak semua raport** per kelompok / jenjang / kelas
+  (pengajian rutin berkategori) — pratinjau A4 tegak satu anak per halaman → Cetak / PDF, atau **Simpan PDF**; raport satu anak juga
+  memakai tampilan resmi yang sama. Isi: kop "PENGGERAK PEMBINA GENERUS (PPG) · DAERAH <nama daerah>" + logo aplikasi, identitas (nama, jenis
+  kelamin, jenjang, kelompok, desa, semester), tabel No · Materi · Target · Dikuasai · %, TOTAL, keaktifan semester, catatan "Materi …
+  belum ditetapkan Kurikulum" dan sisa target jenjang sebelumnya, tempat & tanggal, tanda tangan MT/Mubaligh Kelompok, KI Kelompok,
+  Orang Tua/Wali.
+- **HP** — mubaligh (Evaluasi Semester: **Semua raport kelas ini** + raport satu anak), pengurus kelompok (Data: **Raport semua generus
+  kelompok**), murid & orang tua (Laporan Hasil Belajar anaknya sendiri): **Simpan PDF / Cetak** dan **Bagikan PDF (WA)**. PDF dibuat di HP
+  tanpa internet oleh core (`raporPdf`, penulis PDF `pdf-sederhana.ts` tanpa pustaka luar, huruf Helvetica bawaan PDF).
+
 ### 19.4 Keputusan teknis otonom (Fase 13)
 
 | Kode | Keputusan | Alasan |
@@ -851,8 +863,12 @@ Mubaligh memperbarui jilid Iqro' anak lewat usulan `ubah_generus` → **disetuju
 | J-C7 | NUNGGONI lembar pengurus = gabungan daftar NUNGGONI laporan bulanan kelompok + catatan NUNGGONI pengurus/mubaligh untuk kelompok itu pada bulan itu (ganda nama+tanggal dibuang). Dapukan = unsur (MS → Mubaligh/MS, 4S …) atau jabatan penulis; kolom Paraf selalu kosong | Lembar untuk ditandatangani manual |
 | J-C8 | Nama di PENYAKSIAN: **MT Kelompok** = nama token mubaligh aktif kelompok; **Kord PPG Desa** = pengurus jabatan PJ Desa; jabatan lain (KI, Wkl KI, Penerobos, Mubaligh Desa) kosong karena tidak ada di data. Sampul: "Ust. <mubaligh>" atau titik-titik | Tidak mengarang nama |
 | J-C9 | Laporan Hasil Musyawaroh: Muda-Mudi terlaksana bila salah satu musyawaroh muda/i (kelompok/desa/daerah) terlaksana, hasil = gabungan catatannya; 5 Unsur dari `mus5` | Lembar hanya punya satu baris Muda-Mudi |
-| J-C10 | Ekspor Excel memakai tata letak yang sama (exceljs): lembar Sampul, satu lembar kerja per jenjang yang berisi anak, lembar Pengurus; isi kuning & garis sama; lebar kolom disetel untuk A4 lanskap | Bisa diedit/ditandatangani setelah dicetak |
+| J-C10 | Ekspor Excel memakai tata letak yang sama (exceljs): lembar kerja Sampul, satu lembar kerja per halaman cetak (dua jenjang bila muat, semua 7 jenjang termasuk yang kosong untuk diisi tangan), lembar Pengurus; isi kuning, arsir libur & garis sama; diatur muat 1 halaman A4 (lanskap; Pengurus tegak) | Bisa diedit/ditandatangani setelah dicetak |
 | J-C11 | Gabungan desa/daerah = semua kelompok wilayah (urut desa, nama kelompok), tiap kelompok mulai dari sampulnya, satu berkas cetak/PDF/Excel (Excel: lembar kerja diberi awalan kode/nama kelompok) | Meniru "LapGen Desa …" |
 | J-C12 | Kolom generus baru `sekolah`, `kelas_sekolah` (teks ≤ 100), `iqro` (`1`–`6`/`alquran`); skema v6 (ALTER di akhir, KOLOM_AKHIR). CSV menerima "Iqro 3", "IQRO' 3", "3", "Al-Qur'an", "Quran", "AQ" | Data lapangan |
 | J-C13 | Saran jenjang dari Iqro': generus **Caberawit B** yang sudah Al-Qur'an → saran **C**; **Caberawit C** yang masih Iqro' → saran **B**; Caberawit A tidak disarankan (ditentukan kelas). Hanya saran (lencana) — jenjang tetap ditetapkan admin/mubaligh | Juknis: B vs C dari kemampuan baca |
 | J-C14 | Usulan `ubah_generus` yang perubahannya hanya `kategori` dan/atau `iqro` dari perangkat ber-hak `sahkan` di kelompok itu disetujui otomatis di daerah (memperluas J-T4). Perubahan sekolah/kelas tetap usulan biasa (admin menyetujui) | Iqro' & jenjang adalah data belajar milik mubaligh; data diri lain tetap K6 |
+| J-C15 | PDF raport dibuat **core** (`raport-cetak.ts` + `pdf-sederhana.ts`: PDF 1.4, Helvetica/Helvetica-Bold WinAnsi, isi halaman FlateDecode via fflate) sehingga sama di HP & EXE dan berjalan offline. Logo digambar sebagai lintasan vektor warna datar dari `logo.svg`. Di HP, "Simpan PDF / Cetak" membuka PDF di aplikasi pembaca PDF Android (`bukaPdf`) — menu **Cetak** Android (Print service) ada di sana — dan "Bagikan PDF (WA)" lewat lembar bagikan; tidak menambah plugin cetak native | Tanpa dependensi baru & tanpa izin tambahan; HP low-end tetap ringan |
+| J-C16 | Raport EXE dicetak dari HTML (pratinjau layar penuh, `@page` bernama: lembar = A4 lanskap, raport & lembar pengurus = A4 tegak) dengan data yang sama (`dataRaportCetak`); tombol Simpan PDF memakai PDF core | Tampilan cetak rapi & konsisten dengan PDF HP |
+| J-C17 | Kop raport = "PENGGERAK PEMBINA GENERUS (PPG) / DAERAH <nama wilayah daerah>"; tempat tanda tangan = nama daerah + tanggal cetak; nama MT = token mubaligh aktif kelompok, nama Orang Tua = `wali_nama`, KI Kelompok kosong (tidak ada di data) | Tidak mengarang nama |
+| J-C18 | Pilihan "Cetak semua raport": generus **aktif** wilayah (kelompok/desa/daerah), saring jenjang atau kelas (pengajian rutin berkategori), urut kelompok → jenjang → nama (`generusUntukRaport`) | Satu PDF siap dibagikan per kelas |
